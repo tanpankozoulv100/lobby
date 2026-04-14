@@ -1,0 +1,98 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /users/{userId} {
+      allow read: if request.auth != null && request.auth.uid == userId;
+      allow create: if request.auth != null
+        && request.auth.uid == userId
+        && request.resource.data.keys().hasOnly(['displayName', 'bio', 'createdAt', 'updatedAt', 'participantNo', 'participantSerial'])
+        && request.resource.data.displayName is string
+        && request.resource.data.displayName.size() > 0
+        && request.resource.data.displayName.size() <= 50
+        && request.resource.data.bio is string
+        && request.resource.data.bio.size() <= 500
+        && request.resource.data.participantNo is int
+        && request.resource.data.participantNo >= 1
+        && request.resource.data.participantNo <= 999
+        && request.resource.data.participantSerial is string
+        && request.resource.data.participantSerial.size() >= 1
+        && request.resource.data.participantSerial.size() <= 32;
+      allow update: if request.auth != null
+        && request.auth.uid == userId
+        && (
+          (
+            request.resource.data.diff(resource.data).affectedKeys().hasOnly(['displayName', 'bio', 'updatedAt'])
+            && request.resource.data.displayName is string
+            && request.resource.data.displayName.size() > 0
+            && request.resource.data.displayName.size() <= 50
+            && request.resource.data.bio is string
+            && request.resource.data.bio.size() <= 500
+          )
+          || (
+            !resource.data.keys().hasAny(['participantNo'])
+            && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['participantNo', 'participantSerial', 'updatedAt'])
+            && request.resource.data.participantNo is int
+            && request.resource.data.participantNo >= 1
+            && request.resource.data.participantNo <= 999
+            && request.resource.data.participantSerial is string
+            && request.resource.data.participantSerial.size() >= 1
+            && request.resource.data.participantSerial.size() <= 32
+          )
+        );
+    }
+
+    match /events/{eventId} {
+      allow read: if request.auth != null && resource.data.isPublished == true;
+      allow write: if false;
+    }
+
+    match /announcements/{announcementId} {
+      allow read: if request.auth != null && resource.data.isPublished == true;
+      allow write: if false;
+    }
+
+    // ドキュメント ID ＝ 表示用コード（6 文字想定）。ownerUid のみ。
+    match /connectionCodes/{code} {
+      allow get: if request.auth != null;
+      allow list: if false;
+      allow create: if request.auth != null
+        && !exists(/databases/$(database)/documents/connectionCodes/$(code))
+        && request.resource.data.keys().hasOnly(['ownerUid'])
+        && request.resource.data.ownerUid == request.auth.uid;
+      allow update, delete: if false;
+    }
+
+    match /users/{userId}/outboundLinks/{peerId} {
+      allow read: if request.auth != null && request.auth.uid == userId;
+      allow create: if request.auth != null
+        && request.auth.uid == userId
+        && peerId != userId
+        && request.resource.data.keys().hasOnly(['createdAt']);
+      allow update, delete: if false;
+    }
+
+    // 相手があなたのコードで連携したとき、相手 UID をここに記録（作成は連携した本人のみ）
+    match /users/{userId}/linkedFrom/{sourceUid} {
+      allow read: if request.auth != null && request.auth.uid == userId;
+      allow create: if request.auth != null
+        && request.auth.uid == sourceUid
+        && sourceUid != userId
+        && request.resource.data.keys().hasOnly(['createdAt']);
+      allow update, delete: if false;
+    }
+
+    match /boardPosts/{postId} {
+      allow read: if request.auth != null;
+      allow create: if request.auth != null
+        && request.resource.data.authorUid == request.auth.uid
+        && request.resource.data.keys().hasOnly(['authorUid', 'authorDisplayName', 'body', 'createdAt'])
+        && request.resource.data.authorUid is string
+        && request.resource.data.authorDisplayName is string
+        && request.resource.data.body is string
+        && request.resource.data.body.size() > 0
+        && request.resource.data.body.size() <= 500;
+      allow update, delete: if false;
+    }
+  }
+}

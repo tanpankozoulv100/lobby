@@ -1,0 +1,21 @@
+{
+  "indexes": [
+    {
+      "collectionGroup": "events",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "isPublished", "order": "ASCENDING" },
+        { "fieldPath": "startsAt", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "announcements",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "isPublished", "order": "ASCENDING" },
+        { "fieldPath": "publishedAt", "order": "DESCENDING" }
+      ]
+    }
+  ],
+  "fieldOverrides": []
+}
