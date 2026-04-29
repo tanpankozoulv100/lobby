@@ -72,9 +72,10 @@ export function DashboardHomeScreen({ user }: { user: User }) {
       try {
         await ensureUserProfile(user.uid, user.email);
         await ensureMyConnectionCode(user.uid);
-      } catch {
+      } catch (e) {
+        console.error("[Lobby] profile / connection code bootstrap:", e);
         if (!cancelled) {
-          setProfileError("プロフィールの準備に失敗しました。");
+          setProfileError("プロフィールの準備に失敗しました。しばらくしてからお試しください。");
           setProfileLoading(false);
         }
         return;

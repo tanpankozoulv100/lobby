@@ -22,8 +22,8 @@ function ProfileConfigMissing() {
   return (
     <section className="rounded-xl border border-zinc-200 bg-zinc-50/80 p-5 dark:border-zinc-700 dark:bg-zinc-800/40">
       <h2 className="text-lg font-semibold text-zinc-900 dark:text-zinc-50">プロフィール</h2>
-      <p className="mt-3 rounded-lg bg-amber-50 px-3 py-2 text-sm text-amber-900 dark:bg-amber-950/40 dark:text-amber-100">
-        .env.local の Firebase 設定を確認してください。
+      <p className="mt-3 text-sm text-zinc-600 dark:text-zinc-400">
+        接続できませんでした。しばらく経ってからお試しください。
       </p>
     </section>
   );

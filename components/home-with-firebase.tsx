@@ -20,15 +20,14 @@ const FirebaseStatus = dynamic(
 
 export function HomeWithFirebase() {
   const { user, loading } = useAuth();
+  const showDevStatus = process.env.NODE_ENV === "development";
 
   return (
     <LobbyPageShell>
       <div className="w-full space-y-6 text-center">
         <div>
           <h1 className="font-serif text-2xl font-semibold tracking-tight text-zinc-900">トップ</h1>
-          <p className="mt-3 text-sm leading-relaxed text-zinc-600">
-            メールでログインできます。Firebase Console で「Authentication」→「メール／パスワード」を有効にしてください。
-          </p>
+          <p className="mt-3 text-sm leading-relaxed text-zinc-600">メールアドレスでログインできます。</p>
         </div>
 
         <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:justify-center">
@@ -59,9 +58,11 @@ export function HomeWithFirebase() {
           )}
         </div>
 
-        <div className="border-t border-zinc-100 pt-6 text-left">
-          <FirebaseStatus />
-        </div>
+        {showDevStatus ? (
+          <div className="border-t border-zinc-100 pt-6 text-left">
+            <FirebaseStatus />
+          </div>
+        ) : null}
       </div>
     </LobbyPageShell>
   );

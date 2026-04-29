@@ -1,5 +1,8 @@
 import type { Timestamp } from "firebase/firestore";
 
+/** 本人確認（運営が Console で approved / rejected を設定） */
+export type IdentityVerificationStatus = "none" | "pending" | "approved" | "rejected";
+
 /** `users/{uid}` に保存するフィールド（ルール・クライアントで共通イメージ用） */
 export type UserProfileFields = {
   displayName: string;
@@ -8,9 +11,79 @@ export type UserProfileFields = {
   participantNo?: number;
   /** 例: @20260329-007 */
   participantSerial?: string;
+  /** 本人確認の状態（未設定は none とみなす） */
+  identityStatus?: IdentityVerificationStatus;
+  /** Storage 上のパス（例: users/uid/identity/xxx.jpg） */
+  idDocumentPath?: string;
+  identitySubmittedAt?: Timestamp;
+  /** シーズンチケット（シリアル）を引き換えた日時 */
+  ticketRedeemedAt?: Timestamp;
+  /** 正規化済みシリアル（監査・表示用） */
+  seasonTicketCode?: string;
   createdAt?: Timestamp;
   updatedAt?: Timestamp;
 };
+
+/** `ticketCodes/{normalizedCode}` — 運営が Console で作成し、ユーザーが初回のみ使用 */
+export type TicketCodeFields = {
+  usedBy: string | null;
+  usedAt?: Timestamp;
+};
+
+/** イベント日の朝 / 昼 / 夜（Firestore にもこの文字列で保存） */
+export type EventSlotPeriod = "morning" | "afternoon" | "evening";
+
+/** オフラインイベントのグループ（議事録の A/B） */
+export type LobbyCohort = "A" | "B";
+
+/**
+ * `events/{eventId}/slotChoices/{slotId}` — 運営が Console で投入する行き先の選択肢
+ * 同一 (dateKey, period, cohort) につき最大 2 件（lineIndex 0 / 1）想定
+ */
+export type EventSlotChoiceFields = {
+  dateKey: string;
+  period: EventSlotPeriod;
+  cohort: LobbyCohort;
+  /** 0 または 1（同じ枠の2択用） */
+  lineIndex: number;
+  destinationLabel: string;
+  eventDetail?: string;
+  sortOrder?: number;
+};
+
+/**
+ * `users/{uid}/eventSignups/{signupId}` — ユーザーが選んだ行き先（参加は任意）
+ * signupId は `eventId__dateKey__period` 形式（lib で生成）
+ */
+export type EventSignupFields = {
+  eventId: string;
+  dateKey: string;
+  period: EventSlotPeriod;
+  slotChoiceId: string;
+  cohortAtSignup?: LobbyCohort;
+  destinationLabelAtSignup?: string;
+  updatedAt?: Timestamp;
+};
+
+export type CohortWeekFields = {
+  weekKey: string;
+  weekStartDateKey: string;
+  weekEndDateKey: string;
+  cohort: LobbyCohort;
+  generatedAt?: Timestamp;
+};
+
+export type EventDisplayWindowFields = {
+  weekKey: string;
+  visibleFromDateKey: string;
+  visibleToDateKey: string;
+  updatedAt?: Timestamp;
+};
+
+/**
+ * `admins/{uid}` — 運営スタッフの Firebase Auth UID と同じドキュメント ID。
+ * フィールドは不要（空ドキュメント可）。`/staff/events` からイベント投入する際に参照される。
+ */
 
 /** `events/{eventId}` — クライアントは isPublished === true のみクエリ */
 export type EventFields = {

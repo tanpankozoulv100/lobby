@@ -44,6 +44,7 @@ export async function ensureUserProfile(
       bio: "",
       participantNo: hashUidToParticipantNo(uid),
       participantSerial: generateParticipantSerial(),
+      identityStatus: "none",
       createdAt: serverTimestamp(),
       updatedAt: serverTimestamp(),
     });
@@ -78,11 +79,24 @@ export function subscribeUserProfile(
         return;
       }
       const d = snap.data();
+      const rawIdentity = d.identityStatus;
+      const identityStatus =
+        rawIdentity === "none" ||
+        rawIdentity === "pending" ||
+        rawIdentity === "approved" ||
+        rawIdentity === "rejected"
+          ? rawIdentity
+          : undefined;
       onData({
         displayName: typeof d.displayName === "string" ? d.displayName : "",
         bio: typeof d.bio === "string" ? d.bio : "",
         participantNo: typeof d.participantNo === "number" ? d.participantNo : undefined,
         participantSerial: typeof d.participantSerial === "string" ? d.participantSerial : undefined,
+        identityStatus,
+        idDocumentPath: typeof d.idDocumentPath === "string" ? d.idDocumentPath : undefined,
+        identitySubmittedAt: d.identitySubmittedAt,
+        ticketRedeemedAt: d.ticketRedeemedAt,
+        seasonTicketCode: typeof d.seasonTicketCode === "string" ? d.seasonTicketCode : undefined,
         createdAt: d.createdAt,
         updatedAt: d.updatedAt,
       });

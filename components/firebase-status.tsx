@@ -22,44 +22,12 @@ function missingFirebasePublicEnvKeys(): string[] {
 }
 
 export function FirebaseStatus() {
-  const missingKeys = missingFirebasePublicEnvKeys();
   const app = getFirebaseApp();
   const ready = isFirebaseConfigComplete() && Boolean(app);
 
   if (!ready) {
-    return (
-      <div className="space-y-2 text-sm text-amber-800 dark:text-amber-200">
-        <p>
-          Firebase 未設定です。{" "}
-          <code className="rounded bg-zinc-200 px-1 py-0.5 text-xs dark:bg-zinc-800">
-            lobby-app
-          </code>{" "}
-          直下の{" "}
-          <code className="rounded bg-zinc-200 px-1 py-0.5 text-xs dark:bg-zinc-800">
-            .env.local
-          </code>{" "}
-          に値を入れ、
-          <strong className="font-medium"> ターミナルで開発サーバーを止めて（Ctrl+C）から </strong>
-          <code className="rounded bg-zinc-200 px-1 py-0.5 text-xs dark:bg-zinc-800">npm run dev</code>{" "}
-          をもう一度。まだダメなら{" "}
-          <code className="rounded bg-zinc-200 px-1 py-0.5 text-xs dark:bg-zinc-800">.next</code>{" "}
-          フォルダを削除してから同じく起動し直してください。
-        </p>
-        {missingKeys.length > 0 ? (
-          <p className="rounded-lg bg-amber-100/80 px-3 py-2 text-xs dark:bg-amber-950/40 dark:text-amber-100">
-            いまブラウザに渡っていない変数: {missingKeys.join(", ")}
-            <br />
-            （<code className="text-[11px]">lobby-app</code> で{" "}
-            <code className="text-[11px]">npm run dev</code> しているか確認してください）
-          </p>
-        ) : (
-          <p className="rounded-lg bg-amber-100/80 px-3 py-2 text-xs dark:bg-amber-950/40 dark:text-amber-100">
-            環境変数は読めていますが初期化に失敗しています。ブラウザを再読み込みするか、
-            <code className="text-[11px]">.next</code> 削除後にサーバー再起動を試してください。
-          </p>
-        )}
-      </div>
-    );
+    const missingCount = missingFirebasePublicEnvKeys().length;
+    return <p className="text-sm text-amber-700">開発設定が未完了です（不足項目: {missingCount}）。</p>;
   }
 
   return (

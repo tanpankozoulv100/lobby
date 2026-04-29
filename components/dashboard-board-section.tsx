@@ -25,8 +25,8 @@ function BoardConfigMissing() {
   return (
     <section className="rounded-xl border border-zinc-200 bg-zinc-50/80 p-5 dark:border-zinc-700 dark:bg-zinc-800/40">
       <h2 className="text-lg font-semibold text-zinc-900 dark:text-zinc-50">参加者掲示板</h2>
-      <p className="mt-3 rounded-lg bg-amber-50 px-3 py-2 text-sm text-amber-900 dark:bg-amber-950/40 dark:text-amber-100">
-        .env.local の Firebase 設定を確認してください。
+      <p className="mt-3 text-sm text-zinc-600 dark:text-zinc-400">
+        接続できませんでした。しばらく経ってからお試しください。
       </p>
     </section>
   );
@@ -34,7 +34,6 @@ function BoardConfigMissing() {
 
 function DashboardBoardLoaded({ user }: { user: User }) {
   const [posts, setPosts] = useState<BoardPostRow[] | null>(null);
-  const [boardError, setBoardError] = useState<string | null>(null);
   const [authorName, setAuthorName] = useState("");
   const [body, setBody] = useState("");
   const [postPending, setPostPending] = useState(false);
@@ -56,9 +55,10 @@ function DashboardBoardLoaded({ user }: { user: User }) {
     const unsub = subscribeBoardPosts(
       (rows) => {
         setPosts(rows);
-        setBoardError(null);
       },
-      (msg) => setBoardError(msg)
+      () => {
+        setPosts([]);
+      }
     );
     return () => {
       unsub?.();
@@ -81,14 +81,7 @@ function DashboardBoardLoaded({ user }: { user: User }) {
   return (
     <section className="rounded-xl border border-zinc-200 bg-zinc-50/80 p-5 dark:border-zinc-700 dark:bg-zinc-800/40">
       <h2 className="text-lg font-semibold text-zinc-900 dark:text-zinc-50">参加者掲示板</h2>
-      <p className="mt-1 text-sm text-zinc-600 dark:text-zinc-400">
-        ログインユーザー同士の短いメッセージ（運営モデレーションは未実装のため、節度ある利用をお願いします）。
-      </p>
-      {boardError ? (
-        <p className="mt-3 rounded-lg bg-amber-50 px-3 py-2 text-sm text-amber-900 dark:bg-amber-950/40 dark:text-amber-100">
-          {boardError}
-        </p>
-      ) : null}
+      <p className="mt-1 text-sm text-zinc-600 dark:text-zinc-400">参加者同士のメッセージを投稿・閲覧できます。</p>
       <div className="mt-4 space-y-4">
         <div className="rounded-lg border border-zinc-200 bg-white p-4 dark:border-zinc-600 dark:bg-zinc-900">
           <label htmlFor="board-author" className="text-xs font-medium text-zinc-500 dark:text-zinc-400">

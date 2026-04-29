@@ -2,6 +2,9 @@
  * ホーム／QRモーダル用のシーズン表示（運営は後から Firestore 等へ移行可）
  * 正本: Obsidian …/アプリ開発/初期UIベース/Lobby 初期UI.pdf（齟齬があれば PDF を優先）
  */
+/** グループ A/B 振り分けのハッシュ用（シーズンが変わったら更新） */
+export const LOBBY_COHORT_SEASON_KEY = "nagoya-s1-2026";
+
 export const LOBBY_SEASON_UI = {
   headerTitle: "シーズン名が入ります",
   cardTitle: "Nagoya Season 1",
@@ -24,5 +27,5 @@ export function getSeasonRemainingDays(now: Date = new Date()): number {
 }
 
 export function formatCountdownBanner(days: number): string {
-  return `シーズン終了まで残り${days}日`;
+  return `シーズン終了まで残り ${days}日`;
 }

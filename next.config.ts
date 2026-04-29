@@ -52,6 +52,29 @@ const publicFirebaseEnv: Record<string, string> = {};
 for (const key of PUBLIC_FIREBASE_KEYS) {
   publicFirebaseEnv[key] = fromEnvLocal[key] ?? process.env[key] ?? "";
 }
+/** オンボーディング開発バイパス（Firebase と同じ経路でクライアントに載せる） */
+const bypassFromFile = (fromEnvLocal.NEXT_PUBLIC_LOBBY_DEV_BYPASS_ONBOARDING ?? "").trim();
+const bypassFromProcess = (process.env.NEXT_PUBLIC_LOBBY_DEV_BYPASS_ONBOARDING ?? "").trim();
+publicFirebaseEnv.NEXT_PUBLIC_LOBBY_DEV_BYPASS_ONBOARDING = bypassFromFile || bypassFromProcess || "";
+
+const nextPublicDebug = (
+  fromEnvLocal.NEXT_PUBLIC_LOBBY_DEBUG ??
+  process.env.NEXT_PUBLIC_LOBBY_DEBUG ??
+  ""
+)
+  .trim();
+/** クライアントで `showEventsDebug` などと同じ経路で焼き込む（.env だけに頼ると未反映になることがある） */
+const publicLobbyEnv: Record<string, string> = {
+  ...publicFirebaseEnv,
+  NEXT_PUBLIC_LOBBY_DEBUG: nextPublicDebug,
+};
+
+if (process.env.NODE_ENV !== "production") {
+  console.log(
+    `[Lobby] NEXT_PUBLIC_LOBBY_DEV_BYPASS_ONBOARDING: file="${bypassFromFile}" dotenv="${bypassFromProcess}" → "${publicLobbyEnv.NEXT_PUBLIC_LOBBY_DEV_BYPASS_ONBOARDING}"`
+  );
+  console.log(`[Lobby] NEXT_PUBLIC_LOBBY_DEBUG: file+process → "${nextPublicDebug}"`);
+}
 
 /** 同一 Wi-Fi 上のスマホから `next dev` で読み込むときのオリジン許可（開発時のみ有効） */
 const defaultAllowedDevOrigins = [
@@ -71,7 +94,7 @@ function parseExtraAllowedDevOrigins(): string[] {
 }
 
 const nextConfig: NextConfig = {
-  env: publicFirebaseEnv,
+  env: publicLobbyEnv,
   allowedDevOrigins: [...defaultAllowedDevOrigins, ...parseExtraAllowedDevOrigins()],
 };
 

@@ -2,11 +2,23 @@ rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
+
+    /** ドキュメント ID ＝ Firebase Auth の uid。中身は空でも可。運営は Console で 1 件だけ作ればよい。 */
+    function isLobbyStaff() {
+      return request.auth != null
+        && exists(/databases/$(database)/documents/admins/$(request.auth.uid));
+    }
+
+    match /admins/{uid} {
+      allow get: if request.auth != null && request.auth.uid == uid;
+      allow list, create, update, delete: if false;
+    }
+
     match /users/{userId} {
       allow read: if request.auth != null && request.auth.uid == userId;
       allow create: if request.auth != null
         && request.auth.uid == userId
-        && request.resource.data.keys().hasOnly(['displayName', 'bio', 'createdAt', 'updatedAt', 'participantNo', 'participantSerial'])
+        && request.resource.data.keys().hasOnly(['displayName', 'bio', 'createdAt', 'updatedAt', 'participantNo', 'participantSerial', 'identityStatus'])
         && request.resource.data.displayName is string
         && request.resource.data.displayName.size() > 0
         && request.resource.data.displayName.size() <= 50
@@ -17,7 +29,8 @@ service cloud.firestore {
         && request.resource.data.participantNo <= 999
         && request.resource.data.participantSerial is string
         && request.resource.data.participantSerial.size() >= 1
-        && request.resource.data.participantSerial.size() <= 32;
+        && request.resource.data.participantSerial.size() <= 32
+        && request.resource.data.identityStatus == 'none';
       allow update: if request.auth != null
         && request.auth.uid == userId
         && (
@@ -39,12 +52,157 @@ service cloud.firestore {
             && request.resource.data.participantSerial.size() >= 1
             && request.resource.data.participantSerial.size() <= 32
           )
+          || (
+            request.resource.data.diff(resource.data).affectedKeys().hasOnly(['identityStatus', 'idDocumentPath', 'identitySubmittedAt', 'updatedAt'])
+            && request.resource.data.identityStatus == 'pending'
+            && request.resource.data.idDocumentPath is string
+            && request.resource.data.idDocumentPath.matches('^users/' + userId + '/identity/[^/]+$')
+            && (
+              !resource.data.keys().hasAny(['identityStatus'])
+              || resource.data.identityStatus in ['none', 'pending', 'rejected']
+            )
+          )
+          || (
+            request.resource.data.diff(resource.data).affectedKeys().hasOnly(['ticketRedeemedAt', 'seasonTicketCode', 'updatedAt'])
+            && request.resource.data.seasonTicketCode is string
+            && request.resource.data.seasonTicketCode.size() >= 8
+            && request.resource.data.seasonTicketCode.size() <= 64
+            && !resource.data.keys().hasAny(['ticketRedeemedAt'])
+          )
         );
+
+      match /eventSignups/{signupId} {
+        allow read: if request.auth != null && request.auth.uid == userId;
+        allow create, update: if request.auth != null
+          && request.auth.uid == userId
+          && (
+            request.resource.data.keys().hasOnly(['eventId', 'dateKey', 'period', 'slotChoiceId', 'updatedAt'])
+            || request.resource.data.keys().hasOnly(['eventId', 'dateKey', 'period', 'slotChoiceId', 'updatedAt', 'cohortAtSignup', 'destinationLabelAtSignup'])
+          )
+          && request.resource.data.eventId is string
+          && request.resource.data.eventId.size() >= 1
+          && request.resource.data.eventId.size() <= 256
+          && request.resource.data.dateKey is string
+          && request.resource.data.dateKey.matches('^[0-9]{8}$')
+          && request.resource.data.period in ['morning', 'afternoon', 'evening']
+          && request.resource.data.slotChoiceId is string
+          && request.resource.data.slotChoiceId.size() >= 1
+          && request.resource.data.slotChoiceId.size() <= 128
+          && (!request.resource.data.keys().hasAny(['cohortAtSignup']) || request.resource.data.cohortAtSignup in ['A', 'B'])
+          && (!request.resource.data.keys().hasAny(['destinationLabelAtSignup'])
+            || (request.resource.data.destinationLabelAtSignup is string
+              && request.resource.data.destinationLabelAtSignup.size() >= 1
+              && request.resource.data.destinationLabelAtSignup.size() <= 500));
+        allow delete: if request.auth != null && request.auth.uid == userId;
+      }
+
+      match /cohortWeeks/{weekKey} {
+        allow read: if request.auth != null && request.auth.uid == userId;
+        allow write: if false;
+      }
+    }
+
+    match /ticketCodes/{code} {
+      allow read: if request.auth != null && (
+        !resource.data.keys().hasAny(['usedBy'])
+        || resource.data.usedBy == null
+        || resource.data.usedBy == request.auth.uid
+      );
+      allow create, delete: if false;
+      allow update: if request.auth != null
+        && (!resource.data.keys().hasAny(['usedBy']) || resource.data.usedBy == null)
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['usedBy'])
+        && request.resource.data.usedBy == request.auth.uid;
     }
 
     match /events/{eventId} {
-      allow read: if request.auth != null && resource.data.isPublished == true;
-      allow write: if false;
+      allow read: if request.auth != null && (
+        resource.data.isPublished == true ||
+        isLobbyStaff()
+      );
+
+      allow create: if isLobbyStaff()
+        && request.resource.data.keys().hasAll(['title', 'startsAt', 'isPublished', 'createdAt'])
+        && request.resource.data.keys().hasOnly(['title', 'startsAt', 'endsAt', 'description', 'locationSummary', 'isPublished', 'createdAt'])
+        && request.resource.data.title is string
+        && request.resource.data.title.size() > 0
+        && request.resource.data.title.size() <= 300
+        && request.resource.data.isPublished is bool
+        && request.resource.data.startsAt is timestamp
+        && request.resource.data.createdAt is timestamp
+        && (!request.resource.data.keys().hasAny(['description'])
+          || (request.resource.data.description is string && request.resource.data.description.size() <= 8000))
+        && (!request.resource.data.keys().hasAny(['endsAt']) || request.resource.data.endsAt is timestamp)
+        && (!request.resource.data.keys().hasAny(['locationSummary'])
+          || (request.resource.data.locationSummary is string && request.resource.data.locationSummary.size() <= 500));
+
+      allow update: if isLobbyStaff()
+        && request.resource.data.createdAt == resource.data.createdAt
+        && request.resource.data.keys().hasAll(['title', 'startsAt', 'isPublished', 'createdAt'])
+        && request.resource.data.keys().hasOnly(['title', 'startsAt', 'endsAt', 'description', 'locationSummary', 'isPublished', 'createdAt'])
+        && request.resource.data.title is string
+        && request.resource.data.title.size() > 0
+        && request.resource.data.title.size() <= 300
+        && request.resource.data.isPublished is bool
+        && request.resource.data.startsAt is timestamp
+        && request.resource.data.createdAt is timestamp
+        && (!request.resource.data.keys().hasAny(['description'])
+          || (request.resource.data.description is string && request.resource.data.description.size() <= 8000))
+        && (!request.resource.data.keys().hasAny(['endsAt']) || request.resource.data.endsAt is timestamp)
+        && (!request.resource.data.keys().hasAny(['locationSummary'])
+          || (request.resource.data.locationSummary is string && request.resource.data.locationSummary.size() <= 500));
+
+      allow delete: if false;
+
+      match /slotChoices/{slotId} {
+        allow read: if request.auth != null && (
+          isLobbyStaff() ||
+          get(/databases/$(database)/documents/events/$(eventId)).data.isPublished == true
+        );
+
+        allow create: if isLobbyStaff()
+          && exists(/databases/$(database)/documents/events/$(eventId))
+          && (
+            request.resource.data.keys().hasOnly(['dateKey', 'period', 'cohort', 'lineIndex', 'destinationLabel'])
+            || request.resource.data.keys().hasOnly(['dateKey', 'period', 'cohort', 'lineIndex', 'destinationLabel', 'sortOrder'])
+            || request.resource.data.keys().hasOnly(['dateKey', 'period', 'cohort', 'lineIndex', 'destinationLabel', 'eventDetail'])
+            || request.resource.data.keys().hasOnly(['dateKey', 'period', 'cohort', 'lineIndex', 'destinationLabel', 'eventDetail', 'sortOrder'])
+          )
+          && request.resource.data.dateKey is string
+          && request.resource.data.dateKey.matches('^[0-9]{8}$')
+          && request.resource.data.period in ['morning', 'afternoon', 'evening']
+          && request.resource.data.cohort in ['A', 'B']
+          && request.resource.data.lineIndex is int
+          && request.resource.data.lineIndex in [0, 1]
+          && request.resource.data.destinationLabel is string
+          && request.resource.data.destinationLabel.size() > 0
+          && request.resource.data.destinationLabel.size() <= 500
+          && (!request.resource.data.keys().hasAny(['eventDetail'])
+            || (request.resource.data.eventDetail is string && request.resource.data.eventDetail.size() <= 2000))
+          && (!request.resource.data.keys().hasAny(['sortOrder']) || request.resource.data.sortOrder is int);
+
+        allow update: if isLobbyStaff()
+          && (
+            request.resource.data.keys().hasOnly(['dateKey', 'period', 'cohort', 'lineIndex', 'destinationLabel'])
+            || request.resource.data.keys().hasOnly(['dateKey', 'period', 'cohort', 'lineIndex', 'destinationLabel', 'sortOrder'])
+            || request.resource.data.keys().hasOnly(['dateKey', 'period', 'cohort', 'lineIndex', 'destinationLabel', 'eventDetail'])
+            || request.resource.data.keys().hasOnly(['dateKey', 'period', 'cohort', 'lineIndex', 'destinationLabel', 'eventDetail', 'sortOrder'])
+          )
+          && request.resource.data.dateKey is string
+          && request.resource.data.dateKey.matches('^[0-9]{8}$')
+          && request.resource.data.period in ['morning', 'afternoon', 'evening']
+          && request.resource.data.cohort in ['A', 'B']
+          && request.resource.data.lineIndex is int
+          && request.resource.data.lineIndex in [0, 1]
+          && request.resource.data.destinationLabel is string
+          && request.resource.data.destinationLabel.size() > 0
+          && request.resource.data.destinationLabel.size() <= 500
+          && (!request.resource.data.keys().hasAny(['eventDetail'])
+            || (request.resource.data.eventDetail is string && request.resource.data.eventDetail.size() <= 2000))
+          && (!request.resource.data.keys().hasAny(['sortOrder']) || request.resource.data.sortOrder is int);
+
+        allow delete: if isLobbyStaff();
+      }
     }
 
     match /announcements/{announcementId} {
@@ -52,10 +210,16 @@ service cloud.firestore {
       allow write: if false;
     }
 
+    match /eventDisplayWindow/{docId} {
+      allow read: if request.auth != null;
+      allow write: if false;
+    }
+
     // ドキュメント ID ＝ 表示用コード（6 文字想定）。ownerUid のみ。
     match /connectionCodes/{code} {
       allow get: if request.auth != null;
-      allow list: if false;
+      // ensureMyConnectionCode が ownerUid でクエリするため、本人のコードだけ list 可
+      allow list: if request.auth != null && resource.data.ownerUid == request.auth.uid;
       allow create: if request.auth != null
         && !exists(/databases/$(database)/documents/connectionCodes/$(code))
         && request.resource.data.keys().hasOnly(['ownerUid'])

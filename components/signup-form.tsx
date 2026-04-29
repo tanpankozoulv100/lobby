@@ -23,12 +23,7 @@ export function SignupForm() {
     "w-full rounded-xl border border-zinc-200 bg-white px-3 py-2.5 text-base text-zinc-900 outline-none transition focus:border-[var(--lobby-red)] focus:ring-2 focus:ring-[var(--lobby-red)]/25";
 
   if (!isFirebaseConfigComplete()) {
-    return (
-      <p className="text-sm text-amber-800 dark:text-amber-200">
-        先に <code className="rounded bg-zinc-200 px-1 text-xs dark:bg-zinc-800">.env.local</code>{" "}
-        に Firebase の設定を入れてください。
-      </p>
-    );
+    return <p className="text-sm text-zinc-600 dark:text-zinc-400">現在アカウント登録をご利用いただけません。</p>;
   }
 
   async function handleSubmit(e: React.FormEvent) {
@@ -40,7 +35,7 @@ export function SignupForm() {
     }
     const auth = getFirebaseAuth();
     if (!auth) {
-      setError("Firebase が初期化できていません。ページを再読み込みしてください。");
+      setError("接続できませんでした。ページを再読み込みしてください。");
       return;
     }
     setPending(true);

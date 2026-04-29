@@ -15,6 +15,16 @@
         { "fieldPath": "isPublished", "order": "ASCENDING" },
         { "fieldPath": "publishedAt", "order": "DESCENDING" }
       ]
+    },
+    {
+      "collectionGroup": "slotChoices",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "dateKey", "order": "ASCENDING" },
+        { "fieldPath": "period", "order": "ASCENDING" },
+        { "fieldPath": "cohort", "order": "ASCENDING" },
+        { "fieldPath": "lineIndex", "order": "ASCENDING" }
+      ]
     }
   ],
   "fieldOverrides": []
