@@ -1,4 +1,4 @@
-import { addDoc, collection, getFirestore, Timestamp } from "firebase-admin/firestore";
+import { getFirestore, Timestamp } from "firebase-admin/firestore";
 import { App, cert, getApps, initializeApp } from "firebase-admin/app";
 
 const EVENTS = "events";
@@ -79,7 +79,7 @@ export async function createEventFromExternalIntake(input: IntakeInput): Promise
   const app = getAdminApp();
   const db = getFirestore(app);
   const startsAtDate = new Date(input.startsAt);
-  const ref = await addDoc(collection(db, EVENTS), {
+  const ref = await db.collection(EVENTS).add({
     title: input.title,
     startsAt: Timestamp.fromDate(startsAtDate),
     isPublished: false,
