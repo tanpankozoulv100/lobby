@@ -12,6 +12,7 @@ import {
   type SlotChoiceRow,
 } from "@/lib/firestore-event-slot-choices";
 import {
+  clearEventSignup,
   filterSignupsForEvent,
   saveEventSignup,
   type UserEventSignupRow,
@@ -36,6 +37,17 @@ type Props = {
 
 function choicesForCohort(rows: SlotChoiceRow[], cohort: LobbyCohort): SlotChoiceRow[] {
   return rows.filter((r) => r.cohort === cohort);
+}
+
+function fallbackStartTime(period: EventSlotPeriod): string {
+  if (period === "morning") return "09:00";
+  if (period === "afternoon") return "13:00";
+  return "18:00";
+}
+
+function formatStartTimeLabel(raw: string | undefined, period: EventSlotPeriod): string {
+  const t = (raw ?? "").trim();
+  return /^\d{2}:\d{2}$/.test(t) ? t : fallbackStartTime(period);
 }
 
 export function EventSlotSection({
@@ -198,16 +210,12 @@ export function EventSlotSection({
                 const key = `${dateKey}__${period}`;
                 const current = signupMap.get(key);
                 const saving = busyKey === key;
-                const headingTime = list[0]?.startTime ?? "--:--";
-
                 return (
                   <fieldset key={key} className="rounded-lg border border-zinc-100 bg-zinc-50/80 p-3 dark:border-zinc-700 dark:bg-zinc-900/50">
-                    <legend className="px-1 text-xs font-medium text-zinc-600 dark:text-zinc-400">
-                      開始時刻 {headingTime}
-                    </legend>
                     <div className="mt-2 space-y-2">
                       {list.map((choice) => {
                         const selected = current?.slotChoiceId === choice.id;
+                        const timeLabel = formatStartTimeLabel(choice.startTime, period);
                         return (
                           <label
                             key={choice.id}
@@ -218,7 +226,7 @@ export function EventSlotSection({
                             }`}
                           >
                             <input
-                              type="radio"
+                              type="checkbox"
                               name={`slot-${eventId}-${dateKey}-${period}`}
                               checked={selected}
                               disabled={saving}
@@ -226,7 +234,9 @@ export function EventSlotSection({
                                 void (async () => {
                                   setActionError(null);
                                   setBusyKey(key);
-                                  const res = await saveEventSignup(user.uid, eventId, dateKey, period, choice);
+                                  const res = selected
+                                    ? await clearEventSignup(user.uid, eventId, dateKey, period)
+                                    : await saveEventSignup(user.uid, eventId, dateKey, period, choice);
                                   setBusyKey(null);
                                   if (!res.ok) setActionError(res.message);
                                 })();
@@ -234,7 +244,9 @@ export function EventSlotSection({
                               className="mt-0.5"
                             />
                             <span className="space-y-1">
-                              <span className="block text-zinc-800 dark:text-zinc-200">{choice.destinationLabel}</span>
+                              <span className="block text-zinc-800 dark:text-zinc-200">
+                                {timeLabel} {choice.destinationLabel}
+                              </span>
                               {choice.eventDetail ? (
                                 <span className="block text-xs text-zinc-500 dark:text-zinc-400">{choice.eventDetail}</span>
                               ) : null}
@@ -243,9 +255,6 @@ export function EventSlotSection({
                         );
                       })}
                     </div>
-                    {current ? (
-                      <p className="mt-2 text-xs text-zinc-500 dark:text-zinc-400">選択中です。</p>
-                    ) : null}
                   </fieldset>
                 );
               })}
