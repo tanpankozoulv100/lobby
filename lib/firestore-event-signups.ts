@@ -14,8 +14,8 @@ import type { SlotChoiceRow } from "@/lib/firestore-event-slot-choices";
 
 const EVENT_SIGNUPS = "eventSignups";
 
-export function eventSignupDocId(eventId: string, dateKey: string, period: EventSlotPeriod): string {
-  return `${eventId}__${dateKey}__${period}`;
+export function eventSignupDocId(dateKey: string, period: EventSlotPeriod): string {
+  return `${dateKey}__${period}`;
 }
 
 export type UserEventSignupRow = { id: string } & EventSignupFields;
@@ -66,10 +66,6 @@ export function subscribeUserEventSignups(
   );
 }
 
-export function filterSignupsForEvent(rows: UserEventSignupRow[], eventId: string): UserEventSignupRow[] {
-  return rows.filter((r) => r.eventId === eventId);
-}
-
 /**
  * 選択肢が公開データと一致するか確認してから保存（改ざんで別イベントの ID を指定されるのを防ぐ）
  */
@@ -93,7 +89,7 @@ export async function saveEventSignup(
     return { ok: false, message: "この行き先は利用できません。" };
   }
 
-  const signupId = eventSignupDocId(eventId, dateKey, period);
+  const signupId = eventSignupDocId(dateKey, period);
   const userSignupRef = doc(db, "users", uid, EVENT_SIGNUPS, signupId);
   try {
     await setDoc(userSignupRef, {
@@ -117,7 +113,7 @@ export async function saveEventSignup(
 
 export async function clearEventSignup(
   uid: string,
-  eventId: string,
+  _eventId: string,
   dateKey: string,
   period: EventSlotPeriod
 ): Promise<{ ok: true } | { ok: false; message: string }> {
@@ -125,7 +121,7 @@ export async function clearEventSignup(
   if (!db) {
     return { ok: false, message: "Firestore に接続できません。" };
   }
-  const signupId = eventSignupDocId(eventId, dateKey, period);
+  const signupId = eventSignupDocId(dateKey, period);
   const userSignupRef = doc(db, "users", uid, EVENT_SIGNUPS, signupId);
   try {
     await deleteDoc(userSignupRef);

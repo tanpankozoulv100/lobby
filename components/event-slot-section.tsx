@@ -13,7 +13,6 @@ import {
 } from "@/lib/firestore-event-slot-choices";
 import {
   clearEventSignup,
-  filterSignupsForEvent,
   saveEventSignup,
   type UserEventSignupRow,
 } from "@/lib/firestore-event-signups";
@@ -75,8 +74,6 @@ export function EventSlotSection({
     [usePrefetch, prefetchedRows, localRows]
   );
 
-  const signups = useMemo(() => filterSignupsForEvent(signupsAll, eventId), [signupsAll, eventId]);
-
   useEffect(() => {
     if (usePrefetch) {
       return;
@@ -120,11 +117,11 @@ export function EventSlotSection({
 
   const signupMap = useMemo(() => {
     const m = new Map<string, UserEventSignupRow>();
-    for (const s of signups) {
+    for (const s of signupsAll) {
       m.set(`${s.dateKey}__${s.period}`, s);
     }
     return m;
-  }, [signups]);
+  }, [signupsAll]);
 
   if (!usePrefetch && rows === null && !slotErr) {
     return <p className="mt-3 text-xs text-zinc-500">行き先を読み込み中…</p>;
@@ -214,7 +211,7 @@ export function EventSlotSection({
                   <fieldset key={key} className="rounded-lg border border-zinc-100 bg-zinc-50/80 p-3 dark:border-zinc-700 dark:bg-zinc-900/50">
                     <div className="mt-2 space-y-2">
                       {list.map((choice) => {
-                        const selected = current?.slotChoiceId === choice.id;
+                        const selected = current?.eventId === eventId && current?.slotChoiceId === choice.id;
                         const timeLabel = formatStartTimeLabel(choice.startTime, period);
                         return (
                           <label
@@ -234,9 +231,30 @@ export function EventSlotSection({
                                 void (async () => {
                                   setActionError(null);
                                   setBusyKey(key);
-                                  const res = selected
-                                    ? await clearEventSignup(user.uid, eventId, dateKey, period)
-                                    : await saveEventSignup(user.uid, eventId, dateKey, period, choice);
+                                  let res:
+                                    | { ok: true }
+                                    | {
+                                        ok: false;
+                                        message: string;
+                                      };
+                                  if (selected) {
+                                    res = await clearEventSignup(user.uid, eventId, dateKey, period);
+                                  } else {
+                                    if (current) {
+                                      const clearRes = await clearEventSignup(
+                                        user.uid,
+                                        current.eventId,
+                                        dateKey,
+                                        period
+                                      );
+                                      if (!clearRes.ok) {
+                                        setBusyKey(null);
+                                        setActionError(clearRes.message);
+                                        return;
+                                      }
+                                    }
+                                    res = await saveEventSignup(user.uid, eventId, dateKey, period, choice);
+                                  }
                                   setBusyKey(null);
                                   if (!res.ok) setActionError(res.message);
                                 })();
