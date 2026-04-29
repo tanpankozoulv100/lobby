@@ -1,15 +1,8 @@
 import { cert, getApps, initializeApp, type App } from "firebase-admin/app";
 import {
-  collection,
-  doc,
-  getDocs,
   getFirestore,
-  limit,
-  query,
-  serverTimestamp,
-  setDoc,
+  FieldValue,
   Timestamp,
-  where,
 } from "firebase-admin/firestore";
 import type { EventSlotPeriod, LobbyCohort } from "@/lib/lobby-firestore-types";
 
@@ -134,27 +127,20 @@ export function validateSlotIntakeInput(raw: unknown): { ok: true; value: SlotIn
 
 async function findOrCreateEventByName(input: SlotIntakeInput): Promise<string> {
   const db = getFirestore(getAdminApp());
-  const q = query(collection(db, EVENTS), where("title", "==", input.eventName), limit(1));
-  const snap = await getDocs(q);
+  const snap = await db.collection(EVENTS).where("title", "==", input.eventName).limit(1).get();
   if (!snap.empty) {
     const id = snap.docs[0]!.id;
     // Spreadsheet intake rows should immediately appear on the app.
-    await setDoc(
-      doc(db, EVENTS, id),
-      {
-        isPublished: true,
-      },
-      { merge: true }
-    );
+    await db.collection(EVENTS).doc(id).set({ isPublished: true }, { merge: true });
     return id;
   }
 
-  const ref = doc(collection(db, EVENTS));
-  await setDoc(ref, {
+  const ref = db.collection(EVENTS).doc();
+  await ref.set({
     title: input.eventName,
     startsAt: Timestamp.fromDate(startsAtFromDateKeyAndPeriod(input.dateKey, input.period)),
     isPublished: true,
-    createdAt: serverTimestamp(),
+    createdAt: FieldValue.serverTimestamp(),
   });
   return ref.id;
 }
@@ -164,18 +150,22 @@ async function writeSlotForCohort(input: SlotIntakeInput, cohort: LobbyCohort): 
   const eventId = await findOrCreateEventByName(input);
   const labelPart = normalizeLabel(input.eventName) || "slot";
   const slotId = `${input.dateKey}_${input.period}_${cohort}_${input.lineIndex}_${labelPart}`;
-  await setDoc(
-    doc(db, EVENTS, eventId, SLOT_CHOICES, slotId),
-    {
-      dateKey: input.dateKey,
-      period: input.period,
-      cohort,
-      lineIndex: input.lineIndex,
-      destinationLabel: input.eventName,
-      eventDetail: input.eventDetail ?? "",
-    },
-    { merge: true }
-  );
+  await db
+    .collection(EVENTS)
+    .doc(eventId)
+    .collection(SLOT_CHOICES)
+    .doc(slotId)
+    .set(
+      {
+        dateKey: input.dateKey,
+        period: input.period,
+        cohort,
+        lineIndex: input.lineIndex,
+        destinationLabel: input.eventName,
+        eventDetail: input.eventDetail ?? "",
+      },
+      { merge: true }
+    );
   return { eventId, slotId };
 }
 
