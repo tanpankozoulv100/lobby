@@ -63,10 +63,16 @@ const nextPublicDebug = (
   ""
 )
   .trim();
+const nextPublicBypassOnboarding = (
+  fromEnvLocal.NEXT_PUBLIC_LOBBY_BYPASS_ONBOARDING ??
+  process.env.NEXT_PUBLIC_LOBBY_BYPASS_ONBOARDING ??
+  ""
+).trim();
 /** クライアントで `showEventsDebug` などと同じ経路で焼き込む（.env だけに頼ると未反映になることがある） */
 const publicLobbyEnv: Record<string, string> = {
   ...publicFirebaseEnv,
   NEXT_PUBLIC_LOBBY_DEBUG: nextPublicDebug,
+  NEXT_PUBLIC_LOBBY_BYPASS_ONBOARDING: nextPublicBypassOnboarding,
 };
 
 if (process.env.NODE_ENV !== "production") {
