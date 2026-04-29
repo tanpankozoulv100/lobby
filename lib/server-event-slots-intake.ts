@@ -158,6 +158,7 @@ async function writeSlotForCohort(input: SlotIntakeInput, cohort: LobbyCohort): 
     .set(
       {
         dateKey: input.dateKey,
+        startTime: input.startTime,
         period: input.period,
         cohort,
         lineIndex: input.lineIndex,

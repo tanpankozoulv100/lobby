@@ -5,14 +5,13 @@ import type { User } from "firebase/auth";
 import { getLobbyCohortForSeason } from "@/lib/lobby-cohort";
 import type { EventDisplayWindowRow } from "@/lib/firestore-event-display-window";
 import { isDateKeyInRange } from "@/lib/calendar-utils";
-import { formatEventDateKey, periodLabelJa, PERIODS_ORDER } from "@/lib/event-slot-labels";
+import { formatEventDateKey, PERIODS_ORDER } from "@/lib/event-slot-labels";
 import type { EventSlotPeriod, LobbyCohort } from "@/lib/lobby-firestore-types";
 import {
   subscribeEventSlotChoices,
   type SlotChoiceRow,
 } from "@/lib/firestore-event-slot-choices";
 import {
-  clearEventSignup,
   filterSignupsForEvent,
   saveEventSignup,
   type UserEventSignupRow,
@@ -199,11 +198,12 @@ export function EventSlotSection({
                 const key = `${dateKey}__${period}`;
                 const current = signupMap.get(key);
                 const saving = busyKey === key;
+                const headingTime = list[0]?.startTime ?? "--:--";
 
                 return (
                   <fieldset key={key} className="rounded-lg border border-zinc-100 bg-zinc-50/80 p-3 dark:border-zinc-700 dark:bg-zinc-900/50">
                     <legend className="px-1 text-xs font-medium text-zinc-600 dark:text-zinc-400">
-                      {periodLabelJa(period)}
+                      開始時刻 {headingTime}
                     </legend>
                     <div className="mt-2 space-y-2">
                       {list.map((choice) => {
@@ -233,31 +233,18 @@ export function EventSlotSection({
                               }}
                               className="mt-0.5"
                             />
-                            <span className="text-zinc-800 dark:text-zinc-200">{choice.destinationLabel}</span>
-                            {choice.eventDetail ? (
-                              <span className="block text-xs text-zinc-500 dark:text-zinc-400">{choice.eventDetail}</span>
-                            ) : null}
+                            <span className="space-y-1">
+                              <span className="block text-zinc-800 dark:text-zinc-200">{choice.destinationLabel}</span>
+                              {choice.eventDetail ? (
+                                <span className="block text-xs text-zinc-500 dark:text-zinc-400">{choice.eventDetail}</span>
+                              ) : null}
+                            </span>
                           </label>
                         );
                       })}
                     </div>
                     {current ? (
-                      <button
-                        type="button"
-                        disabled={saving}
-                        className="mt-2 text-xs text-zinc-500 underline underline-offset-2 hover:text-zinc-800 dark:hover:text-zinc-200"
-                        onClick={() => {
-                          void (async () => {
-                            setActionError(null);
-                            setBusyKey(key);
-                            const res = await clearEventSignup(user.uid, eventId, dateKey, period);
-                            setBusyKey(null);
-                            if (!res.ok) setActionError(res.message);
-                          })();
-                        }}
-                      >
-                        この時間帯の選択を取り消す
-                      </button>
+                      <p className="mt-2 text-xs text-zinc-500 dark:text-zinc-400">選択中です。</p>
                     ) : null}
                   </fieldset>
                 );

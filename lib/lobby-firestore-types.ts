@@ -42,6 +42,8 @@ export type LobbyCohort = "A" | "B";
  */
 export type EventSlotChoiceFields = {
   dateKey: string;
+  /** 開始時刻（HH:mm） */
+  startTime?: string;
   period: EventSlotPeriod;
   cohort: LobbyCohort;
   /** 0 または 1（同じ枠の2択用） */

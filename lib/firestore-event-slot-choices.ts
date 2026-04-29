@@ -17,6 +17,7 @@ function mapSlotChoice(id: string, data: Record<string, unknown>): SlotChoiceRow
   const period = data.period;
   const cohort = data.cohort;
   const destinationLabel = typeof data.destinationLabel === "string" ? data.destinationLabel : "";
+  const startTime = typeof data.startTime === "string" ? data.startTime : "";
   if (!/^\d{8}$/.test(dateKey)) return null;
   if (period !== "morning" && period !== "afternoon" && period !== "evening") return null;
   if (cohort !== "A" && cohort !== "B") return null;
@@ -31,6 +32,7 @@ function mapSlotChoice(id: string, data: Record<string, unknown>): SlotChoiceRow
     lineIndex,
     destinationLabel,
   };
+  if (/^\d{2}:\d{2}$/.test(startTime)) row.startTime = startTime;
   if (typeof data.eventDetail === "string") row.eventDetail = data.eventDetail;
   if (typeof data.sortOrder === "number") row.sortOrder = data.sortOrder;
   return row;

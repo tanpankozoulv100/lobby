@@ -167,9 +167,14 @@ service cloud.firestore {
             || request.resource.data.keys().hasOnly(['dateKey', 'period', 'cohort', 'lineIndex', 'destinationLabel', 'sortOrder'])
             || request.resource.data.keys().hasOnly(['dateKey', 'period', 'cohort', 'lineIndex', 'destinationLabel', 'eventDetail'])
             || request.resource.data.keys().hasOnly(['dateKey', 'period', 'cohort', 'lineIndex', 'destinationLabel', 'eventDetail', 'sortOrder'])
+            || request.resource.data.keys().hasOnly(['dateKey', 'startTime', 'period', 'cohort', 'lineIndex', 'destinationLabel', 'eventDetail'])
+            || request.resource.data.keys().hasOnly(['dateKey', 'startTime', 'period', 'cohort', 'lineIndex', 'destinationLabel', 'eventDetail', 'sortOrder'])
           )
           && request.resource.data.dateKey is string
           && request.resource.data.dateKey.matches('^[0-9]{8}$')
+          && (!request.resource.data.keys().hasAny(['startTime'])
+            || (request.resource.data.startTime is string
+              && request.resource.data.startTime.matches('^([01][0-9]|2[0-3]):[0-5][0-9]$')))
           && request.resource.data.period in ['morning', 'afternoon', 'evening']
           && request.resource.data.cohort in ['A', 'B']
           && request.resource.data.lineIndex is int
@@ -187,9 +192,14 @@ service cloud.firestore {
             || request.resource.data.keys().hasOnly(['dateKey', 'period', 'cohort', 'lineIndex', 'destinationLabel', 'sortOrder'])
             || request.resource.data.keys().hasOnly(['dateKey', 'period', 'cohort', 'lineIndex', 'destinationLabel', 'eventDetail'])
             || request.resource.data.keys().hasOnly(['dateKey', 'period', 'cohort', 'lineIndex', 'destinationLabel', 'eventDetail', 'sortOrder'])
+            || request.resource.data.keys().hasOnly(['dateKey', 'startTime', 'period', 'cohort', 'lineIndex', 'destinationLabel', 'eventDetail'])
+            || request.resource.data.keys().hasOnly(['dateKey', 'startTime', 'period', 'cohort', 'lineIndex', 'destinationLabel', 'eventDetail', 'sortOrder'])
           )
           && request.resource.data.dateKey is string
           && request.resource.data.dateKey.matches('^[0-9]{8}$')
+          && (!request.resource.data.keys().hasAny(['startTime'])
+            || (request.resource.data.startTime is string
+              && request.resource.data.startTime.matches('^([01][0-9]|2[0-3]):[0-5][0-9]$')))
           && request.resource.data.period in ['morning', 'afternoon', 'evening']
           && request.resource.data.cohort in ['A', 'B']
           && request.resource.data.lineIndex is int
