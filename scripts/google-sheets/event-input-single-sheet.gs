@@ -224,7 +224,6 @@ function sendPendingRows() {
     const startTimeDisplay = displayValues[i][2];
 
     if (!String(eventName || "").trim()) continue;
-    if (String(sendStatus || "").toUpperCase() === "SENT") continue;
 
     const dateKey = normalizeDateKey_(eventDate);
     if (!dateKey) {

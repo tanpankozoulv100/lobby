@@ -59,12 +59,14 @@ function getAdminApp(): App {
   return cachedApp;
 }
 
-function startsAtFromDateKeyAndPeriod(dateKey: string, period: EventSlotPeriod): Date {
+function startsAtFromDateKeyAndStartTime(dateKey: string, startTime: string): Date {
   const y = Number(dateKey.slice(0, 4));
   const m = Number(dateKey.slice(4, 6));
   const d = Number(dateKey.slice(6, 8));
-  const hour = period === "morning" ? 9 : period === "afternoon" ? 13 : 18;
-  return new Date(Date.UTC(y, m - 1, d, hour - 9, 0, 0));
+  const hm = /^([01]\d|2[0-3]):([0-5]\d)$/.exec(startTime);
+  const hour = hm ? Number(hm[1]) : 9;
+  const minute = hm ? Number(hm[2]) : 0;
+  return new Date(Date.UTC(y, m - 1, d, hour - 9, minute, 0));
 }
 
 function normalizeLabel(raw: string): string {
@@ -138,7 +140,7 @@ async function findOrCreateEventByName(input: SlotIntakeInput): Promise<string> 
   const ref = db.collection(EVENTS).doc();
   await ref.set({
     title: input.eventName,
-    startsAt: Timestamp.fromDate(startsAtFromDateKeyAndPeriod(input.dateKey, input.period)),
+    startsAt: Timestamp.fromDate(startsAtFromDateKeyAndStartTime(input.dateKey, input.startTime)),
     isPublished: true,
     createdAt: FieldValue.serverTimestamp(),
   });
