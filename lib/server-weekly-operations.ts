@@ -1,13 +1,7 @@
 import { cert, getApps, initializeApp, type App } from "firebase-admin/app";
 import {
-  collection,
-  doc,
-  getDocs,
   getFirestore,
-  query,
-  serverTimestamp,
-  where,
-  writeBatch,
+  FieldValue,
 } from "firebase-admin/firestore";
 import { dateKeyFromLocalDate } from "@/lib/calendar-utils";
 import type { LobbyCohort } from "@/lib/lobby-firestore-types";
@@ -148,8 +142,7 @@ function assignCohorts(users: EligibleUser[], prevWeekGroup: Map<string, LobbyCo
 
 async function fetchEligibleUsers() {
   const db = getAdminDb();
-  const q = query(collection(db, "users"), where("identityStatus", "==", "approved"));
-  const snap = await getDocs(q);
+  const snap = await db.collection("users").where("identityStatus", "==", "approved").get();
   const users: EligibleUser[] = [];
   snap.forEach((d) => {
     const data = d.data() as { ticketRedeemedAt?: unknown };
@@ -160,14 +153,19 @@ async function fetchEligibleUsers() {
 
 async function fetchPrevWeekAssignments(prevWeekKey: string) {
   const db = getAdminDb();
-  const users = await getDocs(collection(db, "users"));
+  const users = await db.collection("users").get();
   const out = new Map<string, LobbyCohort | undefined>();
   users.forEach((u) => {
     out.set(u.id, undefined);
   });
   const reads = await Promise.all(
     [...out.keys()].map(async (uid) => {
-      const snap = await getDocs(query(collection(db, "users", uid, "cohortWeeks"), where("weekKey", "==", prevWeekKey)));
+      const snap = await db
+        .collection("users")
+        .doc(uid)
+        .collection("cohortWeeks")
+        .where("weekKey", "==", prevWeekKey)
+        .get();
       snap.forEach((d) => {
         const c = (d.data() as { cohort?: unknown }).cohort;
         if (c === "A" || c === "B") out.set(uid, c);
@@ -180,7 +178,7 @@ async function fetchPrevWeekAssignments(prevWeekKey: string) {
 
 async function fetchActiveConflicts(): Promise<ConflictPair[]> {
   const db = getAdminDb();
-  const snap = await getDocs(collection(db, "groupConflicts"));
+  const snap = await db.collection("groupConflicts").get();
   const pairs: ConflictPair[] = [];
   snap.forEach((d) => {
     const data = d.data() as { uidA?: unknown; uidB?: unknown; active?: unknown };
@@ -216,10 +214,10 @@ export async function runWeeklyCohortAndPublishAutomation(input?: { targetSunday
   const assignment = assignCohorts(users, prevWeekMap, conflicts);
 
   const db = getAdminDb();
-  const batch = writeBatch(db);
+  const batch = db.batch();
   for (const user of users) {
     const cohort = assignment.get(user.uid) ?? "A";
-    const ref = doc(db, "users", user.uid, "cohortWeeks", weekKey);
+    const ref = db.collection("users").doc(user.uid).collection("cohortWeeks").doc(weekKey);
     batch.set(
       ref,
       {
@@ -227,19 +225,19 @@ export async function runWeeklyCohortAndPublishAutomation(input?: { targetSunday
         weekStartDateKey: visibleFromDateKey,
         weekEndDateKey: visibleToDateKey,
         cohort,
-        generatedAt: serverTimestamp(),
+        generatedAt: FieldValue.serverTimestamp(),
       },
       { merge: true }
     );
   }
-  const windowRef = doc(db, "eventDisplayWindow", "current");
+  const windowRef = db.collection("eventDisplayWindow").doc("current");
   batch.set(
     windowRef,
     {
       weekKey,
       visibleFromDateKey,
       visibleToDateKey,
-      updatedAt: serverTimestamp(),
+      updatedAt: FieldValue.serverTimestamp(),
     },
     { merge: true }
   );
