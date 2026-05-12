@@ -45,3 +45,7 @@ next-env.d.ts
 .firebase/
 *-debug.log
 firebase-debug.log
+
+# cloud functions build output
+functions/lib/
+functions/node_modules/

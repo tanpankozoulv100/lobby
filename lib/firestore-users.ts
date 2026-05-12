@@ -97,6 +97,10 @@ export function subscribeUserProfile(
         identitySubmittedAt: d.identitySubmittedAt,
         ticketRedeemedAt: d.ticketRedeemedAt,
         seasonTicketCode: typeof d.seasonTicketCode === "string" ? d.seasonTicketCode : undefined,
+        accountStatus:
+          d.accountStatus === "active" || d.accountStatus === "suspended" ? d.accountStatus : undefined,
+        reportReceivedCount: typeof d.reportReceivedCount === "number" ? d.reportReceivedCount : undefined,
+        cohortFlipActive: d.cohortFlipActive === true ? true : undefined,
         createdAt: d.createdAt,
         updatedAt: d.updatedAt,
       });

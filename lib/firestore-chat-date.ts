@@ -13,7 +13,8 @@ import {
   type Unsubscribe,
 } from "firebase/firestore";
 import { getFirebaseDb } from "@/lib/firebase";
-import { subscribeOutboundLinks } from "@/lib/firestore-connections";
+import { subscribeOutboundLinks, type OutboundLinkRow } from "@/lib/firestore-connections";
+import { isPeerBlocked, subscribeBlockedPeerUids } from "@/lib/firestore-safety";
 import { getSeasonEndDate } from "@/lib/season-config";
 
 const CHAT_WINDOW_HOURS = 24;
@@ -68,25 +69,57 @@ export function subscribeActiveChatPeers(
   onData: (rows: ActiveChatPeer[]) => void,
   onError?: (message: string) => void
 ): Unsubscribe | null {
-  return subscribeOutboundLinks(
+  const db = getFirebaseDb();
+  if (!db) {
+    onError?.("Firestore に接続できません。");
+    return null;
+  }
+
+  let outboundRows: OutboundLinkRow[] = [];
+  const blocked = new Set<string>();
+
+  const emit = () => {
+    const now = Date.now();
+    const active = outboundRows
+      .filter((r) => !blocked.has(r.peerUid))
+      .map((r) => {
+        const matchedAt = asDate(r.createdAt);
+        if (!matchedAt) return null;
+        const chatWindowHours = chatWindowHoursForMatch(matchedAt);
+        const expiresAt = new Date(matchedAt.getTime() + chatWindowHours * 60 * 60 * 1000);
+        if (expiresAt.getTime() <= now) return null;
+        return { uid: r.peerUid, matchedAt, expiresAt };
+      })
+      .filter((x): x is ActiveChatPeer => x !== null)
+      .sort((a, b) => b.matchedAt.getTime() - a.matchedAt.getTime());
+    onData(active);
+  };
+
+  const unsubOut = subscribeOutboundLinks(
     uid,
     (rows) => {
-      const now = Date.now();
-      const active = rows
-        .map((r) => {
-          const matchedAt = asDate(r.createdAt);
-          if (!matchedAt) return null;
-          const chatWindowHours = chatWindowHoursForMatch(matchedAt);
-          const expiresAt = new Date(matchedAt.getTime() + chatWindowHours * 60 * 60 * 1000);
-          if (expiresAt.getTime() <= now) return null;
-          return { uid: r.peerUid, matchedAt, expiresAt };
-        })
-        .filter((x): x is ActiveChatPeer => x !== null)
-        .sort((a, b) => b.matchedAt.getTime() - a.matchedAt.getTime());
-      onData(active);
+      outboundRows = rows;
+      emit();
     },
     onError
   );
+
+  if (!unsubOut) return null;
+
+  const unsubBlk = subscribeBlockedPeerUids(
+    uid,
+    (uids) => {
+      blocked.clear();
+      for (const id of uids) blocked.add(id);
+      emit();
+    },
+    onError
+  );
+
+  return () => {
+    unsubOut();
+    unsubBlk?.();
+  };
 }
 
 export async function ensureDateInviteTicketsByMatchCount(uid: string, matchCount: number): Promise<void> {
@@ -163,6 +196,9 @@ export async function sendDateInvite(params: {
   const location = params.location.trim();
   if (!location) return { ok: false, message: "場所を入力してください。" };
   if (params.toUid === params.uid) return { ok: false, message: "自分は選択できません。" };
+  if (await isPeerBlocked(params.uid, params.toUid)) {
+    return { ok: false, message: "ブロック中の相手には送信できません。" };
+  }
 
   const ticketsQ = query(
     collection(db, "users", params.uid, DATE_INVITE_TICKETS),

@@ -45,9 +45,10 @@ function SeasonCountdownBanner() {
 type LoadedProps = {
   user: User;
   publishedEvents: PublishedEventRow[] | null;
+  cohortFlipActive?: boolean;
 };
 
-function DashboardEventsLoaded({ user, publishedEvents: events }: LoadedProps) {
+function DashboardEventsLoaded({ user, publishedEvents: events, cohortFlipActive = false }: LoadedProps) {
   const [signups, setSignups] = useState<UserEventSignupRow[]>([]);
   const [visibleMonth, setVisibleMonth] = useState(() => startOfMonth(new Date()));
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
@@ -66,7 +67,8 @@ function DashboardEventsLoaded({ user, publishedEvents: events }: LoadedProps) {
   const eventIds = useMemo(() => events?.map((e) => e.id) ?? [], [events]);
   const { markersByDate, rowsByEvent, cohortForDateKey, displayWindow } = useEventCalendarSlots(
     user.uid,
-    events === null ? null : eventIds
+    events === null ? null : eventIds,
+    cohortFlipActive
   );
 
   const handleSelectDate = (d: Date) => {
@@ -127,11 +129,12 @@ function DashboardEventsLoaded({ user, publishedEvents: events }: LoadedProps) {
 type SectionProps = {
   user: User;
   publishedEvents: PublishedEventRow[] | null;
+  cohortFlipActive?: boolean;
 };
 
-export function DashboardEventsSection({ user, publishedEvents }: SectionProps) {
+export function DashboardEventsSection({ user, publishedEvents, cohortFlipActive = false }: SectionProps) {
   if (!isFirebaseConfigComplete()) {
     return <EventsConfigMissing />;
   }
-  return <DashboardEventsLoaded user={user} publishedEvents={publishedEvents} />;
+  return <DashboardEventsLoaded user={user} publishedEvents={publishedEvents} cohortFlipActive={cohortFlipActive} />;
 }

@@ -13,3 +13,17 @@ export function getLobbyCohortForSeason(uid: string, seasonKey: string = LOBBY_C
   }
   return h % 2 === 0 ? "A" : "B";
 }
+
+/**
+ * 通報ペアのコホート分離: `cohortFlipActive` が true のとき、ハッシュベースの A/B を反転して表示する。
+ * （Firestore の `users/{uid}.cohortFlipActive` は Cloud Functions のみが書き込む）
+ */
+export function getEffectiveLobbyCohortForSeason(
+  uid: string,
+  cohortFlipActive?: boolean,
+  seasonKey: string = LOBBY_COHORT_SEASON_KEY
+): LobbyCohort {
+  const base = getLobbyCohortForSeason(uid, seasonKey);
+  if (!cohortFlipActive) return base;
+  return base === "A" ? "B" : "A";
+}

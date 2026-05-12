@@ -12,7 +12,8 @@
     "lint": "eslint",
     "deploy:firestore": "firebase deploy --only firestore",
     "deploy:storage": "firebase deploy --only storage",
-    "deploy:rules": "firebase deploy --only firestore,storage"
+    "deploy:rules": "firebase deploy --only firestore,storage",
+    "deploy:functions": "firebase deploy --only functions"
   },
   "dependencies": {
     "firebase": "^12.11.0",

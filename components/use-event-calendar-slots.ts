@@ -5,7 +5,7 @@ import {
   subscribeEventSlotChoices,
   type SlotChoiceRow,
 } from "@/lib/firestore-event-slot-choices";
-import { getLobbyCohortForSeason } from "@/lib/lobby-cohort";
+import { getEffectiveLobbyCohortForSeason } from "@/lib/lobby-cohort";
 import {
   resolveCohortAtDateKey,
   subscribeUserCohortWeeks,
@@ -18,8 +18,12 @@ import {
 import { isDateKeyInRange } from "@/lib/calendar-utils";
 
 /** 各イベントの slotChoices を購読し、カレンダー用ドットと行データをまとめる */
-export function useEventCalendarSlots(uid: string, eventIds: string[] | null | undefined) {
-  const cohort = useMemo(() => getLobbyCohortForSeason(uid), [uid]);
+export function useEventCalendarSlots(
+  uid: string,
+  eventIds: string[] | null | undefined,
+  cohortFlipActive?: boolean
+) {
+  const cohort = useMemo(() => getEffectiveLobbyCohortForSeason(uid, cohortFlipActive), [uid, cohortFlipActive]);
   const [rowsByEvent, setRowsByEvent] = useState<Record<string, SlotChoiceRow[]>>({});
   const [cohortWeeks, setCohortWeeks] = useState<CohortWeekRow[]>([]);
   const [displayWindow, setDisplayWindow] = useState<EventDisplayWindowRow | null>(null);

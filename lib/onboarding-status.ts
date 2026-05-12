@@ -29,3 +29,15 @@ export function isLobbyAccessGranted(profile: UserProfileFields | null | undefin
   if (profile.ticketRedeemedAt == null) return false;
   return true;
 }
+
+/** Cloud Functions 等によりアカウント停止中 */
+export function isAccountSuspended(profile: UserProfileFields | null | undefined): boolean {
+  return profile?.accountStatus === "suspended";
+}
+
+/** ダッシュボード本体（ホーム以降）に入れるか */
+export function canUseLobbyDashboard(profile: UserProfileFields | null | undefined): boolean {
+  if (isDevOnboardingBypassEnabled()) return true;
+  if (isAccountSuspended(profile)) return false;
+  return isLobbyAccessGranted(profile);
+}

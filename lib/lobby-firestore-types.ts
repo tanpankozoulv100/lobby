@@ -3,6 +3,9 @@ import type { Timestamp } from "firebase/firestore";
 /** 本人確認（運営が Console で approved / rejected を設定） */
 export type IdentityVerificationStatus = "none" | "pending" | "approved" | "rejected";
 
+/** 通報しきい値超過などで Cloud Functions が設定（クライアントからは書けない） */
+export type AccountStatus = "active" | "suspended";
+
 /** `users/{uid}` に保存するフィールド（ルール・クライアントで共通イメージ用） */
 export type UserProfileFields = {
   displayName: string;
@@ -20,6 +23,12 @@ export type UserProfileFields = {
   ticketRedeemedAt?: Timestamp;
   /** 正規化済みシリアル（監査・表示用） */
   seasonTicketCode?: string;
+  /** 利用可否（通報3件で suspended — Cloud Functions が設定） */
+  accountStatus?: AccountStatus;
+  /** 自分に対する通報の累計（Functions が increment） */
+  reportReceivedCount?: number;
+  /** 通報ペアと同一コホートだった場合に Functions が true にし、表示上の A/B を反転 */
+  cohortFlipActive?: boolean;
   createdAt?: Timestamp;
   updatedAt?: Timestamp;
 };
@@ -114,6 +123,23 @@ export type DateInviteFields = {
   proposedAt: Timestamp;
   message?: string;
   ticketId: string;
+  createdAt?: Timestamp;
+};
+
+/** 通報理由（`userReports` の reasonCode） */
+export type UserReportReasonCode = "harassment" | "spam" | "inappropriate" | "other";
+
+/** `userReports/{reportId}` — ユーザーからの通報（運営は別サイトで Admin SDK 参照想定） */
+export type UserReportFields = {
+  reporterUid: string;
+  reportedUid: string;
+  reasonCode: UserReportReasonCode;
+  note: string;
+  createdAt?: Timestamp;
+};
+
+/** `users/{uid}/blockedUsers/{blockedUid}` */
+export type BlockedUserFields = {
   createdAt?: Timestamp;
 };
 

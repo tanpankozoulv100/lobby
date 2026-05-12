@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import type { User } from "firebase/auth";
 import { doc, getDoc } from "firebase/firestore";
 import { getFirebaseDb, isFirebaseConfigComplete } from "@/lib/firebase";
@@ -13,6 +13,7 @@ import {
   subscribeActiveDateInviteTickets,
   type ActiveDateInviteTicket,
 } from "@/lib/firestore-chat-date";
+import { subscribeBlockedPeerUids } from "@/lib/firestore-safety";
 
 function formatPostTime(ts: unknown) {
   if (
@@ -47,7 +48,8 @@ function DashboardBoardLoaded({ user }: { user: User }) {
   const [postPending, setPostPending] = useState(false);
   const [postMessage, setPostMessage] = useState<string | null>(null);
   const [activePeers, setActivePeers] = useState<{ uid: string; expiresAt: Date }[]>([]);
-  const [matchedPeerUids, setMatchedPeerUids] = useState<string[]>([]);
+  const [outboundPeerUids, setOutboundPeerUids] = useState<string[]>([]);
+  const [blockedUids, setBlockedUids] = useState<string[]>([]);
   const [ticketRows, setTicketRows] = useState<ActiveDateInviteTicket[]>([]);
   const [inviteToUid, setInviteToUid] = useState("");
   const [inviteLocation, setInviteLocation] = useState("");
@@ -55,6 +57,20 @@ function DashboardBoardLoaded({ user }: { user: User }) {
   const [inviteMessage, setInviteMessage] = useState("");
   const [invitePending, setInvitePending] = useState(false);
   const [inviteNotice, setInviteNotice] = useState<string | null>(null);
+
+  const blockedSet = useMemo(() => new Set(blockedUids), [blockedUids]);
+  const matchedPeerUids = useMemo(
+    () => outboundPeerUids.filter((uid) => !blockedSet.has(uid)),
+    [outboundPeerUids, blockedSet]
+  );
+  const effectiveInviteToUid = useMemo(() => {
+    if (inviteToUid && matchedPeerUids.includes(inviteToUid)) return inviteToUid;
+    return matchedPeerUids[0] ?? "";
+  }, [inviteToUid, matchedPeerUids]);
+  const visiblePosts = useMemo(() => {
+    if (posts === null) return null;
+    return posts.filter((p) => !blockedSet.has(p.authorUid));
+  }, [posts, blockedSet]);
 
   useEffect(() => {
     const db = getFirebaseDb();
@@ -87,10 +103,6 @@ function DashboardBoardLoaded({ user }: { user: User }) {
       user.uid,
       (rows) => {
         setActivePeers(rows.map((r) => ({ uid: r.uid, expiresAt: r.expiresAt })));
-        setInviteToUid((prev) => {
-          if (prev && rows.some((r) => r.uid === prev)) return prev;
-          return rows[0]?.uid ?? "";
-        });
       },
       () => {
         setActivePeers([]);
@@ -103,14 +115,15 @@ function DashboardBoardLoaded({ user }: { user: User }) {
     );
     const unsubMatches = subscribeOutboundLinks(user.uid, (rows) => {
       const peerUids = rows.map((r) => r.peerUid).sort();
-      setMatchedPeerUids(peerUids);
-      setInviteToUid((prev) => (prev && peerUids.includes(prev) ? prev : (peerUids[0] ?? "")));
+      setOutboundPeerUids(peerUids);
       void ensureDateInviteTicketsByMatchCount(user.uid, rows.length);
     });
+    const unsubBlocked = subscribeBlockedPeerUids(user.uid, setBlockedUids);
     return () => {
       unsubActive?.();
       unsubTickets?.();
       unsubMatches?.();
+      unsubBlocked?.();
     };
   }, [user.uid]);
 
@@ -138,7 +151,7 @@ function DashboardBoardLoaded({ user }: { user: User }) {
     }
     const result = await sendDateInvite({
       uid: user.uid,
-      toUid: inviteToUid,
+      toUid: effectiveInviteToUid,
       location: inviteLocation,
       proposedAt: dt,
       message: inviteMessage,
@@ -152,7 +165,7 @@ function DashboardBoardLoaded({ user }: { user: User }) {
     } else {
       setInviteNotice(result.message);
     }
-  }, [user.uid, inviteToUid, inviteLocation, inviteProposedAt, inviteMessage]);
+  }, [user.uid, effectiveInviteToUid, inviteLocation, inviteProposedAt, inviteMessage]);
 
   const chatUnlocked = activePeers.length > 0;
 
@@ -234,7 +247,7 @@ function DashboardBoardLoaded({ user }: { user: User }) {
           ) : null}
           <div className="mt-3 grid gap-2">
             <select
-              value={inviteToUid}
+              value={effectiveInviteToUid}
               onChange={(e) => setInviteToUid(e.target.value)}
               className="w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm text-zinc-900 outline-none ring-rose-500 focus:ring-2 dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-50"
             >
@@ -269,7 +282,7 @@ function DashboardBoardLoaded({ user }: { user: User }) {
             />
             <button
               type="button"
-              disabled={invitePending || !inviteToUid || ticketRows.length === 0}
+              disabled={invitePending || !effectiveInviteToUid || ticketRows.length === 0}
               onClick={() => void handleSendDateInvite()}
               className="rounded-lg border border-zinc-300 bg-white px-4 py-2 text-sm font-medium text-zinc-900 hover:bg-zinc-50 disabled:opacity-60"
             >
@@ -281,13 +294,14 @@ function DashboardBoardLoaded({ user }: { user: User }) {
         {chatUnlocked ? (
           <div>
           <p className="text-sm font-medium text-zinc-800 dark:text-zinc-200">最近の投稿</p>
+          <p className="mt-0.5 text-xs text-zinc-500">ブロックしたユーザーの投稿は表示されません。</p>
           {posts === null ? (
             <p className="mt-2 text-sm text-zinc-500">読み込み中…</p>
-          ) : posts.length === 0 ? (
+          ) : !visiblePosts || visiblePosts.length === 0 ? (
             <p className="mt-2 text-sm text-zinc-600 dark:text-zinc-400">まだ投稿がありません。</p>
           ) : (
             <ul className="mt-3 space-y-3">
-              {posts.map((p) => (
+              {visiblePosts.map((p) => (
                 <li
                   key={p.id}
                   className="rounded-lg border border-zinc-200 bg-white p-3 text-sm dark:border-zinc-600 dark:bg-zinc-900"

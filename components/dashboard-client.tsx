@@ -13,7 +13,7 @@ import {
   type PublishedEventRow,
 } from "@/lib/firestore-events";
 import { ensureUserProfile, subscribeUserProfile } from "@/lib/firestore-users";
-import { isDevOnboardingBypassEnabled, isLobbyAccessGranted } from "@/lib/onboarding-status";
+import { isDevOnboardingBypassEnabled, isAccountSuspended, isLobbyAccessGranted } from "@/lib/onboarding-status";
 import type { UserProfileFields } from "@/lib/lobby-firestore-types";
 import { DashboardProfileSection } from "@/components/dashboard-profile-section";
 import { DashboardAnnouncementsSection } from "@/components/dashboard-announcements-section";
@@ -22,6 +22,7 @@ import { DashboardConnectionsSection } from "@/components/dashboard-connections-
 import { DashboardBoardSection } from "@/components/dashboard-board-section";
 import { DashboardBottomNav, type DashboardTab } from "@/components/dashboard-bottom-nav";
 import { DashboardHomeScreen } from "@/components/dashboard-home-screen";
+import { DashboardSuspendedScreen } from "@/components/dashboard-suspended-screen";
 
 function eventSnapshotErrorHint(code: string): string {
   if (code === "failed-precondition")
@@ -139,22 +140,28 @@ export function DashboardClient() {
   useEffect(() => {
     if (loading || !user) {
       if (showEventsDebug) {
-        setEventsSubDebug((d) => ({ ...d, line: "待ち: 認証" }));
+        startTransition(() => {
+          setEventsSubDebug((d) => ({ ...d, line: "待ち: 認証" }));
+        });
       }
       return;
     }
     if (!isFirebaseConfigComplete() || !profileGateReady) {
       if (showEventsDebug) {
-        setEventsSubDebug({
-          line: !isFirebaseConfigComplete()
-            ? "未購読: NEXT_PUBLIC_FIREBASE_* 不足"
-            : "未購読: profile ゲート前",
+        startTransition(() => {
+          setEventsSubDebug({
+            line: !isFirebaseConfigComplete()
+              ? "未購読: NEXT_PUBLIC_FIREBASE_* 不足"
+              : "未購読: profile ゲート前",
+          });
         });
       }
       return;
     }
     if (showEventsDebug && !getFirebaseDb()) {
-      setEventsSubDebug({ line: "getFirebaseDb()=null" });
+      startTransition(() => {
+        setEventsSubDebug({ line: "getFirebaseDb()=null" });
+      });
     }
     const unsub = subscribePublishedEvents(
       (list, meta) => {
@@ -190,7 +197,9 @@ export function DashboardClient() {
       return;
     }
     if (showEventsDebug) {
-      setEventsSubDebug((d) => ({ ...d, line: "購読中…" }));
+      startTransition(() => {
+        setEventsSubDebug((d) => ({ ...d, line: "購読中…" }));
+      });
     }
     return () => {
       unsub();
@@ -241,6 +250,7 @@ export function DashboardClient() {
     if (loading || !user || !profileGateReady) return;
     if (!isFirebaseConfigComplete()) return;
     if (isDevOnboardingBypassEnabled()) return;
+    if (profile && isAccountSuspended(profile)) return;
     if (profile && !isLobbyAccessGranted(profile)) {
       router.replace("/onboarding");
     }
@@ -252,6 +262,29 @@ export function DashboardClient() {
         <div className="flex min-h-dvh items-center justify-center px-6 py-24">
           <p className="text-sm text-zinc-500">読み込み中…</p>
         </div>
+        {showEventsDebug ? (
+          <DashboardEventsDebugPanel
+            eventsSubDebug={eventsSubDebug}
+            className="bottom-2"
+            configOk={isFirebaseConfigComplete()}
+            profileGateReady={profileGateReady}
+            hasDb={!!getFirebaseDb()}
+          />
+        ) : null}
+      </div>
+    );
+  }
+
+  if (
+    isFirebaseConfigComplete() &&
+    profileGateReady &&
+    profile &&
+    isAccountSuspended(profile) &&
+    !isDevOnboardingBypassEnabled()
+  ) {
+    return (
+      <div className="relative min-h-dvh flex-1 bg-[var(--lobby-screen-bg)]">
+        <DashboardSuspendedScreen onSignOut={() => void signOutUser()} />
         {showEventsDebug ? (
           <DashboardEventsDebugPanel
             eventsSubDebug={eventsSubDebug}
@@ -340,7 +373,11 @@ export function DashboardClient() {
         ) : null}
         {tab === "event" ? (
           <div className="space-y-4">
-            <DashboardEventsSection user={user} publishedEvents={publishedEvents} />
+            <DashboardEventsSection
+              user={user}
+              publishedEvents={publishedEvents}
+              cohortFlipActive={profile?.cohortFlipActive === true}
+            />
           </div>
         ) : null}
         {tab === "mypage" ? (

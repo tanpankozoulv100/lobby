@@ -1,6 +1,6 @@
 # Lobby 完成系仕様（固定版）
 
-最終更新: 2026-05-12
+最終更新: 2026-05-12（Functions: 通報カウント・停止・コホート反転／FINAL SPEC 反映）
 
 このドキュメントは、スレッドをまたいでも参照できる「完成系の仕様メモ」です。  
 企画メモとの差分が出た場合、実装の正本は `firestore.rules` と `lib/lobby-firestore-types.ts` を優先します。
@@ -10,6 +10,7 @@
 - Lobby は「30日間の主人公体験」を目指すシーズン制コミュニティアプリ。
 - 技術基盤は Next.js + Firebase（Auth / Firestore）。
 - 運営データ（イベント、告知、各種管理データ）は Console 投入を基本にしつつ、必要箇所は運営UIで補助する。
+- **運営用の管理コンソールは、ユーザー向けアプリとは別サイト（別オリジン・別デプロイ）で作る方針。** 本体アプリ内に `/admin` を同居させない（攻撃面・権限・デプロイ監査を分離するため）。
 
 ## 2. 利用開始ゲート（必須）
 
@@ -52,10 +53,42 @@
 - お誘い送信ログ
   - `users/{uid}/dateInvites/{inviteId}`
   - フィールド: `toUid`, `location`, `proposedAt`, `message`, `ticketId`, `createdAt`
+- 通報
+  - `userReports/{reportId}` — `reporterUid`, `reportedUid`, `reasonCode`, `note`, `createdAt`（本人は自分の通報のみ read、運営スタッフは全件 read）
+- ブロック
+  - `users/{uid}/blockedUsers/{blockedUid}` — `createdAt` のみ（本人のみ read / create / delete）
 
-## 7. 安全系（今後）
+## 7. 安全系
 
-- 通報関係者のグループ分離。
-- 通報3回で強制退会の運用設計。
-- ブロック/通報/モデレーションを段階的に実装。
+### 7.1 目標（プロダクト）
+
+- **MVP（ユーザーアプリ）**: 連携一覧から **通報送信**・**ブロック／解除**、チャット解放・デート券送信から **ブロック相手の除外**、掲示板タイムラインから **ブロックユーザーの投稿を非表示**（サーバー側の `dateInvites` 作成ルールでもブロック相手への送信を拒否）。
+- 通報関係者同士は **グループ分離**（コホート等の割り当てで衝突しないようにする）。
+- **通報が一定回数（例: 3回）に達したら利用停止** — `users/{uid}.reportReceivedCount` を Cloud Functions が増分し、閾値で `accountStatus: "suspended"` を付与。アプリは停止画面を表示（クライアントからの改ざん不可）。
+- **通報ペアのコホート分離** — 通報者と被通報者のハッシュコホートが同一のとき、被通報側に `cohortFlipActive: true` を付与。UI は `getEffectiveLobbyCohortForSeason`（`lib/lobby-cohort.ts`）で A/B を反転表示。
+- **ブロック / 通報 / モデレーション** を段階的に実装する。
+
+### 7.2 実装順の方針（管理サイトより先）
+
+**別サイトの運営コンソールを作り始める前に、安全系の土台を先に整える。**  
+理由: 管理画面は「通報キュー」「ユーザー停止」「モデレーション」など安全データの閲覧・処理が中心になり、データモデルとルールが未定だとコンソールを二度手間で作り直すため。
+
+推奨する先順（概要）:
+
+1. **データモデル** — 例: `reports`（通報）、`blocks`（ブロック）、必要なら `userModerationState` 等。誰が作成・誰が読めるかを一文で決める。
+2. **Firestore セキュリティルール** — ユーザーは自分の通報/ブロックのみ作成可、運営は別経路（Admin SDK またはスタッフ用 read）など。
+3. **ユーザーアプリ側の最小 UI** — 通報・ブロックの入口（チャット/プロフィール/マッチ周りから辿れること）。
+4. **集計・利用停止** — **`functions/` の `onUserReportCreated`**（Cloud Functions + Admin SDK）で `reportReceivedCount` を増分し、**3件で `accountStatus: "suspended"`**。デプロイ: ルートで `npm run deploy:functions`（Blaze 課金プロジェクトが必要）。ローカル検証は Firebase Emulator 利用可。実装は **`firebase-functions/v1` の Firestore トリガー（第1世代）** とし、Gen2 + Eventarc の初回デプロイで出やすい「Eventarc Service Agent / Permission denied」の伝播待ちを避ける。
+5. **コホート分離** — 上記 Functions が **同一コホートの通報ペア**に対し `cohortFlipActive` を立てる。イベント UI は `useEventCalendarSlots(..., cohortFlipActive)` 経由で反映。
+
+### 7.3 管理サイトとの関係
+
+- 運営コンソール（別サイト）は、上記の **通報キューの閲覧・対応、ユーザー停止、お知らせ CRUD** などを載せる。
+- 安全系の **ルールと Functions が先** にあり、そのあとコンソールがそれを呼ぶ形にすると移行が楽。
+
+## 8. 運営コンソール（管理サイト）
+
+- **ユーザー向け Lobby アプリとは別リポジトリ／別 URL でホスティングする**（例: `admin.lobby.example` や別 Vercel プロジェクト）。
+- 認可は **Firebase Auth + 運営のみ**（Custom Claims、`admins/{uid}`、または両方の併用など）。詳細は実装時に本リポの `firestore.rules` の `isLobbyStaff()` と揃える。
+- 本番データへの書き込みは原則 **Admin SDK（サーバー）** 経由にし、ブラウザにサービスアカウント鍵を置かない。
 

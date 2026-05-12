@@ -14,6 +14,26 @@ service cloud.firestore {
       allow list, create, update, delete: if false;
     }
 
+    /** ユーザーからの通報（運営は別サイトの Admin SDK で一覧想定。本人は自分の reporterUid のみ read 可） */
+    match /userReports/{reportId} {
+      allow create: if request.auth != null
+        && request.resource.data.keys().hasOnly(['reporterUid', 'reportedUid', 'reasonCode', 'note', 'createdAt'])
+        && request.resource.data.reporterUid == request.auth.uid
+        && request.resource.data.reportedUid is string
+        && request.resource.data.reportedUid != request.auth.uid
+        && request.resource.data.reasonCode in ['harassment', 'spam', 'inappropriate', 'other']
+        && request.resource.data.note is string
+        && request.resource.data.note.size() <= 500
+        && request.resource.data.createdAt is timestamp;
+
+      allow read: if request.auth != null && (
+        isLobbyStaff() ||
+        resource.data.reporterUid == request.auth.uid
+      );
+
+      allow update, delete: if false;
+    }
+
     match /users/{userId} {
       allow read: if request.auth != null && request.auth.uid == userId;
       allow create: if request.auth != null
@@ -101,6 +121,17 @@ service cloud.firestore {
         allow write: if false;
       }
 
+      match /blockedUsers/{blockedUid} {
+        allow read: if request.auth != null && request.auth.uid == userId;
+        allow create: if request.auth != null
+          && request.auth.uid == userId
+          && blockedUid != userId
+          && request.resource.data.keys().hasOnly(['createdAt'])
+          && request.resource.data.createdAt is timestamp;
+        allow delete: if request.auth != null && request.auth.uid == userId;
+        allow update: if false;
+      }
+
       match /dateInviteTickets/{ticketId} {
         allow read: if request.auth != null && request.auth.uid == userId;
         allow create: if request.auth != null
@@ -142,7 +173,8 @@ service cloud.firestore {
           && request.resource.data.ticketId.size() >= 1
           && request.resource.data.message is string
           && request.resource.data.message.size() <= 500
-          && exists(/databases/$(database)/documents/users/$(userId)/outboundLinks/$(request.resource.data.toUid));
+          && exists(/databases/$(database)/documents/users/$(userId)/outboundLinks/$(request.resource.data.toUid))
+          && !exists(/databases/$(database)/documents/users/$(userId)/blockedUsers/$(request.resource.data.toUid));
         allow update, delete: if false;
       }
     }
