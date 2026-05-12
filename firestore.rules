@@ -100,6 +100,51 @@ service cloud.firestore {
         allow read: if request.auth != null && request.auth.uid == userId;
         allow write: if false;
       }
+
+      match /dateInviteTickets/{ticketId} {
+        allow read: if request.auth != null && request.auth.uid == userId;
+        allow create: if request.auth != null
+          && request.auth.uid == userId
+          && ticketId.matches('^m[0-9]+$')
+          && request.resource.data.keys().hasOnly(['milestoneMatches', 'grantedAt', 'expiresAt', 'consumedAt', 'consumedByInviteId'])
+          && request.resource.data.milestoneMatches is int
+          && request.resource.data.milestoneMatches >= 10
+          && request.resource.data.milestoneMatches % 10 == 0
+          && request.resource.data.milestoneMatches <= 1000
+          && request.resource.data.expiresAt is timestamp
+          && request.resource.data.expiresAt > request.time
+          && request.resource.data.expiresAt <= request.time + duration.value(73, 'h')
+          && request.resource.data.consumedAt == null
+          && request.resource.data.consumedByInviteId == null;
+        allow update: if request.auth != null
+          && request.auth.uid == userId
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['consumedAt', 'consumedByInviteId'])
+          && request.resource.data.consumedAt is timestamp
+          && request.resource.data.consumedByInviteId is string
+          && request.resource.data.consumedByInviteId.size() >= 1
+          && resource.data.consumedAt == null
+          && resource.data.consumedByInviteId == null;
+        allow delete: if false;
+      }
+
+      match /dateInvites/{inviteId} {
+        allow read: if request.auth != null && request.auth.uid == userId;
+        allow create: if request.auth != null
+          && request.auth.uid == userId
+          && request.resource.data.keys().hasOnly(['toUid', 'location', 'proposedAt', 'message', 'ticketId', 'createdAt'])
+          && request.resource.data.toUid is string
+          && request.resource.data.toUid != userId
+          && request.resource.data.location is string
+          && request.resource.data.location.size() >= 1
+          && request.resource.data.location.size() <= 300
+          && request.resource.data.proposedAt is timestamp
+          && request.resource.data.ticketId is string
+          && request.resource.data.ticketId.size() >= 1
+          && request.resource.data.message is string
+          && request.resource.data.message.size() <= 500
+          && exists(/databases/$(database)/documents/users/$(userId)/outboundLinks/$(request.resource.data.toUid));
+        allow update, delete: if false;
+      }
     }
 
     match /ticketCodes/{code} {

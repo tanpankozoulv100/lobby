@@ -98,6 +98,25 @@ export type EventFields = {
   createdAt?: Timestamp;
 };
 
+/** `users/{uid}/dateInviteTickets/{ticketId}` */
+export type DateInviteTicketFields = {
+  milestoneMatches: number;
+  grantedAt?: Timestamp;
+  expiresAt: Timestamp;
+  consumedAt?: Timestamp;
+  consumedByInviteId?: string;
+};
+
+/** `users/{uid}/dateInvites/{inviteId}` */
+export type DateInviteFields = {
+  toUid: string;
+  location: string;
+  proposedAt: Timestamp;
+  message?: string;
+  ticketId: string;
+  createdAt?: Timestamp;
+};
+
 /** `announcements/{id}` — 運営向けお知らせ（公開分のみ一覧） */
 export type AnnouncementFields = {
   title: string;
