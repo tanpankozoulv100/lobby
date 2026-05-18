@@ -9,6 +9,7 @@ import {
 } from "@/lib/firestore-connections";
 import { ensureUserProfile, subscribeUserProfile } from "@/lib/firestore-users";
 import type { UserProfileFields } from "@/lib/lobby-firestore-types";
+import type { PublishedAnnouncementRow } from "@/lib/firestore-announcements";
 import {
   LOBBY_SEASON_UI,
   formatCountdownBanner,
@@ -21,6 +22,7 @@ import { claimParticipantNumberOnLobbyOpen } from "@/lib/firestore-participant-n
 import { formatParticipantNoDisplay } from "@/lib/format-participant-no";
 import { canUseLobbyDashboard } from "@/lib/onboarding-status";
 import { useLobbyStaff } from "@/lib/use-lobby-staff";
+import { DashboardHomeAnnouncements } from "@/components/dashboard-home-announcements";
 
 function QrIcon({ className }: { className?: string }) {
   return (
@@ -54,7 +56,19 @@ function ScanIcon({ className }: { className?: string }) {
 
 type MatchFlow = "camera" | "code" | null;
 
-export function DashboardHomeScreen({ user }: { user: User }) {
+type HomeScreenProps = {
+  user: User;
+  announcementRows: PublishedAnnouncementRow[] | null;
+  announcementHasUnread: boolean;
+  onAnnouncementMarkSeen: () => void;
+};
+
+export function DashboardHomeScreen({
+  user,
+  announcementRows,
+  announcementHasUnread,
+  onAnnouncementMarkSeen,
+}: HomeScreenProps) {
   const { isStaff, staffGateReady } = useLobbyStaff(user.uid);
   const bypassCtx = { isLobbyStaff: isStaff };
   const [profile, setProfile] = useState<UserProfileFields | null>(null);
@@ -166,7 +180,7 @@ export function DashboardHomeScreen({ user }: { user: User }) {
 
   if (!profile) {
     return (
-      <div className="rounded-2xl border border-zinc-200 bg-white px-4 py-4 text-sm text-zinc-600">
+      <div className="rounded-2xl border border-zinc-200 bg-[var(--lobby-cream)] px-4 py-4 text-sm text-zinc-600">
         プロフィールを読み込めませんでした。ページを再読み込みしてください。
       </div>
     );
@@ -193,7 +207,7 @@ export function DashboardHomeScreen({ user }: { user: User }) {
         </div>
       </div>
 
-      <div className="mt-3 flex items-start gap-3 rounded-xl bg-white/90 px-3 py-3 shadow-sm">
+      <div className="mt-3 flex items-start gap-3 rounded-xl bg-[var(--lobby-cream)]/90 px-3 py-3 shadow-sm">
         <div
           className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-sm font-bold text-white"
           style={{ background: "linear-gradient(145deg,#c45c32,#8b3d1f)" }}
@@ -213,7 +227,13 @@ export function DashboardHomeScreen({ user }: { user: User }) {
         <p className="mt-2 rounded-lg bg-amber-50 px-3 py-2 text-xs text-amber-900">{codeErr}</p>
       ) : null}
 
-      <div className="mt-5 rounded-3xl border border-zinc-200/80 bg-[var(--lobby-cream)] px-5 pb-6 pt-5 shadow-md">
+      <DashboardHomeAnnouncements
+        rows={announcementRows}
+        hasUnread={announcementHasUnread}
+        onMarkSeen={onAnnouncementMarkSeen}
+      />
+
+      <div className="mt-4 rounded-3xl border border-zinc-200/80 bg-[var(--lobby-cream)] px-5 pb-6 pt-5 shadow-md">
         <p className="font-serif text-2xl font-semibold text-[var(--lobby-red)]">Lobby</p>
         <p className="mt-1 text-sm font-semibold text-[var(--lobby-red)]">{LOBBY_SEASON_UI.cardTitle}</p>
         <p className="mt-0.5 text-xs text-[var(--lobby-red)]">{LOBBY_SEASON_UI.dateRangeLabel}</p>
@@ -229,7 +249,7 @@ export function DashboardHomeScreen({ user }: { user: User }) {
             type="button"
             disabled={!code}
             onClick={() => setQrOpen(true)}
-            className="flex flex-col items-center rounded-2xl border border-[var(--lobby-red)]/25 bg-white/70 py-5 shadow-sm transition active:scale-[0.98] disabled:opacity-40"
+            className="flex flex-col items-center rounded-2xl border border-[var(--lobby-red)]/25 bg-[var(--lobby-surface-raised)] py-5 shadow-sm transition active:scale-[0.98] disabled:opacity-40"
           >
             <QrIcon className="h-12 w-12 text-[var(--lobby-red)]" />
             <span className="mt-2 text-sm font-semibold text-[var(--lobby-red)]">表示する</span>
@@ -237,7 +257,7 @@ export function DashboardHomeScreen({ user }: { user: User }) {
           <button
             type="button"
             onClick={() => setMatchFlow("camera")}
-            className="flex flex-col items-center rounded-2xl border border-[var(--lobby-red)]/25 bg-white/70 py-5 shadow-sm transition active:scale-[0.98]"
+            className="flex flex-col items-center rounded-2xl border border-[var(--lobby-red)]/25 bg-[var(--lobby-surface-raised)] py-5 shadow-sm transition active:scale-[0.98]"
           >
             <ScanIcon className="h-12 w-12 text-[var(--lobby-red)]" />
             <span className="mt-2 text-sm font-semibold text-[var(--lobby-red)]">スキャン</span>

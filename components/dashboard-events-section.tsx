@@ -26,7 +26,7 @@ function SeasonCountdownBanner() {
   const days = getSeasonRemainingDays();
   return (
     <div className="flex items-center gap-3 rounded-xl border border-zinc-200/80 bg-zinc-100/80 px-3 py-2.5 dark:border-zinc-600 dark:bg-zinc-800/60">
-      <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-white text-zinc-500 shadow-sm dark:bg-zinc-900 dark:text-zinc-400">
+      <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[var(--lobby-cream)] text-zinc-500 shadow-sm dark:bg-zinc-900 dark:text-zinc-400">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden>
           <path
             d="M12 3a5 5 0 0 0-5 5v2.5L5 14h14l-2-3.5V8a5 5 0 0 0-5-5Z"

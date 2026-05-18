@@ -114,7 +114,7 @@ function DashboardProfileLoaded({ user }: { user: User }) {
                 maxLength={50}
                 value={displayName}
                 onChange={(e) => setDisplayName(e.target.value)}
-                className="w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-zinc-900 outline-none ring-rose-500 focus:ring-2 dark:border-zinc-600 dark:bg-zinc-900 dark:text-zinc-50"
+                className="w-full rounded-lg border border-zinc-300 bg-[var(--lobby-cream)] px-3 py-2 text-zinc-900 outline-none ring-rose-500 focus:ring-2 dark:border-zinc-600 dark:bg-zinc-900 dark:text-zinc-50"
               />
             </div>
             <div>
@@ -127,7 +127,7 @@ function DashboardProfileLoaded({ user }: { user: User }) {
                 maxLength={500}
                 value={bio}
                 onChange={(e) => setBio(e.target.value)}
-                className="w-full resize-y rounded-lg border border-zinc-300 bg-white px-3 py-2 text-zinc-900 outline-none ring-rose-500 focus:ring-2 dark:border-zinc-600 dark:bg-zinc-900 dark:text-zinc-50"
+                className="w-full resize-y rounded-lg border border-zinc-300 bg-[var(--lobby-cream)] px-3 py-2 text-zinc-900 outline-none ring-rose-500 focus:ring-2 dark:border-zinc-600 dark:bg-zinc-900 dark:text-zinc-50"
               />
               <p className="mt-1 text-right text-xs text-zinc-500">{bio.length} / 500</p>
             </div>

@@ -218,8 +218,8 @@ export function EventSlotSection({
                             key={choice.id}
                             className={`flex cursor-pointer items-start gap-2 rounded-md border px-2 py-2 text-sm ${
                               selected
-                                ? "border-[var(--lobby-red)] bg-white dark:bg-zinc-900"
-                                : "border-transparent hover:bg-white/80 dark:hover:bg-zinc-800"
+                                ? "border-[var(--lobby-red)] bg-[var(--lobby-cream)] dark:bg-zinc-900"
+                                : "border-transparent hover:bg-[var(--lobby-cream)]/80 dark:hover:bg-zinc-800"
                             }`}
                           >
                             <input

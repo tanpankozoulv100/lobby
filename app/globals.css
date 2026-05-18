@@ -7,11 +7,16 @@
   --lobby-red-hover: #8f0015;
   --lobby-screen-bg: #f4f4f5;
   --lobby-cream: #fdf8f0;
+  /** クリームカード上のボタンなど、一段明るい面 */
+  --lobby-surface-raised: #fffaf3;
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
+  --color-lobby-red: var(--lobby-red);
+  --color-lobby-cream: var(--lobby-cream);
+  --color-lobby-screen: var(--lobby-screen-bg);
   --font-sans: var(--font-noto-sans-jp), ui-sans-serif, system-ui, sans-serif;
   --font-serif: var(--font-noto-serif-jp), ui-serif, Georgia, "Times New Roman", serif;
   --font-mono: var(--font-geist-mono);

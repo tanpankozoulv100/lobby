@@ -17,13 +17,13 @@ import { isAccountSuspended, isLobbyAccessGranted, isOnboardingBypassActiveForUs
 import { useLobbyStaff } from "@/lib/use-lobby-staff";
 import type { UserProfileFields } from "@/lib/lobby-firestore-types";
 import { DashboardProfileSection } from "@/components/dashboard-profile-section";
-import { DashboardAnnouncementsSection } from "@/components/dashboard-announcements-section";
 import { DashboardEventsSection } from "@/components/dashboard-events-section";
 import { DashboardConnectionsSection } from "@/components/dashboard-connections-section";
 import { DashboardChatSection } from "@/components/dashboard-chat-section";
 import { DashboardBottomNav, type DashboardTab } from "@/components/dashboard-bottom-nav";
 import { DashboardHomeScreen } from "@/components/dashboard-home-screen";
 import { DashboardSuspendedScreen } from "@/components/dashboard-suspended-screen";
+import { useAnnouncementUnread } from "@/lib/use-announcement-unread";
 
 function eventSnapshotErrorHint(code: string): string {
   if (code === "failed-precondition")
@@ -92,7 +92,7 @@ function DashboardMypageTab({
 }) {
   return (
     <div className="space-y-6">
-      <section className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm">
+      <section className="rounded-2xl border border-zinc-200/80 bg-[var(--lobby-cream)] p-5 shadow-sm">
         <h2 className="font-serif text-lg font-semibold text-zinc-900">アカウント</h2>
         <dl className="mt-4 space-y-3 text-sm">
           <div>
@@ -105,7 +105,7 @@ function DashboardMypageTab({
       <div className="flex flex-col gap-3 sm:flex-row">
         <Link
           href="/"
-          className="inline-flex justify-center rounded-xl border border-zinc-300 bg-white px-4 py-3 text-sm font-medium text-zinc-800 hover:bg-zinc-50"
+          className="inline-flex justify-center rounded-xl border border-zinc-300/80 bg-[var(--lobby-cream)] px-4 py-3 text-sm font-medium text-zinc-800 hover:bg-[var(--lobby-red)]/5"
         >
           トップへ
         </Link>
@@ -128,6 +128,11 @@ export function DashboardClient() {
   const { isStaff, staffGateReady } = useLobbyStaff(user?.uid ?? null);
   const bypassCtx = { isLobbyStaff: isStaff };
   const [tab, setTab] = useState<DashboardTab>("home");
+  const {
+    rows: announcementRows,
+    hasUnread: homeAnnouncementUnread,
+    markSeen: markAnnouncementsRead,
+  } = useAnnouncementUnread(user?.uid ?? null);
   const [profile, setProfile] = useState<UserProfileFields | null>(null);
   const [profileGateReady, setProfileGateReady] = useState(() => !isFirebaseConfigComplete());
   const [publishedEvents, setPublishedEvents] = useState<PublishedEventRow[] | null>(null);
@@ -327,7 +332,7 @@ export function DashboardClient() {
   return (
     <div className="min-h-dvh bg-[var(--lobby-screen-bg)] pb-[calc(5.25rem+env(safe-area-inset-bottom))]">
       {showBrandHeader ? (
-        <header className="fixed top-0 left-0 right-0 z-40 border-b border-zinc-200/80 bg-white/95 pt-[env(safe-area-inset-top)] shadow-sm backdrop-blur-sm">
+        <header className="fixed top-0 left-0 right-0 z-40 border-b border-zinc-200/80 bg-[var(--lobby-cream)]/95 pt-[env(safe-area-inset-top)] shadow-sm backdrop-blur-sm">
           <div className="mx-auto flex h-14 max-w-lg items-center justify-center px-4">
             <button
               type="button"
@@ -354,15 +359,17 @@ export function DashboardClient() {
             : "mx-auto max-w-lg px-4 pt-[env(safe-area-inset-top)] pb-6"
         }
       >
-        {tab === "home" ? <DashboardHomeScreen user={user} /> : null}
+        {tab === "home" ? (
+          <DashboardHomeScreen
+            user={user}
+            announcementRows={announcementRows}
+            announcementHasUnread={homeAnnouncementUnread}
+            onAnnouncementMarkSeen={markAnnouncementsRead}
+          />
+        ) : null}
         {tab === "history" ? (
           <div className="space-y-4">
             <DashboardConnectionsSection user={user} />
-          </div>
-        ) : null}
-        {tab === "news" ? (
-          <div className="space-y-4">
-            <DashboardAnnouncementsSection />
           </div>
         ) : null}
         {tab === "chat" ? (
@@ -393,7 +400,11 @@ export function DashboardClient() {
           hasDb={!!getFirebaseDb()}
         />
       ) : null}
-      <DashboardBottomNav active={tab} onChange={setTab} />
+      <DashboardBottomNav
+        active={tab}
+        onChange={setTab}
+        homeHasUnread={homeAnnouncementUnread}
+      />
     </div>
   );
 }

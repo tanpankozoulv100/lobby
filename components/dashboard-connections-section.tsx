@@ -27,7 +27,7 @@ const REPORT_REASON_LABEL: Record<UserReportReasonCode, string> = {
 
 function HistoryConfigMissing() {
   return (
-    <section className="rounded-xl border border-zinc-200 bg-white p-5 shadow-sm">
+    <section className="rounded-xl border border-zinc-200 bg-[var(--lobby-cream)] p-5 shadow-sm">
       <h2 className="font-serif text-lg font-semibold text-zinc-900">マッチング履歴</h2>
       <p className="mt-3 text-sm text-zinc-600">接続できませんでした。しばらく経ってからお試しください。</p>
     </section>
@@ -111,7 +111,7 @@ function DashboardConnectionsLoaded({ user }: { user: User }) {
   }, [user.uid, reportForUid, reportReason, reportNote]);
 
   return (
-    <section className="rounded-xl border border-zinc-200 bg-white p-5 shadow-sm">
+    <section className="rounded-xl border border-zinc-200 bg-[var(--lobby-cream)] p-5 shadow-sm">
       <h2 className="font-serif text-lg font-semibold text-zinc-900">マッチング履歴</h2>
       <p className="mt-1 text-sm text-zinc-600">
         ホームの「スキャン」または「表示する」のQRでマッチした相手の一覧です。問題がある場合は通報・ブロックできます。
@@ -163,7 +163,7 @@ function DashboardConnectionsLoaded({ user }: { user: User }) {
                         type="button"
                         disabled={blockBusyUid === row.peerUid}
                         onClick={() => void handleToggleBlock(row.peerUid)}
-                        className="rounded-lg border border-zinc-300 bg-white px-2.5 py-1 text-xs font-medium text-zinc-800 disabled:opacity-50"
+                        className="rounded-lg border border-zinc-300 bg-[var(--lobby-cream)] px-2.5 py-1 text-xs font-medium text-zinc-800 disabled:opacity-50"
                       >
                         {blockBusyUid === row.peerUid
                           ? "…"
@@ -189,7 +189,7 @@ function DashboardConnectionsLoaded({ user }: { user: User }) {
                       <select
                         value={reportReason}
                         onChange={(e) => setReportReason(e.target.value as UserReportReasonCode)}
-                        className="w-full rounded-lg border border-zinc-300 bg-white px-2 py-2 text-sm"
+                        className="w-full rounded-lg border border-zinc-300 bg-[var(--lobby-cream)] px-2 py-2 text-sm"
                       >
                         {USER_REPORT_REASON_CODES.map((code) => (
                           <option key={code} value={code}>

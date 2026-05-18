@@ -1,5 +1,7 @@
 # Lobby UI / UX 仕様（記録）
 
+> **大前提**: Figma / 下記 PDF は実装前のデザイン案。**実装と矛盾する場合は現行コードと `docs/DESIGN_IMPLEMENTATION_POLICY.md` が優先**。UI を直す前に変更一覧で確認すること。
+
 ## 正本（デザイン・アートボード）
 
 Obsidian ボールト内の PDF:

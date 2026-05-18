@@ -64,7 +64,7 @@ export function shouldShowOnboardingDevBypassBanner(
   ctx?: OnboardingBypassContext
 ): boolean {
   if (authLoading) return false;
-  if (ctx?.isLobbyStaff) return true;
+  if (ctx?.isLobbyStaff) return false;
   if (onboardingBypassUidAllowlist.size > 0) {
     return !!uid && onboardingBypassUidAllowlist.has(uid);
   }

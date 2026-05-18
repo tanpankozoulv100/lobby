@@ -5,6 +5,8 @@
 このドキュメントは、スレッドをまたいでも参照できる「完成系の仕様メモ」です。  
 企画メモとの差分が出た場合、実装の正本は `firestore.rules` と `lib/lobby-firestore-types.ts` を優先します。
 
+**Figma / PDF / スクショと実装が食い違うとき**は `docs/DESIGN_IMPLEMENTATION_POLICY.md` に従い、**既存の Cursor 実装を優先**する（デザイン反映前に変更一覧でユーザー確認）。
+
 ## 1. プロダクト前提
 
 - Lobby は「30日間の主人公体験」を目指すシーズン制コミュニティアプリ。

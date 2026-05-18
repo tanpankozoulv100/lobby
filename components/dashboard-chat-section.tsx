@@ -54,7 +54,7 @@ async function fetchDisplayName(uid: string): Promise<string> {
 
 function ChatConfigMissing() {
   return (
-    <section className="rounded-xl border border-zinc-200 bg-white p-5 shadow-sm">
+    <section className="rounded-xl border border-zinc-200 bg-[var(--lobby-cream)] p-5 shadow-sm">
       <h2 className="font-serif text-lg font-semibold text-zinc-900">チャット</h2>
       <p className="mt-3 text-sm text-zinc-600">接続できませんでした。しばらく経ってからお試しください。</p>
     </section>
@@ -115,7 +115,7 @@ function ChatConversation({
   }, [user.uid, peer.uid, draft]);
 
   return (
-    <div className="flex min-h-[min(70dvh,520px)] flex-col rounded-xl border border-zinc-200 bg-white shadow-sm">
+    <div className="flex min-h-[min(70dvh,520px)] flex-col rounded-xl border border-zinc-200 bg-[var(--lobby-cream)] shadow-sm">
       <div className="flex items-center gap-3 border-b border-zinc-100 px-4 py-3">
         <button
           type="button"
@@ -309,7 +309,7 @@ function DashboardChatLoaded({ user }: { user: User }) {
 
   return (
     <div className="space-y-4">
-      <section className="rounded-xl border border-zinc-200 bg-white p-5 shadow-sm">
+      <section className="rounded-xl border border-zinc-200 bg-[var(--lobby-cream)] p-5 shadow-sm">
         <h2 className="font-serif text-lg font-semibold text-zinc-900">チャット</h2>
         <p className="mt-1 text-sm text-zinc-600">
           QRでマッチした相手と1対1でやりとりできます（通常24時間、最終日マッチは72時間）。
@@ -327,7 +327,7 @@ function DashboardChatLoaded({ user }: { user: User }) {
                 <button
                   type="button"
                   onClick={() => setSelectedPeer(peer)}
-                  className="flex w-full items-center justify-between gap-3 rounded-xl border border-zinc-200 bg-zinc-50/80 px-4 py-3 text-left transition hover:border-[var(--lobby-red)]/30 hover:bg-white"
+                  className="flex w-full items-center justify-between gap-3 rounded-xl border border-zinc-200 bg-zinc-50/80 px-4 py-3 text-left transition hover:border-[var(--lobby-red)]/30 hover:bg-[var(--lobby-cream)]"
                 >
                   <span className="font-medium text-zinc-900">
                     {peerNames[peer.uid] ?? "読み込み中…"}
@@ -342,7 +342,7 @@ function DashboardChatLoaded({ user }: { user: User }) {
         )}
       </section>
 
-      <section className="rounded-xl border border-zinc-200 bg-white p-5 shadow-sm">
+      <section className="rounded-xl border border-zinc-200 bg-[var(--lobby-cream)] p-5 shadow-sm">
         <button
           type="button"
           onClick={() => setShowInviteForm((v) => !v)}
@@ -358,7 +358,7 @@ function DashboardChatLoaded({ user }: { user: User }) {
             <select
               value={effectiveInviteToUid}
               onChange={(e) => setInviteToUid(e.target.value)}
-              className="w-full rounded-xl border border-zinc-200 bg-white px-3 py-2.5 text-sm"
+              className="w-full rounded-xl border border-zinc-200 bg-[var(--lobby-cream)] px-3 py-2.5 text-sm"
             >
               <option value="">送信先（マッチ済み相手）</option>
               {matchedPeerUids.map((uid) => (
