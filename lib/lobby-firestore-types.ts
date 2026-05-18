@@ -10,9 +10,11 @@ export type AccountStatus = "active" | "suspended";
 export type UserProfileFields = {
   displayName: string;
   bio: string;
-  /** 参加番号 1–999（ホーム中央の No.） */
+  /** 参加番号 0=運営、1〜=一般（001–999は3桁表示、1000〜は4桁表示。ダッシュボード初回開放時に採番） */
   participantNo?: number;
-  /** 例: @20260329-007 */
+  /** ダッシュボード初回開放日時（採番の基準） */
+  lobbyOpenedAt?: Timestamp;
+  /** @deprecated 表示には使わない（後方互換の読み取りのみ） */
   participantSerial?: string;
   /** 本人確認の状態（未設定は none とみなす） */
   identityStatus?: IdentityVerificationStatus;

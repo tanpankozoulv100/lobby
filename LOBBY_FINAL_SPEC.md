@@ -23,6 +23,7 @@
 
 ## 3. イベント
 
+- 参加者番号 **No.001〜** は、本人確認・チケット完了後に **初めてダッシュボードへ入った順** で付与（`system/participantCounter`）。**001–999 は3桁表示、1000以降は4桁表示**。運営（`admins`）は **No.000** 固定。
 - 参加者は A/B コホートで分岐。
 - 1日ごとに朝/昼/夜（`morning|afternoon|evening`）の枠を提示。
 - 枠は `events/{eventId}/slotChoices/{slotId}` で管理し、同一 `(dateKey, period, cohort)` は最大2件（`lineIndex 0/1`）。

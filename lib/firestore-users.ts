@@ -12,23 +12,6 @@ import type { UserProfileFields } from "@/lib/lobby-firestore-types";
 
 const USERS = "users";
 
-function hashUidToParticipantNo(uid: string): number {
-  let h = 0;
-  for (let i = 0; i < uid.length; i++) {
-    h = (h * 31 + uid.charCodeAt(i)) >>> 0;
-  }
-  return (h % 999) + 1;
-}
-
-function generateParticipantSerial(): string {
-  const d = new Date();
-  const y = d.getFullYear();
-  const m = String(d.getMonth() + 1).padStart(2, "0");
-  const day = String(d.getDate()).padStart(2, "0");
-  const r = String(Math.floor(Math.random() * 1000)).padStart(3, "0");
-  return `@${y}${m}${day}-${r}`;
-}
-
 export async function ensureUserProfile(
   uid: string,
   email: string | null | undefined
@@ -42,19 +25,8 @@ export async function ensureUserProfile(
     await setDoc(ref, {
       displayName: fallbackName,
       bio: "",
-      participantNo: hashUidToParticipantNo(uid),
-      participantSerial: generateParticipantSerial(),
       identityStatus: "none",
       createdAt: serverTimestamp(),
-      updatedAt: serverTimestamp(),
-    });
-    return;
-  }
-  const d = snap.data();
-  if (typeof d.participantNo !== "number" || typeof d.participantSerial !== "string") {
-    await updateDoc(ref, {
-      participantNo: hashUidToParticipantNo(uid),
-      participantSerial: generateParticipantSerial(),
       updatedAt: serverTimestamp(),
     });
   }
@@ -91,6 +63,7 @@ export function subscribeUserProfile(
         displayName: typeof d.displayName === "string" ? d.displayName : "",
         bio: typeof d.bio === "string" ? d.bio : "",
         participantNo: typeof d.participantNo === "number" ? d.participantNo : undefined,
+        lobbyOpenedAt: d.lobbyOpenedAt,
         participantSerial: typeof d.participantSerial === "string" ? d.participantSerial : undefined,
         identityStatus,
         idDocumentPath: typeof d.idDocumentPath === "string" ? d.idDocumentPath : undefined,
