@@ -4,14 +4,18 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { User } from "firebase/auth";
 import { doc, getDoc } from "firebase/firestore";
 import { getFirebaseDb, isFirebaseConfigComplete } from "@/lib/firebase";
-import { subscribeOutboundLinks } from "@/lib/firestore-connections";
+import {
+  mergeMatchLinks,
+  subscribeInboundLinks,
+  subscribeOutboundLinks,
+} from "@/lib/firestore-connections";
 import {
   ensureDateInviteTicketsByMatchCount,
   sendDateInvite,
-  subscribeActiveChatPeers,
   subscribeActiveDateInviteTickets,
-  type ActiveChatPeer,
+  subscribeChatPeers,
   type ActiveDateInviteTicket,
+  type ChatPeerEntry,
 } from "@/lib/firestore-chat-date";
 import {
   chatThreadId,
@@ -66,12 +70,14 @@ function ChatConversation({
   peer,
   peerDisplayName,
   isStaff,
+  canSend,
   onBack,
 }: {
   user: User;
-  peer: ActiveChatPeer;
+  peer: ChatPeerEntry;
   peerDisplayName: string;
   isStaff: boolean;
+  canSend: boolean;
   onBack: () => void;
 }) {
   const [messages, setMessages] = useState<ChatMessageRow[] | null>(null);
@@ -103,6 +109,7 @@ function ChatConversation({
   }, [messages]);
 
   const handleSend = useCallback(async () => {
+    if (!canSend) return;
     setSendError(null);
     setSending(true);
     const res = await sendChatMessage(user.uid, peer.uid, draft);
@@ -112,7 +119,7 @@ function ChatConversation({
     } else {
       setSendError(res.message);
     }
-  }, [user.uid, peer.uid, draft]);
+  }, [user.uid, peer.uid, draft, canSend]);
 
   return (
     <div className="flex min-h-[min(70dvh,520px)] flex-col rounded-xl border border-zinc-200 bg-[var(--lobby-cream)] shadow-sm">
@@ -127,7 +134,11 @@ function ChatConversation({
         <div className="min-w-0 flex-1">
           <p className="truncate font-medium text-zinc-900">{peerDisplayName}</p>
           <p className="text-[11px] text-zinc-500">
-            {isStaff ? "運営: 期限なし" : `期限 ${formatExpiry(peer.expiresAt)}`}
+            {isStaff
+              ? "運営: 期限なし"
+              : canSend
+                ? `送信期限 ${formatExpiry(peer.expiresAt)}`
+                : "期限切れ・履歴のみ"}
           </p>
         </div>
       </div>
@@ -166,43 +177,49 @@ function ChatConversation({
         <div ref={bottomRef} />
       </div>
 
-      <div className="border-t border-zinc-100 p-3">
-        <div className="flex gap-2">
-          <textarea
-            rows={2}
-            maxLength={2000}
-            value={draft}
-            onChange={(e) => setDraft(e.target.value)}
-            placeholder="メッセージを入力"
-            className="min-h-[2.75rem] flex-1 resize-none rounded-xl border border-zinc-200 bg-zinc-50 px-3 py-2 text-sm text-zinc-900 outline-none focus:border-[var(--lobby-red)] focus:ring-2 focus:ring-[var(--lobby-red)]/20"
-            onKeyDown={(e) => {
-              if (e.key === "Enter" && !e.shiftKey) {
-                e.preventDefault();
-                if (!sending && draft.trim()) void handleSend();
-              }
-            }}
-          />
-          <button
-            type="button"
-            disabled={sending || !draft.trim()}
-            onClick={() => void handleSend()}
-            className="self-end rounded-xl bg-[var(--lobby-red)] px-4 py-2.5 text-sm font-medium text-white disabled:opacity-50"
-          >
-            {sending ? "…" : "送信"}
-          </button>
+      {!canSend ? (
+        <p className="border-t border-zinc-100 bg-zinc-50/80 px-4 py-3 text-center text-xs leading-relaxed text-zinc-600">
+          チャットの送信期限が過ぎています。過去のメッセージは閲覧できます。同じ相手と再マッチすると、続きから送信できます。
+        </p>
+      ) : (
+        <div className="border-t border-zinc-100 p-3">
+          <div className="flex gap-2">
+            <textarea
+              rows={2}
+              maxLength={2000}
+              value={draft}
+              onChange={(e) => setDraft(e.target.value)}
+              placeholder="メッセージを入力"
+              className="min-h-[2.75rem] flex-1 resize-none rounded-xl border border-zinc-200 bg-zinc-50 px-3 py-2 text-sm text-zinc-900 outline-none focus:border-[var(--lobby-red)] focus:ring-2 focus:ring-[var(--lobby-red)]/20"
+              onKeyDown={(e) => {
+                if (e.key === "Enter" && !e.shiftKey) {
+                  e.preventDefault();
+                  if (!sending && draft.trim()) void handleSend();
+                }
+              }}
+            />
+            <button
+              type="button"
+              disabled={sending || !draft.trim()}
+              onClick={() => void handleSend()}
+              className="self-end rounded-xl bg-[var(--lobby-red)] px-4 py-2.5 text-sm font-medium text-white disabled:opacity-50"
+            >
+              {sending ? "…" : "送信"}
+            </button>
+          </div>
+          {sendError ? <p className="mt-2 text-xs text-amber-800">{sendError}</p> : null}
         </div>
-        {sendError ? <p className="mt-2 text-xs text-amber-800">{sendError}</p> : null}
-      </div>
+      )}
     </div>
   );
 }
 
 function DashboardChatLoaded({ user }: { user: User }) {
   const { isStaff } = useLobbyStaff(user.uid);
-  const [peers, setPeers] = useState<ActiveChatPeer[]>([]);
+  const [peers, setPeers] = useState<ChatPeerEntry[]>([]);
   const [peerNames, setPeerNames] = useState<Record<string, string>>({});
-  const [selectedPeer, setSelectedPeer] = useState<ActiveChatPeer | null>(null);
-  const [outboundPeerUids, setOutboundPeerUids] = useState<string[]>([]);
+  const [selectedPeer, setSelectedPeer] = useState<ChatPeerEntry | null>(null);
+  const [matchedRows, setMatchedRows] = useState<{ peerUid: string }[]>([]);
   const [blockedUids, setBlockedUids] = useState<string[]>([]);
   const [ticketRows, setTicketRows] = useState<ActiveDateInviteTicket[]>([]);
   const [inviteToUid, setInviteToUid] = useState("");
@@ -214,17 +231,19 @@ function DashboardChatLoaded({ user }: { user: User }) {
   const [showInviteForm, setShowInviteForm] = useState(false);
 
   const blockedSet = useMemo(() => new Set(blockedUids), [blockedUids]);
-  const matchedPeerUids = useMemo(
-    () => outboundPeerUids.filter((uid) => !blockedSet.has(uid)),
-    [outboundPeerUids, blockedSet]
+  const activePeers = useMemo(() => peers.filter((p) => p.isActive), [peers]);
+  const historyPeers = useMemo(() => peers.filter((p) => !p.isActive), [peers]);
+  const inviteEligibleUids = useMemo(
+    () => activePeers.map((p) => p.uid).filter((uid) => !blockedSet.has(uid)),
+    [activePeers, blockedSet]
   );
   const effectiveInviteToUid = useMemo(() => {
-    if (inviteToUid && matchedPeerUids.includes(inviteToUid)) return inviteToUid;
-    return matchedPeerUids[0] ?? "";
-  }, [inviteToUid, matchedPeerUids]);
+    if (inviteToUid && inviteEligibleUids.includes(inviteToUid)) return inviteToUid;
+    return inviteEligibleUids[0] ?? "";
+  }, [inviteToUid, inviteEligibleUids]);
 
   useEffect(() => {
-    const unsub = subscribeActiveChatPeers(
+    const unsub = subscribeChatPeers(
       user.uid,
       (rows) => setPeers(rows),
       () => setPeers([]),
@@ -235,16 +254,27 @@ function DashboardChatLoaded({ user }: { user: User }) {
       (rows) => setTicketRows(rows),
       () => setTicketRows([])
     );
-    const unsubMatches = subscribeOutboundLinks(user.uid, (rows) => {
-      const peerUids = rows.map((r) => r.peerUid).sort();
-      setOutboundPeerUids(peerUids);
-      void ensureDateInviteTicketsByMatchCount(user.uid, rows.length);
+    let outbound: Parameters<typeof mergeMatchLinks>[0] = [];
+    let inbound: Parameters<typeof mergeMatchLinks>[1] = [];
+    const syncMatches = () => {
+      const merged = mergeMatchLinks(outbound, inbound);
+      setMatchedRows(merged);
+      void ensureDateInviteTicketsByMatchCount(user.uid, merged.length);
+    };
+    const unsubMatchesOut = subscribeOutboundLinks(user.uid, (rows) => {
+      outbound = rows;
+      syncMatches();
+    });
+    const unsubMatchesIn = subscribeInboundLinks(user.uid, (rows) => {
+      inbound = rows;
+      syncMatches();
     });
     const unsubBlocked = subscribeBlockedPeerUids(user.uid, setBlockedUids);
     return () => {
       unsub?.();
       unsubTickets?.();
-      unsubMatches?.();
+      unsubMatchesOut?.();
+      unsubMatchesIn?.();
       unsubBlocked?.();
     };
   }, [user.uid, isStaff]);
@@ -294,51 +324,61 @@ function DashboardChatLoaded({ user }: { user: User }) {
   }, [user.uid, effectiveInviteToUid, inviteLocation, inviteProposedAt, inviteMessage]);
 
   if (selectedPeer) {
+    const canSend = isStaff || selectedPeer.isActive;
     return (
       <ChatConversation
         user={user}
         peer={selectedPeer}
         peerDisplayName={peerNames[selectedPeer.uid] ?? selectedPeer.uid.slice(0, 8)}
         isStaff={isStaff}
+        canSend={canSend}
         onBack={() => setSelectedPeer(null)}
       />
     );
   }
 
-  const chatUnlocked = peers.length > 0;
+  const hasAnyChat = peers.length > 0;
+
+  const renderPeerButton = (peer: ChatPeerEntry) => (
+    <li key={peer.uid}>
+      <button
+        type="button"
+        onClick={() => setSelectedPeer(peer)}
+        className="flex w-full items-center justify-between gap-3 rounded-xl border border-zinc-200 bg-zinc-50/80 px-4 py-3 text-left transition hover:border-[var(--lobby-red)]/30 hover:bg-[var(--lobby-cream)]"
+      >
+        <span className="font-medium text-zinc-900">{peerNames[peer.uid] ?? "読み込み中…"}</span>
+        <span className="shrink-0 text-xs text-zinc-500">
+          {isStaff ? "運営" : peer.isActive ? `〜${formatExpiry(peer.expiresAt)}` : "履歴"}
+        </span>
+      </button>
+    </li>
+  );
 
   return (
     <div className="space-y-4">
       <section className="rounded-xl border border-zinc-200 bg-[var(--lobby-cream)] p-5 shadow-sm">
         <h2 className="font-serif text-lg font-semibold text-zinc-900">チャット</h2>
         <p className="mt-1 text-sm text-zinc-600">
-          QRでマッチした相手と1対1でやりとりできます（通常24時間、最終日マッチは72時間）。
+          QRでマッチした相手と1対1でやりとりできます（通常24時間、最終日マッチは72時間）。期限後も履歴は閲覧でき、再マッチで続きから送れます。
           {isStaff ? " 運営アカウントは常時利用できます。" : ""}
         </p>
 
-        {!chatUnlocked ? (
+        {!hasAnyChat ? (
           <p className="mt-4 rounded-lg bg-zinc-50 px-3 py-3 text-sm text-zinc-600">
             会場でQR交換してマッチすると、相手とのチャットが開放されます。
           </p>
         ) : (
-          <ul className="mt-4 space-y-2">
-            {peers.map((peer) => (
-              <li key={peer.uid}>
-                <button
-                  type="button"
-                  onClick={() => setSelectedPeer(peer)}
-                  className="flex w-full items-center justify-between gap-3 rounded-xl border border-zinc-200 bg-zinc-50/80 px-4 py-3 text-left transition hover:border-[var(--lobby-red)]/30 hover:bg-[var(--lobby-cream)]"
-                >
-                  <span className="font-medium text-zinc-900">
-                    {peerNames[peer.uid] ?? "読み込み中…"}
-                  </span>
-                  <span className="shrink-0 text-xs text-zinc-500">
-                    {isStaff ? "運営" : `〜${formatExpiry(peer.expiresAt)}`}
-                  </span>
-                </button>
-              </li>
-            ))}
-          </ul>
+          <>
+            {activePeers.length > 0 ? (
+              <ul className="mt-4 space-y-2">{activePeers.map(renderPeerButton)}</ul>
+            ) : null}
+            {historyPeers.length > 0 ? (
+              <>
+                <p className="mt-4 text-xs font-medium text-zinc-500">過去のチャット（閲覧のみ）</p>
+                <ul className="mt-2 space-y-2">{historyPeers.map(renderPeerButton)}</ul>
+              </>
+            ) : null}
+          </>
         )}
       </section>
 
@@ -361,7 +401,7 @@ function DashboardChatLoaded({ user }: { user: User }) {
               className="w-full rounded-xl border border-zinc-200 bg-[var(--lobby-cream)] px-3 py-2.5 text-sm"
             >
               <option value="">送信先（マッチ済み相手）</option>
-              {matchedPeerUids.map((uid) => (
+              {inviteEligibleUids.map((uid) => (
                 <option key={uid} value={uid}>
                   {peerNames[uid] ?? uid.slice(0, 8)}
                 </option>

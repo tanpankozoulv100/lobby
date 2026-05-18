@@ -13,6 +13,7 @@ import {
   type Unsubscribe,
 } from "firebase/firestore";
 import { getFirebaseDb } from "@/lib/firebase";
+import { mergeLinkTimestamps, type MatchLinkTimestamps } from "@/lib/match-link-times";
 
 const CONNECTION_CODES = "connectionCodes";
 const OUTBOUND = "outboundLinks";
@@ -118,7 +119,27 @@ export function subscribeMyConnectionCode(
   );
 }
 
-export type OutboundLinkRow = { peerUid: string; createdAt?: unknown };
+export type OutboundLinkRow = { peerUid: string } & MatchLinkTimestamps;
+
+export type MergedMatchRow = { peerUid: string } & MatchLinkTimestamps;
+
+/** outbound（自分がスキャン）と linkedFrom（相手がスキャン）をマージしたマッチ一覧 */
+export function mergeMatchLinks(
+  outbound: OutboundLinkRow[],
+  inbound: InboundLinkRow[]
+): MergedMatchRow[] {
+  const byPeer = new Map<string, MatchLinkTimestamps>();
+  const upsert = (peerUid: string, fields: MatchLinkTimestamps) => {
+    byPeer.set(peerUid, mergeLinkTimestamps(byPeer.get(peerUid), fields));
+  };
+  for (const r of outbound) {
+    upsert(r.peerUid, { createdAt: r.createdAt, lastMatchedAt: r.lastMatchedAt });
+  }
+  for (const r of inbound) {
+    upsert(r.sourceUid, { createdAt: r.createdAt, lastMatchedAt: r.lastMatchedAt });
+  }
+  return [...byPeer.entries()].map(([peerUid, fields]) => ({ peerUid, ...fields }));
+}
 
 export function subscribeOutboundLinks(
   uid: string,
@@ -136,7 +157,12 @@ export function subscribeOutboundLinks(
     (snap) => {
       const rows: OutboundLinkRow[] = [];
       snap.forEach((d) => {
-        rows.push({ peerUid: d.id, createdAt: d.data().createdAt });
+        const data = d.data();
+        rows.push({
+          peerUid: d.id,
+          createdAt: data.createdAt,
+          lastMatchedAt: data.lastMatchedAt,
+        });
       });
       onData(rows);
     },
@@ -151,7 +177,7 @@ export function subscribeOutboundLinks(
   );
 }
 
-export type InboundLinkRow = { sourceUid: string; createdAt?: unknown };
+export type InboundLinkRow = { sourceUid: string } & MatchLinkTimestamps;
 
 export function subscribeInboundLinks(
   uid: string,
@@ -169,7 +195,12 @@ export function subscribeInboundLinks(
     (snap) => {
       const rows: InboundLinkRow[] = [];
       snap.forEach((d) => {
-        rows.push({ sourceUid: d.id, createdAt: d.data().createdAt });
+        const data = d.data();
+        rows.push({
+          sourceUid: d.id,
+          createdAt: data.createdAt,
+          lastMatchedAt: data.lastMatchedAt,
+        });
       });
       onData(rows);
     },
@@ -187,7 +218,7 @@ export function subscribeInboundLinks(
 export async function registerLinkByPeerCode(
   myUid: string,
   peerCodeRaw: string
-): Promise<{ ok: true } | { ok: false; message: string }> {
+): Promise<{ ok: true; rematched?: boolean } | { ok: false; message: string }> {
   const db = getFirebaseDb();
   if (!db) return { ok: false, message: "Firestore に接続できません。" };
   const normalized =
@@ -218,11 +249,29 @@ export async function registerLinkByPeerCode(
     return { ok: false, message: "自分のコードは入力できません。" };
   }
   const linkRef = doc(db, "users", myUid, OUTBOUND, peerUid);
+  const inboundRef = doc(db, "users", peerUid, LINKED_FROM, myUid);
   const existing = await getDoc(linkRef);
   if (existing.exists()) {
-    return { ok: false, message: "すでにこの相手と連携済みです。" };
+    try {
+      const batch = writeBatch(db);
+      const rematchedAt = serverTimestamp();
+      batch.update(linkRef, { lastMatchedAt: rematchedAt });
+      const inboundSnap = await getDoc(inboundRef);
+      if (inboundSnap.exists()) {
+        batch.update(inboundRef, { lastMatchedAt: rematchedAt });
+      } else {
+        batch.set(inboundRef, { createdAt: rematchedAt });
+      }
+      await batch.commit();
+      return { ok: true, rematched: true };
+    } catch (err: unknown) {
+      const c = err && typeof err === "object" && "code" in err ? String((err as { code: string }).code) : "";
+      if (c === "permission-denied") {
+        return { ok: false, message: "再マッチの保存が拒否されました。ルールをデプロイしてください。" };
+      }
+      return { ok: false, message: "再マッチの保存に失敗しました。" };
+    }
   }
-  const inboundRef = doc(db, "users", peerUid, LINKED_FROM, myUid);
   try {
     const batch = writeBatch(db);
     batch.set(linkRef, { createdAt: serverTimestamp() });

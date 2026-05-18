@@ -4,9 +4,11 @@ import { useCallback, useEffect, useState } from "react";
 import type { User } from "firebase/auth";
 import { isFirebaseConfigComplete } from "@/lib/firebase";
 import {
+  mergeMatchLinks,
   subscribeInboundLinks,
   subscribeOutboundLinks,
   type InboundLinkRow,
+  type MergedMatchRow,
   type OutboundLinkRow,
 } from "@/lib/firestore-connections";
 import type { UserReportReasonCode } from "@/lib/lobby-firestore-types";
@@ -35,9 +37,10 @@ function HistoryConfigMissing() {
 }
 
 function DashboardConnectionsLoaded({ user }: { user: User }) {
-  const [links, setLinks] = useState<OutboundLinkRow[] | null>(null);
-  const [linksError, setLinksError] = useState<string | null>(null);
+  const [outbound, setOutbound] = useState<OutboundLinkRow[] | null>(null);
   const [inbound, setInbound] = useState<InboundLinkRow[] | null>(null);
+  const [links, setLinks] = useState<MergedMatchRow[] | null>(null);
+  const [linksError, setLinksError] = useState<string | null>(null);
   const [blockedUids, setBlockedUids] = useState<string[]>([]);
   const [statusMessage, setStatusMessage] = useState<string | null>(null);
   const [reportForUid, setReportForUid] = useState<string | null>(null);
@@ -48,19 +51,35 @@ function DashboardConnectionsLoaded({ user }: { user: User }) {
   const [blockBusyUid, setBlockBusyUid] = useState<string | null>(null);
 
   useEffect(() => {
+    let outboundRows: OutboundLinkRow[] = [];
+    let inboundRows: InboundLinkRow[] = [];
+    const syncLinks = () => {
+      setLinks(mergeMatchLinks(outboundRows, inboundRows));
+      setLinksError(null);
+    };
+
     const unsubLinks = subscribeOutboundLinks(
       user.uid,
       (rows) => {
-        setLinks(rows);
-        setLinksError(null);
+        outboundRows = rows;
+        setOutbound(rows);
+        syncLinks();
       },
       (msg) => setLinksError(msg)
     );
 
     const unsubInbound = subscribeInboundLinks(
       user.uid,
-      (rows) => setInbound(rows),
-      () => setInbound(null)
+      (rows) => {
+        inboundRows = rows;
+        setInbound(rows);
+        syncLinks();
+      },
+      () => {
+        inboundRows = [];
+        setInbound(null);
+        syncLinks();
+      }
     );
 
     const unsubBlocked = subscribeBlockedPeerUids(user.uid, setBlockedUids);
@@ -141,7 +160,9 @@ function DashboardConnectionsLoaded({ user }: { user: User }) {
         ) : (
           <ul className="mt-3 space-y-3">
             {links.map((row) => {
-              const mutual = inbound?.some((i) => i.sourceUid === row.peerUid) ?? false;
+              const mutual =
+                (outbound?.some((o) => o.peerUid === row.peerUid) ?? false) &&
+                (inbound?.some((i) => i.sourceUid === row.peerUid) ?? false);
               const isBlocked = blockedUids.includes(row.peerUid);
               const reporting = reportForUid === row.peerUid;
               return (

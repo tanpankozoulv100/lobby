@@ -331,7 +331,11 @@ service cloud.firestore {
         && request.auth.uid == userId
         && peerId != userId
         && request.resource.data.keys().hasOnly(['createdAt']);
-      allow update, delete: if false;
+      allow update: if request.auth != null
+        && request.auth.uid == userId
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['lastMatchedAt'])
+        && request.resource.data.lastMatchedAt is timestamp;
+      allow delete: if false;
     }
 
     // 相手があなたのコードで連携したとき、相手 UID をここに記録（作成は連携した本人のみ）
@@ -341,7 +345,11 @@ service cloud.firestore {
         && request.auth.uid == sourceUid
         && sourceUid != userId
         && request.resource.data.keys().hasOnly(['createdAt']);
-      allow update, delete: if false;
+      allow update: if request.auth != null
+        && request.auth.uid == sourceUid
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['lastMatchedAt'])
+        && request.resource.data.lastMatchedAt is timestamp;
+      allow delete: if false;
     }
 
     function hasMatchWith(peerId) {

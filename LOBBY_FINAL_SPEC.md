@@ -34,11 +34,12 @@
 ## 4. チャット
 
 - 下部ナビの「チャット」タブは常時表示。
-- 会場でQR交換してマッチした相手とのチャットを 24時間限定で解放。
-- シーズン最終日に成立したマッチは 72時間解放（最終マッチング特例）。
-- 24時間が過ぎた相手とのチャットは自動的に未解放扱い。
-- 現在の土台実装では、マッチ履歴（`outboundLinks`）の `createdAt` を解放起点として扱う。
+- 会場でQR交換してマッチした相手とのチャットを 24時間限定で解放（送信のみ。最終日マッチは 72時間）。
+- **送信期限後も** 同じ相手との **メッセージ履歴は閲覧可**（読み取り専用）。一覧の「過去のチャット」から開く。
+- **再マッチ**（同じ相手の QR を再度スキャン）で `lastMatchedAt` を更新し、**同じ `chatThreads` スレッドで続きから送信**できる（24/72h ウィンドウが再開）。
+- マッチの認識は **outboundLinks** と **linkedFrom** の両方。チャット解放起点は `max(createdAt, lastMatchedAt)`。
 - メッセージは Firestore `chatThreads/{participantLow_participantHigh}/messages`（リアルタイム購読）。運営（`admins/{uid}`）は期限なしでマッチ相手とチャット可能。
+- 再マッチ時は Firestore ルールで `outboundLinks` / `linkedFrom` の `lastMatchedAt` 更新を許可（要 `firestore.rules` デプロイ）。
 
 ## 5. デートお誘い券
 

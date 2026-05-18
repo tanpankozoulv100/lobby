@@ -13,7 +13,14 @@ import {
   type Unsubscribe,
 } from "firebase/firestore";
 import { getFirebaseDb } from "@/lib/firebase";
-import { subscribeOutboundLinks, type OutboundLinkRow } from "@/lib/firestore-connections";
+import {
+  mergeMatchLinks,
+  subscribeInboundLinks,
+  subscribeOutboundLinks,
+  type InboundLinkRow,
+  type OutboundLinkRow,
+} from "@/lib/firestore-connections";
+import { chatWindowStartFromLink } from "@/lib/match-link-times";
 import { isPeerBlocked, subscribeBlockedPeerUids } from "@/lib/firestore-safety";
 import { getSeasonEndDate } from "@/lib/season-config";
 
@@ -28,6 +35,11 @@ export type ActiveChatPeer = {
   uid: string;
   matchedAt: Date;
   expiresAt: Date;
+};
+
+/** マッチ相手ごとのチャット状態（期限切れも一覧に含む） */
+export type ChatPeerEntry = ActiveChatPeer & {
+  isActive: boolean;
 };
 
 export type ActiveDateInviteTicket = {
@@ -66,9 +78,9 @@ function chatWindowHoursForMatch(matchedAt: Date): number {
 
 const STAFF_CHAT_FAR_FUTURE_MS = 100 * 365 * 24 * 60 * 60 * 1000;
 
-export function subscribeActiveChatPeers(
+export function subscribeChatPeers(
   uid: string,
-  onData: (rows: ActiveChatPeer[]) => void,
+  onData: (rows: ChatPeerEntry[]) => void,
   onError?: (message: string) => void,
   options?: { isLobbyStaff?: boolean }
 ): Unsubscribe | null {
@@ -79,32 +91,42 @@ export function subscribeActiveChatPeers(
   }
 
   let outboundRows: OutboundLinkRow[] = [];
+  let inboundRows: InboundLinkRow[] = [];
   const blocked = new Set<string>();
 
   const isStaff = options?.isLobbyStaff === true;
 
   const emit = () => {
     const now = Date.now();
-    const active = outboundRows
+    const matchRows = mergeMatchLinks(outboundRows, inboundRows);
+    const entries = matchRows
       .filter((r) => !blocked.has(r.peerUid))
       .map((r) => {
-        const matchedAt = asDate(r.createdAt);
+        const matchedAt = chatWindowStartFromLink(r) ?? (isStaff ? new Date() : null);
         if (!matchedAt) return null;
         if (isStaff) {
           return {
             uid: r.peerUid,
             matchedAt,
             expiresAt: new Date(now + STAFF_CHAT_FAR_FUTURE_MS),
+            isActive: true,
           };
         }
         const chatWindowHours = chatWindowHoursForMatch(matchedAt);
         const expiresAt = new Date(matchedAt.getTime() + chatWindowHours * 60 * 60 * 1000);
-        if (expiresAt.getTime() <= now) return null;
-        return { uid: r.peerUid, matchedAt, expiresAt };
+        return {
+          uid: r.peerUid,
+          matchedAt,
+          expiresAt,
+          isActive: expiresAt.getTime() > now,
+        };
       })
-      .filter((x): x is ActiveChatPeer => x !== null)
-      .sort((a, b) => b.matchedAt.getTime() - a.matchedAt.getTime());
-    onData(active);
+      .filter((x): x is ChatPeerEntry => x !== null)
+      .sort((a, b) => {
+        if (a.isActive !== b.isActive) return a.isActive ? -1 : 1;
+        return b.matchedAt.getTime() - a.matchedAt.getTime();
+      });
+    onData(entries);
   };
 
   const unsubOut = subscribeOutboundLinks(
@@ -118,6 +140,15 @@ export function subscribeActiveChatPeers(
 
   if (!unsubOut) return null;
 
+  const unsubIn = subscribeInboundLinks(
+    uid,
+    (rows) => {
+      inboundRows = rows;
+      emit();
+    },
+    onError
+  );
+
   const unsubBlk = subscribeBlockedPeerUids(
     uid,
     (uids) => {
@@ -130,8 +161,24 @@ export function subscribeActiveChatPeers(
 
   return () => {
     unsubOut();
+    unsubIn?.();
     unsubBlk?.();
   };
+}
+
+/** @deprecated 互換用。新規は subscribeChatPeers を使用 */
+export function subscribeActiveChatPeers(
+  uid: string,
+  onData: (rows: ActiveChatPeer[]) => void,
+  onError?: (message: string) => void,
+  options?: { isLobbyStaff?: boolean }
+): Unsubscribe | null {
+  return subscribeChatPeers(
+    uid,
+    (rows) => onData(rows.filter((r) => r.isActive)),
+    onError,
+    options
+  );
 }
 
 export async function ensureDateInviteTicketsByMatchCount(uid: string, matchCount: number): Promise<void> {
