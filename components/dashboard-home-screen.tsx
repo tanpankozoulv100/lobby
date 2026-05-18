@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import type { User } from "firebase/auth";
+import QRCode from "react-qr-code";
 import { isFirebaseConfigComplete } from "@/lib/firebase";
 import {
   ensureMyConnectionCode,
@@ -9,29 +10,14 @@ import {
 } from "@/lib/firestore-connections";
 import { ensureUserProfile, subscribeUserProfile } from "@/lib/firestore-users";
 import type { UserProfileFields } from "@/lib/lobby-firestore-types";
+import { formatConnectionCodeDisplay } from "@/lib/connection-code-display";
 import {
   LOBBY_SEASON_UI,
   formatCountdownBanner,
   getSeasonRemainingDays,
 } from "@/lib/season-config";
-import { LobbyQrModal } from "@/components/lobby-qr-modal";
-import { LobbyScanModal } from "@/components/lobby-scan-modal";
-
-function QrIcon({ className }: { className?: string }) {
-  return (
-    <svg className={className} viewBox="0 0 48 48" fill="none" aria-hidden>
-      <path
-        stroke="currentColor"
-        strokeWidth="2.5"
-        d="M6 6h12v12H6V6zm0 24h12v12H6V30zm24-24h12v12H30V6z"
-      />
-      <rect x="30" y="30" width="4" height="4" fill="currentColor" rx="1" />
-      <rect x="38" y="30" width="4" height="4" fill="currentColor" rx="1" />
-      <rect x="30" y="38" width="4" height="4" fill="currentColor" rx="1" />
-      <rect x="38" y="38" width="4" height="4" fill="currentColor" rx="1" />
-    </svg>
-  );
-}
+import { LobbyCameraScanModal } from "@/components/lobby-camera-scan-modal";
+import { LobbyCodeInputModal } from "@/components/lobby-code-input-modal";
 
 function ScanIcon({ className }: { className?: string }) {
   return (
@@ -47,14 +33,15 @@ function ScanIcon({ className }: { className?: string }) {
   );
 }
 
+type MatchFlow = "camera" | "code" | null;
+
 export function DashboardHomeScreen({ user }: { user: User }) {
   const [profile, setProfile] = useState<UserProfileFields | null>(null);
   const [profileLoading, setProfileLoading] = useState(true);
   const [profileError, setProfileError] = useState<string | null>(null);
   const [code, setCode] = useState<string | null>(null);
   const [codeErr, setCodeErr] = useState<string | null>(null);
-  const [qrOpen, setQrOpen] = useState(false);
-  const [scanOpen, setScanOpen] = useState(false);
+  const [matchFlow, setMatchFlow] = useState<MatchFlow>(null);
   const daysLeft = getSeasonRemainingDays();
 
   useEffect(() => {
@@ -127,7 +114,9 @@ export function DashboardHomeScreen({ user }: { user: User }) {
 
   if (profileError) {
     return (
-      <div className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-4 text-sm text-amber-900">{profileError}</div>
+      <div className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-4 text-sm text-amber-900">
+        {profileError}
+      </div>
     );
   }
 
@@ -140,8 +129,7 @@ export function DashboardHomeScreen({ user }: { user: User }) {
   }
 
   const no = profile.participantNo ?? 0;
-  const serial = profile.participantSerial ?? "—";
-  const name = profile.displayName?.trim() || "ゲスト";
+  const qrPayload = code ? `LOBBY:${code}` : "";
 
   return (
     <div className="space-y-0 pb-2">
@@ -160,9 +148,7 @@ export function DashboardHomeScreen({ user }: { user: User }) {
           {daysLeft}
         </div>
         <div className="min-w-0 flex-1">
-          <p className="text-sm font-bold text-[var(--lobby-red)]">
-            {formatCountdownBanner(daysLeft)}
-          </p>
+          <p className="text-sm font-bold text-[var(--lobby-red)]">{formatCountdownBanner(daysLeft)}</p>
           <p className="mt-0.5 text-xs leading-relaxed text-zinc-600">{LOBBY_SEASON_UI.alertBody}</p>
         </div>
       </div>
@@ -180,41 +166,46 @@ export function DashboardHomeScreen({ user }: { user: User }) {
           <p className="font-serif text-6xl font-bold tabular-nums leading-none tracking-tight text-[var(--lobby-red)] md:text-7xl">
             No.{String(no).padStart(3, "0")}
           </p>
-          <p className="mt-3 text-sm font-medium text-[var(--lobby-red)]">{serial}</p>
+
+          {code ? (
+            <div className="mt-6 flex flex-col items-center">
+              <div className="rounded-2xl bg-white p-3 shadow-inner">
+                <QRCode value={qrPayload} size={168} level="M" className="h-auto w-full max-w-[168px]" />
+              </div>
+              <p className="mt-4 text-xs font-medium text-zinc-600">マッチングコード</p>
+              <p className="mt-1 font-mono text-2xl font-bold tracking-[0.2em] text-[var(--lobby-red)]">
+                {formatConnectionCodeDisplay(code)}
+              </p>
+              <p className="mt-1 text-[11px] text-zinc-500">相手にこのQRまたはコードを見せてください</p>
+            </div>
+          ) : (
+            <p className="mt-6 text-sm text-zinc-500">マッチングコードを準備中…</p>
+          )}
         </div>
 
-        <div className="mt-8 grid grid-cols-2 gap-4">
-          <button
-            type="button"
-            disabled={!code}
-            onClick={() => setQrOpen(true)}
-            className="flex flex-col items-center rounded-2xl border border-[var(--lobby-red)]/25 bg-white/70 py-5 shadow-sm transition active:scale-[0.98] disabled:opacity-40"
-          >
-            <QrIcon className="h-12 w-12 text-[var(--lobby-red)]" />
-            <span className="mt-2 text-sm font-semibold text-[var(--lobby-red)]">表示する</span>
-          </button>
-          <button
-            type="button"
-            onClick={() => setScanOpen(true)}
-            className="flex flex-col items-center rounded-2xl border border-[var(--lobby-red)]/25 bg-white/70 py-5 shadow-sm transition active:scale-[0.98]"
-          >
-            <ScanIcon className="h-12 w-12 text-[var(--lobby-red)]" />
-            <span className="mt-2 text-sm font-semibold text-[var(--lobby-red)]">スキャン</span>
-          </button>
-        </div>
+        <button
+          type="button"
+          onClick={() => setMatchFlow("camera")}
+          className="mt-8 flex w-full flex-col items-center rounded-2xl border border-[var(--lobby-red)]/25 bg-white/70 py-5 shadow-sm transition active:scale-[0.98]"
+        >
+          <ScanIcon className="h-12 w-12 text-[var(--lobby-red)]" />
+          <span className="mt-2 text-sm font-semibold text-[var(--lobby-red)]">スキャン</span>
+        </button>
       </div>
 
-      <LobbyQrModal
-        open={qrOpen}
-        onClose={() => setQrOpen(false)}
-        connectionCode={code ?? ""}
-        displayName={name}
-        participantSerial={serial}
-        seasonCardTitle={LOBBY_SEASON_UI.cardTitle}
-        seasonDateLabel={LOBBY_SEASON_UI.dateRangeLabel}
+      <LobbyCameraScanModal
+        open={matchFlow === "camera"}
+        onClose={() => setMatchFlow(null)}
+        uid={user.uid}
+        onRequestCodeInput={() => setMatchFlow("code")}
       />
 
-      <LobbyScanModal open={scanOpen} onClose={() => setScanOpen(false)} uid={user.uid} />
+      <LobbyCodeInputModal
+        open={matchFlow === "code"}
+        onClose={() => setMatchFlow(null)}
+        uid={user.uid}
+        onBackToCamera={() => setMatchFlow("camera")}
+      />
     </div>
   );
 }

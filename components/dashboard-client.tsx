@@ -13,13 +13,14 @@ import {
   type PublishedEventRow,
 } from "@/lib/firestore-events";
 import { ensureUserProfile, subscribeUserProfile } from "@/lib/firestore-users";
-import { isDevOnboardingBypassEnabled, isAccountSuspended, isLobbyAccessGranted } from "@/lib/onboarding-status";
+import { isAccountSuspended, isLobbyAccessGranted, isOnboardingBypassActiveForUser } from "@/lib/onboarding-status";
+import { useLobbyStaff } from "@/lib/use-lobby-staff";
 import type { UserProfileFields } from "@/lib/lobby-firestore-types";
 import { DashboardProfileSection } from "@/components/dashboard-profile-section";
 import { DashboardAnnouncementsSection } from "@/components/dashboard-announcements-section";
 import { DashboardEventsSection } from "@/components/dashboard-events-section";
 import { DashboardConnectionsSection } from "@/components/dashboard-connections-section";
-import { DashboardBoardSection } from "@/components/dashboard-board-section";
+import { DashboardChatSection } from "@/components/dashboard-chat-section";
 import { DashboardBottomNav, type DashboardTab } from "@/components/dashboard-bottom-nav";
 import { DashboardHomeScreen } from "@/components/dashboard-home-screen";
 import { DashboardSuspendedScreen } from "@/components/dashboard-suspended-screen";
@@ -98,10 +99,6 @@ function DashboardMypageTab({
             <dt className="text-zinc-500">メール</dt>
             <dd className="mt-0.5 font-medium text-zinc-900">{user.email}</dd>
           </div>
-          <div>
-            <dt className="text-zinc-500">ユーザーID</dt>
-            <dd className="mt-0.5 break-all font-mono text-xs text-zinc-700">{user.uid}</dd>
-          </div>
         </dl>
       </section>
       <DashboardProfileSection user={user} />
@@ -128,6 +125,8 @@ export function DashboardClient() {
   const router = useRouter();
   const { user, loading } = useRequireAuth();
   const { signOutUser } = useAuth();
+  const { isStaff, staffGateReady } = useLobbyStaff(user?.uid ?? null);
+  const bypassCtx = { isLobbyStaff: isStaff };
   const [tab, setTab] = useState<DashboardTab>("home");
   const [profile, setProfile] = useState<UserProfileFields | null>(null);
   const [profileGateReady, setProfileGateReady] = useState(() => !isFirebaseConfigComplete());
@@ -247,14 +246,14 @@ export function DashboardClient() {
   }, [user, loading]);
 
   useEffect(() => {
-    if (loading || !user || !profileGateReady) return;
+    if (loading || !user || !profileGateReady || !staffGateReady) return;
     if (!isFirebaseConfigComplete()) return;
-    if (isDevOnboardingBypassEnabled()) return;
+    if (isOnboardingBypassActiveForUser(user.uid, bypassCtx)) return;
     if (profile && isAccountSuspended(profile)) return;
-    if (profile && !isLobbyAccessGranted(profile)) {
+    if (profile && !isLobbyAccessGranted(profile, user.uid, bypassCtx)) {
       router.replace("/onboarding");
     }
-  }, [loading, user, profile, profileGateReady, router]);
+  }, [loading, user, profile, profileGateReady, staffGateReady, router, isStaff]);
 
   if (loading || !user) {
     return (
@@ -280,7 +279,7 @@ export function DashboardClient() {
     profileGateReady &&
     profile &&
     isAccountSuspended(profile) &&
-    !isDevOnboardingBypassEnabled()
+    !isOnboardingBypassActiveForUser(user.uid, bypassCtx)
   ) {
     return (
       <div className="relative min-h-dvh flex-1 bg-[var(--lobby-screen-bg)]">
@@ -301,9 +300,9 @@ export function DashboardClient() {
   if (
     isFirebaseConfigComplete() &&
     profileGateReady &&
+    staffGateReady &&
     profile &&
-    !isLobbyAccessGranted(profile) &&
-    !isDevOnboardingBypassEnabled()
+    !isLobbyAccessGranted(profile, user.uid, bypassCtx)
   ) {
     return (
       <div className="relative min-h-dvh flex-1 bg-[var(--lobby-screen-bg)]">
@@ -368,7 +367,7 @@ export function DashboardClient() {
         ) : null}
         {tab === "chat" ? (
           <div className="space-y-4">
-            <DashboardBoardSection user={user} />
+            <DashboardChatSection user={user} />
           </div>
         ) : null}
         {tab === "event" ? (

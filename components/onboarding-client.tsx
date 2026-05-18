@@ -8,7 +8,8 @@ import { ensureUserProfile, subscribeUserProfile } from "@/lib/firestore-users";
 import { redeemSeasonTicket } from "@/lib/firestore-tickets";
 import { submitIdentityDocument } from "@/lib/identity-upload";
 import { normalizeSeasonTicketCode } from "@/lib/ticket-code";
-import { isDevOnboardingBypassEnabled, isLobbyAccessGranted } from "@/lib/onboarding-status";
+import { isLobbyAccessGranted, isOnboardingBypassActiveForUser } from "@/lib/onboarding-status";
+import { useLobbyStaff } from "@/lib/use-lobby-staff";
 import type { UserProfileFields } from "@/lib/lobby-firestore-types";
 import Link from "next/link";
 
@@ -27,6 +28,8 @@ function statusLabel(identityStatus: UserProfileFields["identityStatus"]): strin
 
 export function OnboardingClient({ user }: { user: User }) {
   const router = useRouter();
+  const { isStaff, staffGateReady } = useLobbyStaff(user.uid);
+  const bypassCtx = { isLobbyStaff: isStaff };
   const [profile, setProfile] = useState<UserProfileFields | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -81,17 +84,18 @@ export function OnboardingClient({ user }: { user: User }) {
   }, [user.uid, user.email]);
 
   useEffect(() => {
-    if (isDevOnboardingBypassEnabled()) {
+    if (!staffGateReady) return;
+    if (isOnboardingBypassActiveForUser(user.uid, bypassCtx)) {
       router.replace("/dashboard");
     }
-  }, [router]);
+  }, [router, user.uid, staffGateReady, isStaff]);
 
   useEffect(() => {
-    if (loading || !profile) return;
-    if (isLobbyAccessGranted(profile)) {
+    if (!staffGateReady || loading || !profile) return;
+    if (isLobbyAccessGranted(profile, user.uid, bypassCtx)) {
       router.replace("/dashboard");
     }
-  }, [loading, profile, router]);
+  }, [loading, profile, router, user.uid, staffGateReady, isStaff]);
 
   const handleFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -151,6 +155,18 @@ export function OnboardingClient({ user }: { user: User }) {
         <p className="mt-2 text-sm leading-relaxed text-zinc-600">
           ショップで購入したシーズンチケットのシリアルと、本人確認用の書類をご用意ください。運営が書類を確認するまでお時間がかかる場合があります。
         </p>
+        {!isStaff && staffGateReady ? (
+          <p className="mt-3 rounded-lg border border-zinc-200 bg-white px-3 py-2 text-xs leading-relaxed text-zinc-600">
+            運営・テスト用アカウントは、Firebase Console の Authentication で登録メールを確認し、同じ UID で{" "}
+            <code className="rounded bg-zinc-100 px-1 font-mono">admins</code> コレクションにドキュメントを 1 件追加すると本人確認・チケットを省略できます。
+            {user.email ? (
+              <span className="mt-2 block text-zinc-700">登録メール: {user.email}</span>
+            ) : null}
+          </p>
+        ) : null}
+        {isStaff ? (
+          <p className="mt-3 text-xs font-medium text-emerald-800">運営スタッフとして登録済みです。ダッシュボードへ移動します…</p>
+        ) : null}
       </div>
 
       {error ? (

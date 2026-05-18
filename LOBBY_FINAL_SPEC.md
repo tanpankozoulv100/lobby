@@ -18,7 +18,8 @@
 - 以下2条件がそろってダッシュボード入場:
   - 本人確認承認（`identityStatus == "approved"`）
   - シーズンチケット確認済み（`ticketRedeemedAt` が存在）
-- ローカル開発のみ `NEXT_PUBLIC_LOBBY_DEV_BYPASS_ONBOARDING` でバイパス可能（本番禁止）。
+- **運営・テスト用（本番推奨）**: Firestore の **`admins/{uid}`** に、対象ユーザーの Firebase Auth UID と同じドキュメント ID で 1 件追加（中身は空で可）。ログイン後、アプリが `admins` を読み、本人確認・チケットをスキップしてダッシュボードへ入れる。付与は Console / Admin SDK のみ（クライアントからは作成不可）。初回は **会員登録・ログインのみ** でよい（書類不要）。オンボーディング画面に UID が表示されるので、運営が Console で `admins` を作れる。
+- **ローカル開発のみ**: `NEXT_PUBLIC_LOBBY_DEV_BYPASS_ONBOARDING=true` で全員スキップ。`NEXT_PUBLIC_LOBBY_ONBOARDING_BYPASS_UIDS` は UID 列挙の暫定用（**クライアントに載るため本番非推奨**）。本番 Vercel では上記 **`admins` のみ** を使う想定。
 
 ## 3. イベント
 
@@ -34,6 +35,7 @@
 - シーズン最終日に成立したマッチは 72時間解放（最終マッチング特例）。
 - 24時間が過ぎた相手とのチャットは自動的に未解放扱い。
 - 現在の土台実装では、マッチ履歴（`outboundLinks`）の `createdAt` を解放起点として扱う。
+- メッセージは Firestore `chatThreads/{participantLow_participantHigh}/messages`（リアルタイム購読）。運営（`admins/{uid}`）は期限なしでマッチ相手とチャット可能。
 
 ## 5. デートお誘い券
 
@@ -62,7 +64,7 @@
 
 ### 7.1 目標（プロダクト）
 
-- **MVP（ユーザーアプリ）**: 連携一覧から **通報送信**・**ブロック／解除**、チャット解放・デート券送信から **ブロック相手の除外**、掲示板タイムラインから **ブロックユーザーの投稿を非表示**（サーバー側の `dateInvites` 作成ルールでもブロック相手への送信を拒否）。
+- **MVP（ユーザーアプリ）**: 連携一覧から **通報送信**・**ブロック／解除**、チャット解放・デート券送信から **ブロック相手の除外**（サーバー側の `dateInvites` 作成ルールでもブロック相手への送信を拒否）。
 - 通報関係者同士は **グループ分離**（コホート等の割り当てで衝突しないようにする）。
 - **通報が一定回数（例: 3回）に達したら利用停止** — `users/{uid}.reportReceivedCount` を Cloud Functions が増分し、閾値で `accountStatus: "suspended"` を付与。アプリは停止画面を表示（クライアントからの改ざん不可）。
 - **通報ペアのコホート分離** — 通報者と被通報者のハッシュコホートが同一のとき、被通報側に `cohortFlipActive: true` を付与。UI は `getEffectiveLobbyCohortForSeason`（`lib/lobby-cohort.ts`）で A/B を反転表示。

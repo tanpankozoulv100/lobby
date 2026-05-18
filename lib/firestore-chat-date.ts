@@ -64,10 +64,13 @@ function chatWindowHoursForMatch(matchedAt: Date): number {
   return isFinalDay ? FINAL_DAY_CHAT_WINDOW_HOURS : CHAT_WINDOW_HOURS;
 }
 
+const STAFF_CHAT_FAR_FUTURE_MS = 100 * 365 * 24 * 60 * 60 * 1000;
+
 export function subscribeActiveChatPeers(
   uid: string,
   onData: (rows: ActiveChatPeer[]) => void,
-  onError?: (message: string) => void
+  onError?: (message: string) => void,
+  options?: { isLobbyStaff?: boolean }
 ): Unsubscribe | null {
   const db = getFirebaseDb();
   if (!db) {
@@ -78,6 +81,8 @@ export function subscribeActiveChatPeers(
   let outboundRows: OutboundLinkRow[] = [];
   const blocked = new Set<string>();
 
+  const isStaff = options?.isLobbyStaff === true;
+
   const emit = () => {
     const now = Date.now();
     const active = outboundRows
@@ -85,6 +90,13 @@ export function subscribeActiveChatPeers(
       .map((r) => {
         const matchedAt = asDate(r.createdAt);
         if (!matchedAt) return null;
+        if (isStaff) {
+          return {
+            uid: r.peerUid,
+            matchedAt,
+            expiresAt: new Date(now + STAFF_CHAT_FAR_FUTURE_MS),
+          };
+        }
         const chatWindowHours = chatWindowHoursForMatch(matchedAt);
         const expiresAt = new Date(matchedAt.getTime() + chatWindowHours * 60 * 60 * 1000);
         if (expiresAt.getTime() <= now) return null;

@@ -17,6 +17,14 @@
       ]
     },
     {
+      "collectionGroup": "dateInviteTickets",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "consumedAt", "order": "ASCENDING" },
+        { "fieldPath": "expiresAt", "order": "ASCENDING" }
+      ]
+    },
+    {
       "collectionGroup": "slotChoices",
       "queryScope": "COLLECTION",
       "fields": [

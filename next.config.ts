@@ -68,16 +68,27 @@ const nextPublicBypassOnboarding = (
   process.env.NEXT_PUBLIC_LOBBY_BYPASS_ONBOARDING ??
   ""
 ).trim();
+const onboardingBypassUidsFromFile = (
+  fromEnvLocal.NEXT_PUBLIC_LOBBY_ONBOARDING_BYPASS_UIDS ?? ""
+).trim();
+const onboardingBypassUidsFromProcess = (
+  process.env.NEXT_PUBLIC_LOBBY_ONBOARDING_BYPASS_UIDS ?? ""
+).trim();
 /** クライアントで `showEventsDebug` などと同じ経路で焼き込む（.env だけに頼ると未反映になることがある） */
 const publicLobbyEnv: Record<string, string> = {
   ...publicFirebaseEnv,
   NEXT_PUBLIC_LOBBY_DEBUG: nextPublicDebug,
   NEXT_PUBLIC_LOBBY_BYPASS_ONBOARDING: nextPublicBypassOnboarding,
+  NEXT_PUBLIC_LOBBY_ONBOARDING_BYPASS_UIDS:
+    onboardingBypassUidsFromFile || onboardingBypassUidsFromProcess || "",
 };
 
 if (process.env.NODE_ENV !== "production") {
   console.log(
     `[Lobby] NEXT_PUBLIC_LOBBY_DEV_BYPASS_ONBOARDING: file="${bypassFromFile}" dotenv="${bypassFromProcess}" → "${publicLobbyEnv.NEXT_PUBLIC_LOBBY_DEV_BYPASS_ONBOARDING}"`
+  );
+  console.log(
+    `[Lobby] NEXT_PUBLIC_LOBBY_ONBOARDING_BYPASS_UIDS: file len=${onboardingBypassUidsFromFile.length} process len=${onboardingBypassUidsFromProcess.length} → len=${publicLobbyEnv.NEXT_PUBLIC_LOBBY_ONBOARDING_BYPASS_UIDS.length}`
   );
   console.log(`[Lobby] NEXT_PUBLIC_LOBBY_DEBUG: file+process → "${nextPublicDebug}"`);
 }

@@ -3,7 +3,6 @@ import {
   addDoc,
   collection,
   doc,
-  getDoc,
   limit,
   onSnapshot,
   orderBy,
@@ -12,9 +11,10 @@ import {
   type Unsubscribe,
 } from "firebase/firestore";
 import { getFirebaseDb } from "@/lib/firebase";
+import { checkIsLobbyStaff } from "@/lib/lobby-staff";
 import type { EventSlotPeriod, LobbyCohort } from "@/lib/lobby-firestore-types";
 
-const ADMINS = "admins";
+export { checkIsLobbyStaff };
 const EVENTS = "events";
 const SLOT_CHOICES = "slotChoices";
 
@@ -24,13 +24,6 @@ export type StaffEventListRow = {
   isPublished: boolean;
   startsAt: Timestamp;
 };
-
-export async function checkIsLobbyStaff(uid: string): Promise<boolean> {
-  const db = getFirebaseDb();
-  if (!db) return false;
-  const snap = await getDoc(doc(db, ADMINS, uid));
-  return snap.exists();
-}
 
 export function subscribeStaffAllEvents(
   onData: (rows: StaffEventListRow[]) => void,
