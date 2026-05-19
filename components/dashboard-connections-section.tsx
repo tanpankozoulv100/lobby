@@ -19,6 +19,7 @@ import {
   unblockPeer,
   USER_REPORT_REASON_CODES,
 } from "@/lib/firestore-safety";
+import { DashboardDateInviteSection } from "@/components/dashboard-date-invite-section";
 
 const REPORT_REASON_LABEL: Record<UserReportReasonCode, string> = {
   harassment: "嫌がらせ・脅迫",
@@ -130,9 +131,12 @@ function DashboardConnectionsLoaded({ user }: { user: User }) {
   }, [user.uid, reportForUid, reportReason, reportNote]);
 
   return (
-    <section className="rounded-xl border border-zinc-200 bg-[var(--lobby-cream)] p-5 shadow-sm">
-      <h2 className="font-serif text-lg font-semibold text-zinc-900">マッチング履歴</h2>
-      <p className="mt-1 text-sm text-zinc-600">
+    <div className="space-y-4">
+      <DashboardDateInviteSection user={user} />
+
+      <section className="rounded-xl border border-zinc-200/80 bg-[var(--lobby-cream)] p-5 shadow-sm">
+      <h2 className="text-center font-serif text-lg font-semibold text-[var(--lobby-red)]">マッチング履歴</h2>
+      <p className="mt-2 text-center text-sm text-zinc-600">
         ホームの「スキャン」または「表示する」のQRでマッチした相手の一覧です。問題がある場合は通報・ブロックできます。
       </p>
 
@@ -243,6 +247,7 @@ function DashboardConnectionsLoaded({ user }: { user: User }) {
         )}
       </div>
     </section>
+    </div>
   );
 }
 

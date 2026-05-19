@@ -16,7 +16,7 @@ import { ensureUserProfile, subscribeUserProfile } from "@/lib/firestore-users";
 import { isAccountSuspended, isLobbyAccessGranted, isOnboardingBypassActiveForUser } from "@/lib/onboarding-status";
 import { useLobbyStaff } from "@/lib/use-lobby-staff";
 import type { UserProfileFields } from "@/lib/lobby-firestore-types";
-import { DashboardProfileSection } from "@/components/dashboard-profile-section";
+import { DashboardMypageTab } from "@/components/dashboard-mypage-tab";
 import { DashboardEventsSection } from "@/components/dashboard-events-section";
 import { DashboardConnectionsSection } from "@/components/dashboard-connections-section";
 import { DashboardChatSection } from "@/components/dashboard-chat-section";
@@ -79,44 +79,6 @@ function DashboardEventsDebugPanel({
           ? ` ・ [${eventsSubDebug.errCode}] ${eventSnapshotErrorHint(eventsSubDebug.errCode)}`
           : ""}
       </p>
-    </div>
-  );
-}
-
-function DashboardMypageTab({
-  user,
-  onSignOut,
-}: {
-  user: User;
-  onSignOut: () => void;
-}) {
-  return (
-    <div className="space-y-6">
-      <section className="rounded-2xl border border-zinc-200/80 bg-[var(--lobby-cream)] p-5 shadow-sm">
-        <h2 className="font-serif text-lg font-semibold text-zinc-900">アカウント</h2>
-        <dl className="mt-4 space-y-3 text-sm">
-          <div>
-            <dt className="text-zinc-500">メール</dt>
-            <dd className="mt-0.5 font-medium text-zinc-900">{user.email}</dd>
-          </div>
-        </dl>
-      </section>
-      <DashboardProfileSection user={user} />
-      <div className="flex flex-col gap-3 sm:flex-row">
-        <Link
-          href="/"
-          className="inline-flex justify-center rounded-xl border border-zinc-300/80 bg-[var(--lobby-cream)] px-4 py-3 text-sm font-medium text-zinc-800 hover:bg-[var(--lobby-red)]/5"
-        >
-          トップへ
-        </Link>
-        <button
-          type="button"
-          onClick={() => onSignOut()}
-          className="inline-flex justify-center rounded-xl bg-zinc-200 px-4 py-3 text-sm font-medium text-zinc-900 hover:bg-zinc-300"
-        >
-          ログアウト
-        </button>
-      </div>
     </div>
   );
 }
@@ -327,7 +289,7 @@ export function DashboardClient() {
     );
   }
 
-  const showBrandHeader = tab !== "home";
+  const showBrandHeader = tab !== "home" && tab !== "mypage" && tab !== "chat";
 
   return (
     <div className="min-h-dvh bg-[var(--lobby-screen-bg)] pb-[calc(5.25rem+env(safe-area-inset-bottom))]">
@@ -372,11 +334,7 @@ export function DashboardClient() {
             <DashboardConnectionsSection user={user} />
           </div>
         ) : null}
-        {tab === "chat" ? (
-          <div className="space-y-4">
-            <DashboardChatSection user={user} />
-          </div>
-        ) : null}
+        {tab === "chat" ? <DashboardChatSection user={user} /> : null}
         {tab === "event" ? (
           <div className="space-y-4">
             <DashboardEventsSection
@@ -387,7 +345,11 @@ export function DashboardClient() {
           </div>
         ) : null}
         {tab === "mypage" ? (
-          <DashboardMypageTab user={user} onSignOut={signOutUser} />
+          <DashboardMypageTab
+            user={user}
+            onSignOut={signOutUser}
+            onNavigateTab={setTab}
+          />
         ) : null}
       </main>
 
