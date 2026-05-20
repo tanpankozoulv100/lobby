@@ -16,10 +16,27 @@
 
 ## 2. 利用開始ゲート（必須）
 
-- まずログイン/新規登録。
-- 以下2条件がそろってダッシュボード入場:
-  - 本人確認承認（`identityStatus == "approved"`）
-  - シーズンチケット確認済み（`ticketRedeemedAt` が存在）
+### 2.1 新規登録（プロフィール）
+
+Shopify でチケット購入者のみ利用可。**新規登録時**に次を収集し `users/{uid}` に保存する。
+
+| 項目 | フィールド | 変更 |
+|------|------------|------|
+| メール・パスワード | Firebase Auth | — |
+| 本名 | `legalName` | **登録後は変更不可**（本人確認書類と照合） |
+| ユーザー名（表示名） | `displayName` | マイページから編集可 |
+| 性別 | `gender`: `male` \| `female` | **登録後は変更不可** |
+| 生年月日 | `birthDate`: `YYYYMMDD`（年齢は算出表示） | **登録後は変更不可** |
+| 居住地 | `prefecture`（都道府県） | マイページから編集可 |
+
+### 2.2 オンボーディング（本人確認 → チケット）
+
+登録後は `/onboarding` へ。以下がそろってダッシュボード入場:
+
+- 本人確認承認（`identityStatus == "approved"`）— **顔写真付き本人確認書類**をアップロードし、運営が登録本名と目視照合。画像は Firebase Storage、受領日時は `identitySubmittedAt`。**3年間保管（方針 A）** — `docs/IDENTITY_DOCUMENT_RETENTION.md`
+- シーズンチケット確認済み（`ticketRedeemedAt` が存在）
+
+**チケット照合:** `ticketCodes/{code}` に `intendedGender`（`male` / `female`）を運営が付与。引き換え時にユーザーの `gender` と一致しない場合は拒否（男性用・女性用で Shopify 価格が異なるため）。
 - **運営・テスト用（本番推奨）**: Firestore の **`admins/{uid}`** に、対象ユーザーの Firebase Auth UID と同じドキュメント ID で 1 件追加（中身は空で可）。ログイン後、アプリが `admins` を読み、本人確認・チケットをスキップしてダッシュボードへ入れる。付与は Console / Admin SDK のみ（クライアントからは作成不可）。初回は **会員登録・ログインのみ** でよい（書類不要）。オンボーディング画面に UID が表示されるので、運営が Console で `admins` を作れる。
 - **ローカル開発のみ**: `NEXT_PUBLIC_LOBBY_DEV_BYPASS_ONBOARDING=true` で全員スキップ。`NEXT_PUBLIC_LOBBY_ONBOARDING_BYPASS_UIDS` は UID 列挙の暫定用（**クライアントに載るため本番非推奨**）。本番 Vercel では上記 **`admins` のみ** を使う想定。
 
@@ -94,7 +111,12 @@
 
 ## 8. 運営コンソール（管理サイト）
 
-- **ユーザー向け Lobby アプリとは別リポジトリ／別 URL でホスティングする**（例: `admin.lobby.example` や別 Vercel プロジェクト）。
+- **ユーザー向け Lobby アプリとは別リポジトリ／別 URL でホスティングする**（例: `admin.lobby.example` や別 Vercel プロジェクト）。実装: `lobby-admin`。
 - 認可は **Firebase Auth + 運営のみ**（Custom Claims、`admins/{uid}`、または両方の併用など）。詳細は実装時に本リポの `firestore.rules` の `isLobbyStaff()` と揃える。
 - 本番データへの書き込みは原則 **Admin SDK（サーバー）** 経由にし、ブラウザにサービスアカウント鍵を置かない。
+- **画面・運用の指示書（製品要件）:** `lobby-admin/docs/ADMIN_INSTRUCTIONS.md`（チャット指示・バックログ・実装状況の正本）。
+- **更新ポリシー:** `docs/SPEC_MAINTENANCE_POLICY.md` — コード変更時は指示書も同時に更新する。
+- **週次 A/B + 表示週:** `lobby-admin` の `GET /api/cron/weekly-operations`（Vercel Cron・木曜 JST 想定）。手動は緊急時のみ。詳細は `lobby-admin/docs/ADMIN_INSTRUCTIONS.md` §3.1。
+- **スプレッドシート連携:** `POST /api/staff/event-slots`（`lobby-repo`）または `POST /api/admin/event-slots/intake`（管理サイト）。詳細は管理サイト指示書 §3.2。
+- **管理画面:** ユーザー一覧、イベントカレンダー、マッチ日別集計、通報日別 — 同指示書 §2。
 

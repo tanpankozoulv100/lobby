@@ -14,7 +14,9 @@ export default function SignupPage() {
             ← トップへ
           </Link>
           <h1 className="mt-4 font-serif text-2xl font-semibold tracking-tight text-zinc-900">新規登録</h1>
-          <p className="mt-1 text-sm text-zinc-600">メールアドレスとパスワードでアカウントを作成します。</p>
+          <p className="mt-1 text-sm text-zinc-600">
+            メール・パスワードに加え、本名・性別・ユーザー名・居住地・生年月日を登録します（本名・性別・生年月日は後から変更できません）。
+          </p>
         </div>
         <SignupForm />
       </div>

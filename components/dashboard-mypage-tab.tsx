@@ -7,6 +7,8 @@ import {
   subscribeUserProfile,
   updateUserProfile,
 } from "@/lib/firestore-users";
+import { GENDER_LABELS, JAPAN_PREFECTURES, computeAgeFromBirthDate, formatBirthDateJa } from "@/lib/lobby-profile";
+import type { LobbyGender } from "@/lib/lobby-firestore-types";
 import { isFirebaseConfigComplete } from "@/lib/firebase";
 import { formatParticipantNoDisplay } from "@/lib/format-participant-no";
 import { useLobbyStaff } from "@/lib/use-lobby-staff";
@@ -73,6 +75,10 @@ function ProfileEditSheet({
 }) {
   const [displayName, setDisplayName] = useState("");
   const [bio, setBio] = useState("");
+  const [prefecture, setPrefecture] = useState("");
+  const [legalName, setLegalName] = useState("");
+  const [gender, setGender] = useState<string>("");
+  const [birthDate, setBirthDate] = useState<string>("");
   const [ready, setReady] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -95,6 +101,10 @@ function ProfileEditSheet({
           if (cancelled) return;
           setDisplayName(data?.displayName ?? "");
           setBio(data?.bio ?? "");
+          setPrefecture(data?.prefecture ?? "");
+          setLegalName(data?.legalName ?? "");
+          setGender(data?.gender ?? "");
+          setBirthDate(data?.birthDate ?? "");
           setReady(true);
         },
         (msg) => {
@@ -112,11 +122,11 @@ function ProfileEditSheet({
     setSaveMessage(null);
     setError(null);
     setSaving(true);
-    const result = await updateUserProfile(user.uid, displayName, bio);
+    const result = await updateUserProfile(user.uid, displayName, bio, prefecture);
     setSaving(false);
     if (result.ok) setSaveMessage("保存しました。");
     else setError(result.message);
-  }, [user.uid, displayName, bio]);
+  }, [user.uid, displayName, bio, prefecture]);
 
   return (
     <LobbyBottomSheet open={open} title="各種設定" onClose={onClose}>
@@ -144,6 +154,38 @@ function ProfileEditSheet({
                 onChange={(e) => setDisplayName(e.target.value)}
                 className="w-full rounded-xl border border-zinc-200 bg-[var(--lobby-surface-raised)] px-3 py-2.5 text-sm"
               />
+            </div>
+            <div>
+              <label htmlFor="mypage-prefecture" className="mb-1 block text-xs font-medium text-zinc-600">
+                居住地（都道府県）
+              </label>
+              <select
+                id="mypage-prefecture"
+                className="w-full rounded-xl border border-zinc-200 bg-[var(--lobby-surface-raised)] px-3 py-2.5 text-sm"
+                value={prefecture}
+                onChange={(e) => setPrefecture(e.target.value)}
+              >
+                <option value="">選択してください</option>
+                {JAPAN_PREFECTURES.map((p) => (
+                  <option key={p} value={p}>
+                    {p}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div className="rounded-xl bg-zinc-50 px-3 py-2 text-xs text-zinc-600">
+              <p>本名: {legalName || "—"}（変更不可）</p>
+              <p className="mt-1">
+                性別: {gender === "male" || gender === "female" ? GENDER_LABELS[gender as LobbyGender] : "—"}
+                （変更不可）
+              </p>
+              <p className="mt-1">
+                生年月日: {formatBirthDateJa(birthDate)}
+                {birthDate && computeAgeFromBirthDate(birthDate) != null
+                  ? `（${computeAgeFromBirthDate(birthDate)}歳）`
+                  : ""}
+                （変更不可）
+              </p>
             </div>
             <div>
               <label htmlFor="mypage-bio" className="mb-1 block text-xs font-medium text-zinc-600">

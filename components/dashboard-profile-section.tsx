@@ -7,6 +7,7 @@ import {
   subscribeUserProfile,
   updateUserProfile,
 } from "@/lib/firestore-users";
+import { JAPAN_PREFECTURES } from "@/lib/lobby-profile";
 import { isFirebaseConfigComplete } from "@/lib/firebase";
 
 function ProfileSkeleton() {
@@ -32,6 +33,7 @@ function ProfileConfigMissing() {
 function DashboardProfileLoaded({ user }: { user: User }) {
   const [displayName, setDisplayName] = useState("");
   const [bio, setBio] = useState("");
+  const [prefecture, setPrefecture] = useState("");
   const [ready, setReady] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -56,6 +58,7 @@ function DashboardProfileLoaded({ user }: { user: User }) {
           setError(null);
           setDisplayName(data?.displayName ?? "");
           setBio(data?.bio ?? "");
+          setPrefecture(data?.prefecture ?? "");
           setReady(true);
         },
         (msg) => {
@@ -74,14 +77,14 @@ function DashboardProfileLoaded({ user }: { user: User }) {
     setSaveMessage(null);
     setError(null);
     setSaving(true);
-    const result = await updateUserProfile(user.uid, displayName, bio);
+    const result = await updateUserProfile(user.uid, displayName, bio, prefecture);
     setSaving(false);
     if (result.ok) {
       setSaveMessage("保存しました。");
     } else {
       setError(result.message);
     }
-  }, [user.uid, displayName, bio]);
+  }, [user.uid, displayName, bio, prefecture]);
 
   return (
     <section className="rounded-xl border border-zinc-200 bg-zinc-50/80 p-5 dark:border-zinc-700 dark:bg-zinc-800/40">
@@ -116,6 +119,24 @@ function DashboardProfileLoaded({ user }: { user: User }) {
                 onChange={(e) => setDisplayName(e.target.value)}
                 className="w-full rounded-lg border border-zinc-300 bg-[var(--lobby-cream)] px-3 py-2 text-zinc-900 outline-none ring-rose-500 focus:ring-2 dark:border-zinc-600 dark:bg-zinc-900 dark:text-zinc-50"
               />
+            </div>
+            <div>
+              <label htmlFor="profile-prefecture" className="mb-1 block text-sm font-medium text-zinc-700 dark:text-zinc-300">
+                居住地（都道府県）
+              </label>
+              <select
+                id="profile-prefecture"
+                className="w-full rounded-lg border border-zinc-300 bg-[var(--lobby-cream)] px-3 py-2 text-zinc-900 dark:border-zinc-600 dark:bg-zinc-900 dark:text-zinc-50"
+                value={prefecture}
+                onChange={(e) => setPrefecture(e.target.value)}
+              >
+                <option value="">選択してください</option>
+                {JAPAN_PREFECTURES.map((p) => (
+                  <option key={p} value={p}>
+                    {p}
+                  </option>
+                ))}
+              </select>
             </div>
             <div>
               <label htmlFor="profile-bio" className="mb-1 block text-sm font-medium text-zinc-700 dark:text-zinc-300">

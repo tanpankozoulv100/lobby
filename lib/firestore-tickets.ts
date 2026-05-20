@@ -44,6 +44,19 @@ export async function redeemSeasonTicket(
         throw new Error("USER_ALREADY");
       }
 
+      const userGender = u.gender;
+      const ticketGender = t.intendedGender;
+      if (
+        (ticketGender === "male" || ticketGender === "female") &&
+        (userGender === "male" || userGender === "female") &&
+        userGender !== ticketGender
+      ) {
+        throw new Error("GENDER_MISMATCH");
+      }
+      if ((ticketGender === "male" || ticketGender === "female") && userGender !== "male" && userGender !== "female") {
+        throw new Error("PROFILE_GENDER_MISSING");
+      }
+
       transaction.update(ticketRef, {
         usedBy: uid,
       });
@@ -64,6 +77,16 @@ export async function redeemSeasonTicket(
     }
     if (msg === "USER_ALREADY") {
       return { ok: false, message: "すでにチケットを登録済みです。" };
+    }
+    if (msg === "GENDER_MISMATCH") {
+      return {
+        ok: false,
+        message:
+          "登録した性別と、このシリアル番号のチケット区分が一致しません。Shopify で購入した性別用チケットの番号かご確認ください。",
+      };
+    }
+    if (msg === "PROFILE_GENDER_MISSING") {
+      return { ok: false, message: "先にプロフィール（性別）の登録を完了してください。" };
     }
     if (msg === "NO_USER") {
       return { ok: false, message: "プロフィールがまだありません。ページを再読み込みしてください。" };

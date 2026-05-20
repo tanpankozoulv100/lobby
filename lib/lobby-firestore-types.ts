@@ -1,5 +1,8 @@
 import type { Timestamp } from "firebase/firestore";
 
+/** Shopify チケットの性別区分（ユーザー登録時に固定・変更不可） */
+export type LobbyGender = "male" | "female";
+
 /** 本人確認（運営が Console で approved / rejected を設定） */
 export type IdentityVerificationStatus = "none" | "pending" | "approved" | "rejected";
 
@@ -10,6 +13,14 @@ export type AccountStatus = "active" | "suspended";
 export type UserProfileFields = {
   displayName: string;
   bio: string;
+  /** 登録時に固定（male / female）。チケット性別照合に使用 */
+  gender?: LobbyGender;
+  /** 登録時に固定（YYYYMMDD）。年齢表示用 */
+  birthDate?: string;
+  /** 居住都道府県（マイページから変更可） */
+  prefecture?: string;
+  /** 本名（登録時に固定。本人確認書類と照合） */
+  legalName?: string;
   /** 参加番号 0=運営、1〜=一般（001–999は3桁表示、1000〜は4桁表示。ダッシュボード初回開放時に採番） */
   participantNo?: number;
   /** ダッシュボード初回開放日時（採番の基準） */
@@ -39,6 +50,8 @@ export type UserProfileFields = {
 export type TicketCodeFields = {
   usedBy: string | null;
   usedAt?: Timestamp;
+  /** Shopify 購入区分（男性用 / 女性用チケット）。未設定の旧コードは照合スキップ */
+  intendedGender?: LobbyGender;
 };
 
 /** イベント日の朝 / 昼 / 夜（Firestore にもこの文字列で保存） */

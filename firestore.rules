@@ -49,27 +49,71 @@ service cloud.firestore {
       allow update, delete: if false;
     }
 
+    function isValidLobbyGender(g) {
+      return g == 'male' || g == 'female';
+    }
+
+    function isValidBirthDateKey(bd) {
+      return bd is string && bd.matches('^[0-9]{8}$');
+    }
+
     match /users/{userId} {
       allow read: if request.auth != null && request.auth.uid == userId;
       allow create: if request.auth != null
         && request.auth.uid == userId
-        && request.resource.data.keys().hasOnly(['displayName', 'bio', 'createdAt', 'updatedAt', 'identityStatus'])
+        && request.resource.data.keys().hasOnly([
+          'displayName', 'bio', 'legalName', 'gender', 'birthDate', 'prefecture',
+          'createdAt', 'updatedAt', 'identityStatus'
+        ])
+        && request.resource.data.legalName is string
+        && request.resource.data.legalName.size() > 0
+        && request.resource.data.legalName.size() <= 40
         && request.resource.data.displayName is string
         && request.resource.data.displayName.size() > 0
         && request.resource.data.displayName.size() <= 50
         && request.resource.data.bio is string
         && request.resource.data.bio.size() <= 500
+        && isValidLobbyGender(request.resource.data.gender)
+        && isValidBirthDateKey(request.resource.data.birthDate)
+        && request.resource.data.prefecture is string
+        && request.resource.data.prefecture.size() > 0
+        && request.resource.data.prefecture.size() <= 20
         && request.resource.data.identityStatus == 'none';
       allow update: if request.auth != null
         && request.auth.uid == userId
         && (
           (
-            request.resource.data.diff(resource.data).affectedKeys().hasOnly(['displayName', 'bio', 'updatedAt'])
+            request.resource.data.diff(resource.data).affectedKeys().hasOnly(['displayName', 'bio', 'prefecture', 'updatedAt'])
             && request.resource.data.displayName is string
             && request.resource.data.displayName.size() > 0
             && request.resource.data.displayName.size() <= 50
             && request.resource.data.bio is string
             && request.resource.data.bio.size() <= 500
+            && request.resource.data.prefecture is string
+            && request.resource.data.prefecture.size() > 0
+            && request.resource.data.prefecture.size() <= 20
+            && (!resource.data.keys().hasAny(['gender']) || request.resource.data.gender == resource.data.gender)
+            && (!resource.data.keys().hasAny(['birthDate']) || request.resource.data.birthDate == resource.data.birthDate)
+            && (!resource.data.keys().hasAny(['legalName']) || request.resource.data.legalName == resource.data.legalName)
+          )
+          || (
+            !resource.data.keys().hasAny(['gender'])
+            && !resource.data.keys().hasAny(['birthDate'])
+            && !resource.data.keys().hasAny(['legalName'])
+            && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+              'displayName', 'legalName', 'gender', 'birthDate', 'prefecture', 'updatedAt'
+            ])
+            && request.resource.data.legalName is string
+            && request.resource.data.legalName.size() > 0
+            && request.resource.data.legalName.size() <= 40
+            && request.resource.data.displayName is string
+            && request.resource.data.displayName.size() > 0
+            && request.resource.data.displayName.size() <= 50
+            && isValidLobbyGender(request.resource.data.gender)
+            && isValidBirthDateKey(request.resource.data.birthDate)
+            && request.resource.data.prefecture is string
+            && request.resource.data.prefecture.size() > 0
+            && request.resource.data.prefecture.size() <= 20
           )
           || (
             !resource.data.keys().hasAny(['lobbyOpenedAt'])

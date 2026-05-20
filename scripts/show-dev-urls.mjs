@@ -16,7 +16,7 @@ const defaultPort = process.env.PORT || "3000";
 
 console.log("");
 console.log("  ▼ 開く URL は、このあと Next.js が出す「Local:」の行を正としてください。");
-console.log("    （ポート 3000 が埋まっていると 3001 などに自動変更されます）");
+console.log("    （起動前にポート 3000 の古いプロセスは自動で終了します）");
 console.log("");
 console.log(`  参考（デフォルト想定） PC: http://localhost:${defaultPort}`);
 if (addrs.length) {

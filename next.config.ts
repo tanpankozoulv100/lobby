@@ -83,7 +83,7 @@ const publicLobbyEnv: Record<string, string> = {
     onboardingBypassUidsFromFile || onboardingBypassUidsFromProcess || "",
 };
 
-if (process.env.NODE_ENV !== "production") {
+if (process.env.NODE_ENV !== "production" && process.env.LOBBY_DEV_VERBOSE === "1") {
   console.log(
     `[Lobby] NEXT_PUBLIC_LOBBY_DEV_BYPASS_ONBOARDING: file="${bypassFromFile}" dotenv="${bypassFromProcess}" → "${publicLobbyEnv.NEXT_PUBLIC_LOBBY_DEV_BYPASS_ONBOARDING}"`
   );

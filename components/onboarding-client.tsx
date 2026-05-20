@@ -11,6 +11,9 @@ import { normalizeSeasonTicketCode } from "@/lib/ticket-code";
 import { isLobbyAccessGranted, isOnboardingBypassActiveForUser } from "@/lib/onboarding-status";
 import { useLobbyStaff } from "@/lib/use-lobby-staff";
 import type { UserProfileFields } from "@/lib/lobby-firestore-types";
+import { GENDER_LABELS, formatBirthDateJa, hasRequiredRegistrationFields } from "@/lib/lobby-profile";
+import { getProfileAge } from "@/lib/firestore-users";
+import { RegistrationCompleteForm } from "@/components/registration-complete-form";
 import Link from "next/link";
 
 function statusLabel(identityStatus: UserProfileFields["identityStatus"]): string {
@@ -142,7 +145,22 @@ export function OnboardingClient({ user }: { user: User }) {
     );
   }
 
+  if (!hasRequiredRegistrationFields(profile)) {
+    return (
+      <div className="space-y-6 text-left">
+        <div>
+          <h1 className="font-serif text-xl font-semibold text-zinc-900">プロフィール登録</h1>
+          <p className="mt-2 text-sm text-zinc-600">
+            本人確認・チケット登録の前に、本名・性別・生年月日などを登録してください。
+          </p>
+        </div>
+        <RegistrationCompleteForm user={user} />
+      </div>
+    );
+  }
+
   const idStatus = profile.identityStatus ?? "none";
+  const profileAge = getProfileAge(profile);
   const canUploadIdentity =
     idStatus === "none" ||
     idStatus === "rejected" ||
@@ -153,8 +171,17 @@ export function OnboardingClient({ user }: { user: User }) {
       <div>
         <h1 className="font-serif text-xl font-semibold text-zinc-900">利用開始の確認</h1>
         <p className="mt-2 text-sm leading-relaxed text-zinc-600">
-          ショップで購入したシーズンチケットのシリアルと、本人確認用の書類をご用意ください。運営が書類を確認するまでお時間がかかる場合があります。
+          登録済みの性別・生年月日と、Shopify で購入したチケット区分が一致することを確認します。続いて本人確認の書類提出、シリアル番号入力の順です。
         </p>
+        {profile.gender ? (
+          <p className="mt-2 text-xs text-zinc-500">
+            登録プロフィール: {profile.legalName ? `${profile.legalName} · ` : ""}
+            {GENDER_LABELS[profile.gender]}
+            {profile.birthDate ? ` · ${formatBirthDateJa(profile.birthDate)}` : ""}
+            {profileAge != null ? `（${profileAge}歳）` : ""}
+            {profile.prefecture ? ` · ${profile.prefecture}` : ""}
+          </p>
+        ) : null}
         {!isStaff && staffGateReady ? (
           <p className="mt-3 rounded-lg border border-zinc-200 bg-white px-3 py-2 text-xs leading-relaxed text-zinc-600">
             運営・テスト用アカウントは、Firebase Console の Authentication で登録メールを確認し、同じ UID で{" "}
@@ -174,9 +201,12 @@ export function OnboardingClient({ user }: { user: User }) {
       ) : null}
 
       <section className="rounded-xl border border-zinc-200 bg-zinc-50/80 p-5">
-        <h2 className="text-sm font-semibold text-zinc-900">1. 本人確認（書類の写真）</h2>
+        <h2 className="text-sm font-semibold text-zinc-900">1. 本人確認（顔写真付き書類）</h2>
         <p className="mt-2 text-xs leading-relaxed text-zinc-600">
-          顔写真付きの身分証（運転免許証・マイナンバーカード等）をアップロードしてください。運営の確認で承認されると、次の手順に進めます。
+          顔写真付きの本人確認書類（運転免許証・マイナンバーカード・パスポート等）の写真をアップロードしてください。登録した本名と書類の記載が一致しているか、運営が目視で確認します。
+        </p>
+        <p className="mt-2 text-xs leading-relaxed text-zinc-500">
+          提出画像と受領日時は法令に基づき3年間保管します（詳細は利用規約・プライバシーポリシーに準じます）。
         </p>
         <p className="mt-3 text-sm font-medium text-[var(--lobby-red)]">状態: {statusLabel(profile.identityStatus)}</p>
         {idStatus === "pending" && profile.idDocumentPath ? (
@@ -201,7 +231,8 @@ export function OnboardingClient({ user }: { user: User }) {
       <section className="rounded-xl border border-zinc-200 bg-zinc-50/80 p-5">
         <h2 className="text-sm font-semibold text-zinc-900">2. シーズンチケット（シリアル番号）</h2>
         <p className="mt-2 text-xs leading-relaxed text-zinc-600">
-          ショップで購入したチケットに記載のコードを入力してください（ハイフンはあってもなくても構いません）。
+          ショップで購入したチケットに記載のコードを入力してください。男性用・女性用で価格が異なるため、登録性別（
+          {profile.gender ? GENDER_LABELS[profile.gender] : "—"}）と一致するチケットのみ有効です。
         </p>
         {profile.ticketRedeemedAt ? (
           <p className="mt-3 text-sm font-medium text-emerald-700">

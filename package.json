@@ -3,8 +3,8 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "node scripts/show-dev-urls.mjs && next dev --webpack",
-    "dev:mobile": "node scripts/show-dev-urls.mjs && next dev --webpack -H 0.0.0.0 -p 3000",
+    "dev": "node scripts/free-port.mjs 3000 && node scripts/show-dev-urls.mjs && next dev --webpack -p 3000",
+    "dev:mobile": "node scripts/free-port.mjs 3000 && node scripts/show-dev-urls.mjs && next dev --webpack -H 0.0.0.0 -p 3000",
     "dev:turbo": "next dev --turbopack",
     "build": "next build --webpack",
     "start": "next start",
