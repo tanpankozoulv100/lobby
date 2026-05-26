@@ -14,6 +14,7 @@ import {
 } from "firebase/firestore";
 import { normalizeEncounterCount } from "@/lib/match-encounter";
 import { getFirebaseDb } from "@/lib/firebase";
+import { ensureChatThread } from "@/lib/firestore-chat";
 import { mergeLinkTimestamps, type MatchLinkTimestamps } from "@/lib/match-link-times";
 
 const CONNECTION_CODES = "connectionCodes";
@@ -140,7 +141,11 @@ export function mergeMatchLinks(
     upsert(r.peerUid, { createdAt: r.createdAt, lastMatchedAt: r.lastMatchedAt }, r.encounterCount);
   }
   for (const r of inbound) {
-    upsert(r.sourceUid, { createdAt: r.createdAt, lastMatchedAt: r.lastMatchedAt }, 1);
+    upsert(
+      r.sourceUid,
+      { createdAt: r.createdAt, lastMatchedAt: r.lastMatchedAt },
+      normalizeEncounterCount(r.encounterCount)
+    );
   }
   return [...byPeer.entries()].map(([peerUid, fields]) => ({ peerUid, ...fields }));
 }
@@ -182,7 +187,7 @@ export function subscribeOutboundLinks(
   );
 }
 
-export type InboundLinkRow = { sourceUid: string } & MatchLinkTimestamps;
+export type InboundLinkRow = { sourceUid: string; encounterCount?: number } & MatchLinkTimestamps;
 
 export function subscribeInboundLinks(
   uid: string,
@@ -205,6 +210,7 @@ export function subscribeInboundLinks(
           sourceUid: d.id,
           createdAt: data.createdAt,
           lastMatchedAt: data.lastMatchedAt,
+          encounterCount: data.encounterCount,
         });
       });
       onData(rows);
@@ -254,39 +260,63 @@ export async function registerLinkByPeerCode(
     return { ok: false, message: "自分のコードは入力できません。" };
   }
   const linkRef = doc(db, "users", myUid, OUTBOUND, peerUid);
-  const inboundRef = doc(db, "users", peerUid, LINKED_FROM, myUid);
-  const existing = await getDoc(linkRef);
-  if (existing.exists()) {
-    try {
-      const batch = writeBatch(db);
-      const rematchedAt = serverTimestamp();
-      const prevCount = normalizeEncounterCount(existing.data()?.encounterCount);
+  const inboundOnPeerRef = doc(db, "users", peerUid, LINKED_FROM, myUid);
+  const inboundOnMeRef = doc(db, "users", myUid, LINKED_FROM, peerUid);
+
+  const [outboundSnap, inboundOnPeerSnap, inboundOnMeSnap] = await Promise.all([
+    getDoc(linkRef),
+    getDoc(inboundOnPeerRef),
+    getDoc(inboundOnMeRef),
+  ]);
+
+  const rematchedAt = serverTimestamp();
+  const alreadyLinked =
+    outboundSnap.exists() || inboundOnPeerSnap.exists() || inboundOnMeSnap.exists();
+
+  const commitRematchBatch = async () => {
+    const batch = writeBatch(db);
+    if (outboundSnap.exists()) {
+      const prevCount = normalizeEncounterCount(outboundSnap.data()?.encounterCount);
       batch.update(linkRef, {
         lastMatchedAt: rematchedAt,
         encounterCount: prevCount + 1,
       });
-      const inboundSnap = await getDoc(inboundRef);
-      if (inboundSnap.exists()) {
-        batch.update(inboundRef, { lastMatchedAt: rematchedAt });
-      } else {
-        batch.set(inboundRef, { createdAt: rematchedAt });
-      }
-      await batch.commit();
+    } else {
+      batch.set(linkRef, { createdAt: rematchedAt, encounterCount: 1 });
+    }
+    if (inboundOnPeerSnap.exists()) {
+      batch.update(inboundOnPeerRef, { lastMatchedAt: rematchedAt });
+    } else {
+      batch.set(inboundOnPeerRef, { createdAt: rematchedAt });
+    }
+    await batch.commit();
+    await ensureChatThread(myUid, peerUid);
+  };
+
+  if (alreadyLinked) {
+    try {
+      await commitRematchBatch();
       return { ok: true, rematched: true };
     } catch (err: unknown) {
       const c = err && typeof err === "object" && "code" in err ? String((err as { code: string }).code) : "";
       if (c === "permission-denied") {
-        return { ok: false, message: "再マッチの保存が拒否されました。ルールをデプロイしてください。" };
+        return {
+          ok: false,
+          message:
+            "再マッチの保存が拒否されました。`npm run deploy:rules` で Firestore ルールを反映してください。",
+        };
       }
-      return { ok: false, message: "再マッチの保存に失敗しました。" };
+      return { ok: false, message: "再マッチの保存に失敗しました。しばらくしてからお試しください。" };
     }
   }
+
   try {
     const batch = writeBatch(db);
     batch.set(linkRef, { createdAt: serverTimestamp(), encounterCount: 1 });
-    batch.set(inboundRef, { createdAt: serverTimestamp() });
+    batch.set(inboundOnPeerRef, { createdAt: serverTimestamp() });
     await batch.commit();
-    return { ok: true };
+    await ensureChatThread(myUid, peerUid);
+    return { ok: true, rematched: false };
   } catch (err: unknown) {
     const c = err && typeof err === "object" && "code" in err ? String((err as { code: string }).code) : "";
     if (c === "permission-denied") {

@@ -12,7 +12,7 @@ type Props = {
   onClose: () => void;
   uid: string;
   onRequestCodeInput: () => void;
-  onMatched?: () => void;
+  onMatched?: (result: { rematched: boolean }) => void;
 };
 
 export function LobbyCameraScanModal({
@@ -57,7 +57,7 @@ export function LobbyCameraScanModal({
       setBusy(false);
       if (result.ok) {
         await stopScanner();
-        onMatched?.();
+        onMatched?.({ rematched: result.rematched === true });
         onClose();
         return;
       }

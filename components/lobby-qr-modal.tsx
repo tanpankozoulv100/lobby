@@ -44,6 +44,9 @@ export function LobbyQrModal({
         <p className="mt-1 text-center font-mono text-2xl font-bold tracking-[0.15em] text-[var(--lobby-red)]">
           {formatConnectionCodeDisplay(connectionCode)}
         </p>
+        <p className="mt-3 text-center text-xs leading-relaxed text-zinc-500">
+          再マッチするときは、相手にこの QR を読み取ってもらってください。
+        </p>
         <p className="mt-6 text-center text-lg font-bold text-[var(--lobby-red)]">{displayName}</p>
       </div>
       <button
