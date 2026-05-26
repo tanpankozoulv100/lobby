@@ -2,6 +2,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { loadEnvConfig } from "@next/env";
 import type { NextConfig } from "next";
+import { LOBBY_SETTINGS_PUBLIC_URL_KEYS } from "./lib/lobby-settings-links";
 
 try {
   loadEnvConfig(process.cwd());
@@ -74,9 +75,16 @@ const onboardingBypassUidsFromFile = (
 const onboardingBypassUidsFromProcess = (
   process.env.NEXT_PUBLIC_LOBBY_ONBOARDING_BYPASS_UIDS ?? ""
 ).trim();
+
+const publicSettingsUrls: Record<string, string> = {};
+for (const key of LOBBY_SETTINGS_PUBLIC_URL_KEYS) {
+  publicSettingsUrls[key] = fromEnvLocal[key] ?? process.env[key] ?? "";
+}
+
 /** クライアントで `showEventsDebug` などと同じ経路で焼き込む（.env だけに頼ると未反映になることがある） */
 const publicLobbyEnv: Record<string, string> = {
   ...publicFirebaseEnv,
+  ...publicSettingsUrls,
   NEXT_PUBLIC_LOBBY_DEBUG: nextPublicDebug,
   NEXT_PUBLIC_LOBBY_BYPASS_ONBOARDING: nextPublicBypassOnboarding,
   NEXT_PUBLIC_LOBBY_ONBOARDING_BYPASS_UIDS:
