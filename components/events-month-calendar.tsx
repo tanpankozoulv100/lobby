@@ -7,10 +7,10 @@ import {
   isSameLocalCalendarDay,
   startOfMonth,
 } from "@/lib/calendar-utils";
+import { EVENT_PERIOD_ORDER, EVENT_PERIOD_UI } from "@/lib/event-period-styles";
+import type { DayPeriodMarkers } from "@/lib/event-calendar-markers";
 
 const WEEKDAYS_EN = ["SUN", "MON", "TUE", "WED", "THU", "FRI", "SAT"] as const;
-
-export type DaySlotMarkers = { daytime: boolean; evening: boolean };
 
 type Props = {
   visibleMonth: Date;
@@ -18,8 +18,8 @@ type Props = {
   onNextMonth: () => void;
   selectedDate: Date | null;
   onSelectDate: (d: Date) => void;
-  /** 日付キー → 昼系（朝+昼）・夕の枠あり（あなたのグループ向け slotChoices 由来） */
-  slotMarkersByDate: Map<string, DaySlotMarkers>;
+  /** 日付キー → 朝・昼・夕の枠あり */
+  slotMarkersByDate: Map<string, DayPeriodMarkers>;
 };
 
 export function EventsMonthCalendar({
@@ -75,6 +75,8 @@ export function EventsMonthCalendar({
               const selected = selectedDate != null && isSameLocalCalendarDay(date, selectedDate);
               const isToday = key === todayKey;
               const mk = slotMarkersByDate.get(key);
+              const hasDots =
+                mk && (mk.morning || mk.afternoon || mk.evening) && !selected;
               return (
                 <button
                   key={`${date.getTime()}-${wi}`}
@@ -84,27 +86,39 @@ export function EventsMonthCalendar({
                     "relative flex min-h-[2.85rem] flex-col items-center justify-center rounded-full py-1 text-sm transition",
                     inCurrentMonth ? "text-zinc-900 dark:text-zinc-100" : "text-zinc-300 dark:text-zinc-600",
                     selected
-                      ? "bg-zinc-200 font-semibold text-zinc-900 dark:bg-zinc-700 dark:text-zinc-50"
+                      ? "bg-[var(--lobby-red)] font-semibold text-white"
                       : isToday
                         ? "ring-1 ring-zinc-300 dark:ring-zinc-600"
                         : "hover:bg-zinc-50 dark:hover:bg-zinc-800/60",
                   ].join(" ")}
                 >
                   <span className="tabular-nums">{date.getDate()}</span>
-                  {mk && (mk.daytime || mk.evening) && !selected ? (
+                  {hasDots ? (
                     <span className="mt-0.5 flex gap-0.5" aria-hidden>
-                      {mk.daytime ? (
-                        <span className="h-1.5 w-1.5 rounded-full bg-amber-500" title="朝・昼の枠あり" />
-                      ) : null}
-                      {mk.evening ? (
-                        <span className="h-1.5 w-1.5 rounded-full bg-violet-500" title="夕の枠あり" />
-                      ) : null}
+                      {EVENT_PERIOD_ORDER.map((period) =>
+                        mk[period] ? (
+                          <span
+                            key={period}
+                            className={`h-1.5 w-1.5 rounded-full ${EVENT_PERIOD_UI[period].dotClass}`}
+                            title={EVENT_PERIOD_UI[period].label}
+                          />
+                        ) : null
+                      )}
                     </span>
                   ) : null}
                 </button>
               );
             })}
           </div>
+        ))}
+      </div>
+
+      <div className="mt-3 flex flex-wrap justify-center gap-3 text-[10px] text-zinc-500">
+        {EVENT_PERIOD_ORDER.map((period) => (
+          <span key={period} className="inline-flex items-center gap-1">
+            <span className={`h-1.5 w-1.5 rounded-full ${EVENT_PERIOD_UI[period].dotClass}`} aria-hidden />
+            {EVENT_PERIOD_UI[period].label.replace("イベント", "")}
+          </span>
         ))}
       </div>
     </div>

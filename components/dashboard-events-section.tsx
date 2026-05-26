@@ -1,9 +1,8 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import type { User } from "firebase/auth";
 import { isFirebaseConfigComplete } from "@/lib/firebase";
-import { subscribeUserEventSignups, type UserEventSignupRow } from "@/lib/firestore-event-signups";
 import type { PublishedEventRow } from "@/lib/firestore-events";
 import { EventCalendarDetailSheet } from "@/components/event-calendar-detail-sheet";
 import { EventsMonthCalendar } from "@/components/events-month-calendar";
@@ -49,20 +48,8 @@ type LoadedProps = {
 };
 
 function DashboardEventsLoaded({ user, publishedEvents: events, cohortFlipActive = false }: LoadedProps) {
-  const [signups, setSignups] = useState<UserEventSignupRow[]>([]);
   const [visibleMonth, setVisibleMonth] = useState(() => startOfMonth(new Date()));
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
-
-  useEffect(() => {
-    const unsub = subscribeUserEventSignups(
-      user.uid,
-      (rows) => setSignups(rows),
-      () => {}
-    );
-    return () => {
-      unsub?.();
-    };
-  }, [user.uid]);
 
   const eventIds = useMemo(() => events?.map((e) => e.id) ?? [], [events]);
   const { markersByDate, rowsByEvent, cohortForDateKey, displayWindow } = useEventCalendarSlots(
@@ -87,6 +74,7 @@ function DashboardEventsLoaded({ user, publishedEvents: events, cohortFlipActive
       <div className="flex flex-col gap-2">
         <h2 className="text-center font-serif text-lg font-semibold text-[var(--lobby-red)]">イベントカレンダー</h2>
         <SeasonCountdownBanner />
+        <p className="text-center text-xs text-zinc-500">日付を選ぶと、その日のイベント一覧が表示されます。</p>
       </div>
 
       <div className="mt-4 space-y-4">
@@ -109,11 +97,9 @@ function DashboardEventsLoaded({ user, publishedEvents: events, cohortFlipActive
 
             {selectedDate ? (
               <EventCalendarDetailSheet
-                user={user}
                 selectedDate={selectedDate}
                 onClose={() => setSelectedDate(null)}
                 events={events}
-                signups={signups}
                 rowsByEvent={rowsByEvent}
                 cohort={cohortForDateKey(dateKeyFromLocalDate(selectedDate))}
                 displayWindow={displayWindow}

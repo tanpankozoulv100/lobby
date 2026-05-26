@@ -16,6 +16,7 @@ import {
   saveEventSignup,
   type UserEventSignupRow,
 } from "@/lib/firestore-event-signups";
+import { formatStartTimeLabel } from "@/lib/event-slot-display";
 
 type Props = {
   user: User;
@@ -36,17 +37,6 @@ type Props = {
 
 function choicesForCohort(rows: SlotChoiceRow[], cohort: LobbyCohort): SlotChoiceRow[] {
   return rows.filter((r) => r.cohort === cohort);
-}
-
-function fallbackStartTime(period: EventSlotPeriod): string {
-  if (period === "morning") return "09:00";
-  if (period === "afternoon") return "13:00";
-  return "18:00";
-}
-
-function formatStartTimeLabel(raw: string | undefined, period: EventSlotPeriod): string {
-  const t = (raw ?? "").trim();
-  return /^\d{2}:\d{2}$/.test(t) ? t : fallbackStartTime(period);
 }
 
 export function EventSlotSection({
@@ -214,62 +204,62 @@ export function EventSlotSection({
                         const selected = current?.eventId === eventId && current?.slotChoiceId === choice.id;
                         const timeLabel = formatStartTimeLabel(choice.startTime, period);
                         return (
-                          <label
+                          <button
                             key={choice.id}
-                            className={`flex cursor-pointer items-start gap-2 rounded-md border px-2 py-2 text-sm ${
-                              selected
-                                ? "border-[var(--lobby-red)] bg-[var(--lobby-cream)] dark:bg-zinc-900"
-                                : "border-transparent hover:bg-[var(--lobby-cream)]/80 dark:hover:bg-zinc-800"
-                            }`}
-                          >
-                            <input
-                              type="checkbox"
-                              name={`slot-${eventId}-${dateKey}-${period}`}
-                              checked={selected}
-                              disabled={saving}
-                              onChange={() => {
-                                void (async () => {
-                                  setActionError(null);
-                                  setBusyKey(key);
-                                  let res:
-                                    | { ok: true }
-                                    | {
-                                        ok: false;
-                                        message: string;
-                                      };
-                                  if (selected) {
-                                    res = await clearEventSignup(user.uid, eventId, dateKey, period);
-                                  } else {
-                                    if (current) {
-                                      const clearRes = await clearEventSignup(
-                                        user.uid,
-                                        current.eventId,
-                                        dateKey,
-                                        period
-                                      );
-                                      if (!clearRes.ok) {
-                                        setBusyKey(null);
-                                        setActionError(clearRes.message);
-                                        return;
-                                      }
+                            type="button"
+                            disabled={saving}
+                            onClick={() => {
+                              void (async () => {
+                                setActionError(null);
+                                setBusyKey(key);
+                                let res:
+                                  | { ok: true }
+                                  | {
+                                      ok: false;
+                                      message: string;
+                                    };
+                                if (selected) {
+                                  res = await clearEventSignup(user.uid, eventId, dateKey, period);
+                                } else {
+                                  if (current) {
+                                    const clearRes = await clearEventSignup(
+                                      user.uid,
+                                      current.eventId,
+                                      dateKey,
+                                      period
+                                    );
+                                    if (!clearRes.ok) {
+                                      setBusyKey(null);
+                                      setActionError(clearRes.message);
+                                      return;
                                     }
-                                    res = await saveEventSignup(user.uid, eventId, dateKey, period, choice);
                                   }
-                                  setBusyKey(null);
-                                  if (!res.ok) setActionError(res.message);
-                                })();
-                              }}
-                              className="mt-0.5"
-                            />
+                                  res = await saveEventSignup(user.uid, eventId, dateKey, period, choice);
+                                }
+                                setBusyKey(null);
+                                if (!res.ok) setActionError(res.message);
+                              })();
+                            }}
+                            className={`flex w-full items-start rounded-md px-2 py-2 text-left text-sm transition ${
+                              selected
+                                ? "bg-zinc-200/70 dark:bg-zinc-800"
+                                : "hover:bg-zinc-100/80 dark:hover:bg-zinc-800/60"
+                            } disabled:opacity-50`}
+                          >
                             <span className="space-y-1">
                               <span className="block text-zinc-800 dark:text-zinc-200">
                                 {timeLabel} {choice.destinationLabel}
+                                {selected ? (
+                                  <span className="ml-1.5 text-xs font-medium text-zinc-500">（参加登録済み）</span>
+                                ) : null}
                               </span>
                               {choice.eventDetail ? (
-                                <span className="block text-xs text-zinc-500 dark:text-zinc-400">{choice.eventDetail}</span>
+                                <span className="block text-xs text-zinc-500 dark:text-zinc-400">
+                                  {choice.eventDetail}
+                                </span>
                               ) : null}
                             </span>
-                          </label>
+                          </button>
                         );
                       })}
                     </div>

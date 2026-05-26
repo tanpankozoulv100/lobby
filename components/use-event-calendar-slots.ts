@@ -16,6 +16,9 @@ import {
   type EventDisplayWindowRow,
 } from "@/lib/firestore-event-display-window";
 import { isDateKeyInRange } from "@/lib/calendar-utils";
+import { emptyDayPeriodMarkers, type DayPeriodMarkers } from "@/lib/event-calendar-markers";
+
+export type { DayPeriodMarkers };
 
 /** 各イベントの slotChoices を購読し、カレンダー用ドットと行データをまとめる */
 export function useEventCalendarSlots(
@@ -75,7 +78,7 @@ export function useEventCalendarSlots(
   }, []);
 
   const markersByDate = useMemo(() => {
-    const m = new Map<string, { daytime: boolean; evening: boolean }>();
+    const m = new Map<string, DayPeriodMarkers>();
     if (!eventIds) return m;
     for (const id of eventIds) {
       for (const r of rowsByEvent[id] ?? []) {
@@ -83,9 +86,8 @@ export function useEventCalendarSlots(
           continue;
         }
         if (r.cohort !== cohortForDateKey(r.dateKey)) continue;
-        const cur = m.get(r.dateKey) ?? { daytime: false, evening: false };
-        if (r.period === "morning" || r.period === "afternoon") cur.daytime = true;
-        if (r.period === "evening") cur.evening = true;
+        const cur = m.get(r.dateKey) ?? emptyDayPeriodMarkers();
+        cur[r.period] = true;
         m.set(r.dateKey, cur);
       }
     }

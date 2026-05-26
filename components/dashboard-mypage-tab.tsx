@@ -1,14 +1,8 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import type { User } from "firebase/auth";
-import {
-  ensureUserProfile,
-  subscribeUserProfile,
-  updateUserProfile,
-} from "@/lib/firestore-users";
-import { GENDER_LABELS, JAPAN_PREFECTURES, computeAgeFromBirthDate, formatBirthDateJa } from "@/lib/lobby-profile";
-import type { LobbyGender } from "@/lib/lobby-firestore-types";
+import { ensureUserProfile, subscribeUserProfile } from "@/lib/firestore-users";
 import { isFirebaseConfigComplete } from "@/lib/firebase";
 import { formatParticipantNoDisplay } from "@/lib/format-participant-no";
 import { useLobbyStaff } from "@/lib/use-lobby-staff";
@@ -23,6 +17,7 @@ import type { UserProfileFields } from "@/lib/lobby-firestore-types";
 import type { DashboardTab } from "@/components/dashboard-bottom-nav";
 import { LobbyBottomSheet } from "@/components/lobby-bottom-sheet";
 import { ProfileEditSheet } from "@/components/profile-edit-sheet";
+import { SettingsLinksSheet } from "@/components/settings-links-sheet";
 import { useProfileMediaUrl } from "@/lib/use-profile-media-url";
 import { countAnsweredQuestions } from "@/lib/compatibility-questions";
 
@@ -64,159 +59,6 @@ function MenuRow({
       </span>
       <ChevronRight />
     </button>
-  );
-}
-
-function AccountSettingsSheet({
-  user,
-  open,
-  onClose,
-}: {
-  user: User;
-  open: boolean;
-  onClose: () => void;
-}) {
-  const [displayName, setDisplayName] = useState("");
-  const [bio, setBio] = useState("");
-  const [prefecture, setPrefecture] = useState("");
-  const [legalName, setLegalName] = useState("");
-  const [gender, setGender] = useState<string>("");
-  const [birthDate, setBirthDate] = useState<string>("");
-  const [ready, setReady] = useState(false);
-  const [saving, setSaving] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [saveMessage, setSaveMessage] = useState<string | null>(null);
-
-  useEffect(() => {
-    if (!open) return;
-    let unsub: (() => void) | null = null;
-    let cancelled = false;
-    void (async () => {
-      try {
-        await ensureUserProfile(user.uid, user.email);
-      } catch {
-        if (!cancelled) setError("プロフィールの読み込みに失敗しました。");
-        return;
-      }
-      unsub = subscribeUserProfile(
-        user.uid,
-        (data) => {
-          if (cancelled) return;
-          setDisplayName(data?.displayName ?? "");
-          setBio(data?.bio ?? "");
-          setPrefecture(data?.prefecture ?? "");
-          setLegalName(data?.legalName ?? "");
-          setGender(data?.gender ?? "");
-          setBirthDate(data?.birthDate ?? "");
-          setReady(true);
-        },
-        (msg) => {
-          if (!cancelled) setError(msg);
-        }
-      );
-    })();
-    return () => {
-      cancelled = true;
-      unsub?.();
-    };
-  }, [open, user.uid, user.email]);
-
-  const handleSave = useCallback(async () => {
-    setSaveMessage(null);
-    setError(null);
-    setSaving(true);
-    const result = await updateUserProfile(user.uid, displayName, bio, prefecture);
-    setSaving(false);
-    if (result.ok) setSaveMessage("保存しました。");
-    else setError(result.message);
-  }, [user.uid, displayName, bio, prefecture]);
-
-  return (
-    <LobbyBottomSheet open={open} title="各種設定" onClose={onClose}>
-      <div className="space-y-4 pt-2">
-        {user.email ? (
-          <p className="text-xs text-zinc-500">
-            ログイン: <span className="text-zinc-800">{user.email}</span>
-          </p>
-        ) : null}
-        {error ? <p className="rounded-lg bg-amber-50 px-3 py-2 text-sm text-amber-900">{error}</p> : null}
-        {saveMessage ? (
-          <p className="rounded-lg bg-emerald-50 px-3 py-2 text-sm text-emerald-900">{saveMessage}</p>
-        ) : null}
-        {ready ? (
-          <>
-            <div>
-              <label htmlFor="mypage-display-name" className="mb-1 block text-xs font-medium text-zinc-600">
-                表示名
-              </label>
-              <input
-                id="mypage-display-name"
-                type="text"
-                maxLength={50}
-                value={displayName}
-                onChange={(e) => setDisplayName(e.target.value)}
-                className="w-full rounded-xl border border-zinc-200 bg-[var(--lobby-surface-raised)] px-3 py-2.5 text-sm"
-              />
-            </div>
-            <div>
-              <label htmlFor="mypage-prefecture" className="mb-1 block text-xs font-medium text-zinc-600">
-                居住地（都道府県）
-              </label>
-              <select
-                id="mypage-prefecture"
-                className="w-full rounded-xl border border-zinc-200 bg-[var(--lobby-surface-raised)] px-3 py-2.5 text-sm"
-                value={prefecture}
-                onChange={(e) => setPrefecture(e.target.value)}
-              >
-                <option value="">選択してください</option>
-                {JAPAN_PREFECTURES.map((p) => (
-                  <option key={p} value={p}>
-                    {p}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <div className="rounded-xl bg-zinc-50 px-3 py-2 text-xs text-zinc-600">
-              <p>本名: {legalName || "—"}（変更不可）</p>
-              <p className="mt-1">
-                性別: {gender === "male" || gender === "female" ? GENDER_LABELS[gender as LobbyGender] : "—"}
-                （変更不可）
-              </p>
-              <p className="mt-1">
-                生年月日: {formatBirthDateJa(birthDate)}
-                {birthDate && computeAgeFromBirthDate(birthDate) != null
-                  ? `（${computeAgeFromBirthDate(birthDate)}歳）`
-                  : ""}
-                （変更不可）
-              </p>
-            </div>
-            <div>
-              <label htmlFor="mypage-bio" className="mb-1 block text-xs font-medium text-zinc-600">
-                自己紹介（任意）
-              </label>
-              <textarea
-                id="mypage-bio"
-                rows={4}
-                maxLength={500}
-                value={bio}
-                onChange={(e) => setBio(e.target.value)}
-                className="w-full resize-y rounded-xl border border-zinc-200 bg-[var(--lobby-surface-raised)] px-3 py-2.5 text-sm"
-              />
-            </div>
-            <button
-              type="button"
-              disabled={saving}
-              onClick={() => void handleSave()}
-              className="w-full rounded-xl bg-[var(--lobby-red)] py-3 text-sm font-medium text-white disabled:opacity-50"
-            >
-              {saving ? "保存中…" : "保存する"}
-            </button>
-          </>
-        ) : (
-          <p className="text-sm text-zinc-500">読み込み中…</p>
-        )}
-      </div>
-    </LobbyBottomSheet>
   );
 }
 
@@ -383,7 +225,7 @@ export function DashboardMypageTab({
             </svg>
           }
           title="各種設定"
-          subtitle="表示名・居住地・アカウント"
+          subtitle="通知・利用規約など"
           onClick={() => setSettingsOpen(true)}
         />
         <MenuRow
@@ -414,7 +256,7 @@ export function DashboardMypageTab({
         onClose={() => setProfileEditOpen(false)}
         previewDisplayName={displayName}
       />
-      <AccountSettingsSheet user={user} open={settingsOpen} onClose={() => setSettingsOpen(false)} />
+      <SettingsLinksSheet open={settingsOpen} onClose={() => setSettingsOpen(false)} />
 
       <LobbyBottomSheet open={helpOpen} title="お問い合わせ・ヘルプ" onClose={() => setHelpOpen(false)}>
         <div className="space-y-3 pt-2">

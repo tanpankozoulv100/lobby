@@ -6,8 +6,11 @@ import { LobbyBottomSheet } from "@/components/lobby-bottom-sheet";
 import {
   ensureUserProfile,
   subscribeUserProfile,
+  updateUserProfile,
   updateUserProfilePresentation,
 } from "@/lib/firestore-users";
+import { GENDER_LABELS, JAPAN_PREFECTURES, computeAgeFromBirthDate, formatBirthDateJa } from "@/lib/lobby-profile";
+import type { LobbyGender } from "@/lib/lobby-firestore-types";
 import {
   COMPATIBILITY_QUESTIONS,
   countAnsweredQuestions,
@@ -59,6 +62,10 @@ export function ProfileEditSheet({
   onClose: () => void;
   previewDisplayName: string;
 }) {
+  const [displayName, setDisplayName] = useState("");
+  const [prefecture, setPrefecture] = useState("");
+  const [legalName, setLegalName] = useState("");
+  const [gender, setGender] = useState<string>("");
   const [bio, setBio] = useState("");
   const [birthDate, setBirthDate] = useState("");
   const [answers, setAnswers] = useState<CompatibilityAnswers>({});
@@ -86,6 +93,10 @@ export function ProfileEditSheet({
         user.uid,
         (data) => {
           if (cancelled) return;
+          setDisplayName(data?.displayName ?? "");
+          setPrefecture(data?.prefecture ?? "");
+          setLegalName(data?.legalName ?? "");
+          setGender(data?.gender ?? "");
           setBio(data?.bio ?? "");
           setBirthDate(data?.birthDate ?? "");
           setAnswers(data?.compatibilityAnswers ?? {});
@@ -130,17 +141,23 @@ export function ProfileEditSheet({
     setSaveMessage(null);
     setError(null);
     setSaving(true);
-    const result = await updateUserProfilePresentation(user.uid, bio, answers);
+    const accountResult = await updateUserProfile(user.uid, displayName, bio, prefecture);
+    if (!accountResult.ok) {
+      setSaving(false);
+      setError(accountResult.message);
+      return;
+    }
+    const compatResult = await updateUserProfilePresentation(user.uid, bio, answers);
     setSaving(false);
-    if (result.ok) {
+    if (compatResult.ok) {
       setSaveMessage("保存しました。");
       setPreviewMode(false);
     } else {
-      setError(result.message);
+      setError(compatResult.message);
     }
-  }, [user.uid, bio, answers]);
+  }, [user.uid, displayName, bio, prefecture, answers]);
 
-  const previewInitial = previewDisplayName.slice(0, 1) || "?";
+  const previewInitial = (displayName.trim() || previewDisplayName).slice(0, 1) || "?";
 
   return (
     <LobbyBottomSheet open={open} title="プロフィール編集" onClose={onClose} tall>
@@ -165,7 +182,7 @@ export function ProfileEditSheet({
                   {previewInitial}
                 </div>
               )}
-              <p className="mt-2 font-bold text-zinc-900">{previewDisplayName}</p>
+              <p className="mt-2 font-bold text-zinc-900">{displayName.trim() || previewDisplayName}</p>
               {bio.trim() ? <p className="mt-2 text-center text-sm text-zinc-600">{bio.trim()}</p> : null}
               <p className="mt-2 text-xs text-zinc-500">相性質問 {answeredCount}/12 回答済み</p>
             </div>
@@ -206,6 +223,51 @@ export function ProfileEditSheet({
                         onPick={(f) => void handleMedia("cover", f)}
                       />
                     </div>
+                  </div>
+                </div>
+
+                <div className="space-y-3 rounded-xl border border-zinc-200/80 bg-zinc-50/80 px-3 py-3">
+                  <p className="text-xs font-semibold text-zinc-700">アカウント</p>
+                  <div>
+                    <label htmlFor="profile-display-name" className="mb-1 block text-xs font-medium text-zinc-600">
+                      表示名
+                    </label>
+                    <input
+                      id="profile-display-name"
+                      type="text"
+                      maxLength={50}
+                      value={displayName}
+                      onChange={(e) => setDisplayName(e.target.value)}
+                      className="w-full rounded-xl border border-zinc-200 bg-[var(--lobby-surface-raised)] px-3 py-2.5 text-sm"
+                    />
+                  </div>
+                  <div>
+                    <label htmlFor="profile-prefecture" className="mb-1 block text-xs font-medium text-zinc-600">
+                      居住地（都道府県）
+                    </label>
+                    <select
+                      id="profile-prefecture"
+                      className="w-full rounded-xl border border-zinc-200 bg-[var(--lobby-surface-raised)] px-3 py-2.5 text-sm"
+                      value={prefecture}
+                      onChange={(e) => setPrefecture(e.target.value)}
+                    >
+                      <option value="">選択してください</option>
+                      {JAPAN_PREFECTURES.map((p) => (
+                        <option key={p} value={p}>
+                          {p}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="text-xs text-zinc-600">
+                    <p>本名: {legalName || "—"}（変更不可）</p>
+                    <p className="mt-1">
+                      性別:{" "}
+                      {gender === "male" || gender === "female"
+                        ? GENDER_LABELS[gender as LobbyGender]
+                        : "—"}
+                      （変更不可）
+                    </p>
                   </div>
                 </div>
 
