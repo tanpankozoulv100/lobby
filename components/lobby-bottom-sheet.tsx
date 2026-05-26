@@ -7,9 +7,11 @@ type Props = {
   title: string;
   onClose: () => void;
   children: ReactNode;
+  /** 相性質問など長いフォーム用 */
+  tall?: boolean;
 };
 
-export function LobbyBottomSheet({ open, title, onClose, children }: Props) {
+export function LobbyBottomSheet({ open, title, onClose, children, tall }: Props) {
   if (!open) return null;
 
   return (
@@ -22,7 +24,7 @@ export function LobbyBottomSheet({ open, title, onClose, children }: Props) {
         role="dialog"
         aria-modal="true"
         aria-label={title}
-        className="max-h-[85dvh] w-full overflow-hidden rounded-t-3xl bg-[var(--lobby-cream)] shadow-2xl"
+        className={`w-full overflow-hidden rounded-t-3xl bg-[var(--lobby-cream)] shadow-2xl ${tall ? "max-h-[92dvh]" : "max-h-[85dvh]"}`}
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center gap-2 border-b border-zinc-200/80 px-4 py-3">

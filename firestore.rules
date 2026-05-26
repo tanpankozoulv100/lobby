@@ -57,8 +57,53 @@ service cloud.firestore {
       return bd is string && bd.matches('^[0-9]{8}$');
     }
 
-    match /users/{userId} {
+    function hasMatchWith(peerId) {
+      return request.auth != null
+        && peerId is string
+        && peerId != request.auth.uid
+        && (
+          exists(/databases/$(database)/documents/users/$(request.auth.uid)/outboundLinks/$(peerId))
+          || exists(/databases/$(database)/documents/users/$(peerId)/outboundLinks/$(request.auth.uid))
+        );
+    }
+
+    function isProfileMediaPath(userId, path) {
+      return path is string
+        && path.matches('^users/' + userId + '/profile/(avatar|cover)\\.(jpg|jpeg|png|webp)$');
+    }
+
+    function isValidCompatibilityAnswersMap(a) {
+      return a is map && a.size() <= 12;
+    }
+
+    match /users/{userId}/matchMemos/{peerId} {
       allow read: if request.auth != null && request.auth.uid == userId;
+      allow create, update: if request.auth != null
+        && request.auth.uid == userId
+        && peerId != userId
+        && request.resource.data.keys().hasOnly(['nickname', 'memo', 'updatedAt'])
+        && request.resource.data.nickname is string
+        && request.resource.data.nickname.size() <= 50
+        && request.resource.data.memo is string
+        && request.resource.data.memo.size() <= 2000;
+      allow delete: if false;
+    }
+
+    match /users/{userId}/chatPrefs/{peerId} {
+      allow read: if request.auth != null && request.auth.uid == userId;
+      allow create, update: if request.auth != null
+        && request.auth.uid == userId
+        && peerId != userId
+        && request.resource.data.keys().hasOnly(['dmNotifyEnabled', 'updatedAt'])
+        && request.resource.data.dmNotifyEnabled is bool;
+      allow delete: if false;
+    }
+
+    match /users/{userId} {
+      allow read: if request.auth != null && (
+        request.auth.uid == userId
+        || hasMatchWith(userId)
+      );
       allow create: if request.auth != null
         && request.auth.uid == userId
         && request.resource.data.keys().hasOnly([
@@ -95,6 +140,20 @@ service cloud.firestore {
             && (!resource.data.keys().hasAny(['gender']) || request.resource.data.gender == resource.data.gender)
             && (!resource.data.keys().hasAny(['birthDate']) || request.resource.data.birthDate == resource.data.birthDate)
             && (!resource.data.keys().hasAny(['legalName']) || request.resource.data.legalName == resource.data.legalName)
+          )
+          || (
+            request.resource.data.diff(resource.data).affectedKeys().hasOnly(['bio', 'compatibilityAnswers', 'updatedAt'])
+            && request.resource.data.bio is string
+            && request.resource.data.bio.size() <= 500
+            && isValidCompatibilityAnswersMap(request.resource.data.compatibilityAnswers)
+          )
+          || (
+            request.resource.data.diff(resource.data).affectedKeys().hasOnly(['avatarPath', 'updatedAt'])
+            && isProfileMediaPath(userId, request.resource.data.avatarPath)
+          )
+          || (
+            request.resource.data.diff(resource.data).affectedKeys().hasOnly(['coverPath', 'updatedAt'])
+            && isProfileMediaPath(userId, request.resource.data.coverPath)
           )
           || (
             !resource.data.keys().hasAny(['gender'])
@@ -374,11 +433,33 @@ service cloud.firestore {
       allow create: if request.auth != null
         && request.auth.uid == userId
         && peerId != userId
-        && request.resource.data.keys().hasOnly(['createdAt']);
+        && (
+          request.resource.data.keys().hasOnly(['createdAt'])
+          || (
+            request.resource.data.keys().hasOnly(['createdAt', 'encounterCount'])
+            && request.resource.data.encounterCount == 1
+          )
+        );
       allow update: if request.auth != null
         && request.auth.uid == userId
-        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['lastMatchedAt'])
-        && request.resource.data.lastMatchedAt is timestamp;
+        && (
+          (
+            request.resource.data.diff(resource.data).affectedKeys().hasOnly(['lastMatchedAt'])
+            && request.resource.data.lastMatchedAt is timestamp
+          )
+          || (
+            request.resource.data.diff(resource.data).affectedKeys().hasOnly(['lastMatchedAt', 'encounterCount'])
+            && request.resource.data.lastMatchedAt is timestamp
+            && request.resource.data.encounterCount is int
+            && request.resource.data.encounterCount >= 2
+            && (
+              (!resource.data.keys().hasAny(['encounterCount'])
+                && request.resource.data.encounterCount == 2)
+              || (resource.data.encounterCount is int
+                && request.resource.data.encounterCount == resource.data.encounterCount + 1)
+            )
+          )
+        );
       allow delete: if false;
     }
 
@@ -394,16 +475,6 @@ service cloud.firestore {
         && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['lastMatchedAt'])
         && request.resource.data.lastMatchedAt is timestamp;
       allow delete: if false;
-    }
-
-    function hasMatchWith(peerId) {
-      return request.auth != null
-        && peerId is string
-        && peerId != request.auth.uid
-        && (
-          exists(/databases/$(database)/documents/users/$(request.auth.uid)/outboundLinks/$(peerId))
-          || exists(/databases/$(database)/documents/users/$(peerId)/outboundLinks/$(request.auth.uid))
-        );
     }
 
     function isChatThreadDocParticipant(data) {

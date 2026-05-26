@@ -22,6 +22,34 @@ export const USER_REPORT_REASON_CODES: UserReportReasonCode[] = [
   "other",
 ];
 
+export const USER_REPORT_REASON_LABEL: Record<UserReportReasonCode, string> = {
+  harassment: "嫌がらせ・脅迫",
+  spam: "スパム・広告",
+  inappropriate: "不適切な内容",
+  other: "その他",
+};
+
+/**
+ * ユーザー向けの通報（ブロックは行わない）。
+ * 想定: 迷惑行為・嫌がらせ等の運営対応が必要な事案。単に「合わない」相手の切り離し用ではない。
+ */
+export async function reportPeer(params: {
+  myUid: string;
+  peerUid: string;
+  reasonCode: UserReportReasonCode;
+  note?: string;
+}): Promise<{ ok: true } | { ok: false; message: string }> {
+  return submitUserReport({
+    reporterUid: params.myUid,
+    reportedUid: params.peerUid,
+    reasonCode: params.reasonCode,
+    note: params.note,
+  });
+}
+
+/** @deprecated ユーザーアプリでは通報のみ。ブロック API は将来の運営用に残置 */
+export const reportAndBlockPeer = reportPeer;
+
 export function subscribeBlockedPeerUids(
   myUid: string,
   onData: (blockedUids: string[]) => void,

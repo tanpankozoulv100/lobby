@@ -1,3 +1,4 @@
+import { isCompatibilityQuestionnaireComplete } from "@/lib/compatibility-questions";
 import type { UserProfileFields } from "@/lib/lobby-firestore-types";
 
 export type OnboardingBypassContext = {
@@ -89,6 +90,27 @@ export function isAccountSuspended(profile: UserProfileFields | null | undefined
   return profile?.accountStatus === "suspended";
 }
 
+/** 相性質問チュートリアル（12問すべて回答済み） */
+export function isCompatibilityTutorialComplete(
+  profile: UserProfileFields | null | undefined,
+  uid?: string | null,
+  ctx?: OnboardingBypassContext
+): boolean {
+  if (isOnboardingBypassActiveForUser(uid, ctx)) return true;
+  return isCompatibilityQuestionnaireComplete(profile?.compatibilityAnswers);
+}
+
+/** 本人確認・チケット完了後の次画面（チュートリアル or ダッシュボード） */
+export function getPostLobbyEntryPath(
+  profile: UserProfileFields | null | undefined,
+  uid?: string | null,
+  ctx?: OnboardingBypassContext
+): "/tutorial" | "/dashboard" {
+  if (!isLobbyAccessGranted(profile, uid, ctx)) return "/dashboard";
+  if (!isCompatibilityTutorialComplete(profile, uid, ctx)) return "/tutorial";
+  return "/dashboard";
+}
+
 /** ダッシュボード本体（ホーム以降）に入れるか */
 export function canUseLobbyDashboard(
   profile: UserProfileFields | null | undefined,
@@ -97,5 +119,6 @@ export function canUseLobbyDashboard(
 ): boolean {
   if (isOnboardingBypassActiveForUser(uid, ctx)) return true;
   if (isAccountSuspended(profile)) return false;
-  return isLobbyAccessGranted(profile, uid, ctx);
+  if (!isLobbyAccessGranted(profile, uid, ctx)) return false;
+  return isCompatibilityTutorialComplete(profile, uid, ctx);
 }

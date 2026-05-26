@@ -12,6 +12,7 @@ import {
   writeBatch,
   type Unsubscribe,
 } from "firebase/firestore";
+import { normalizeEncounterCount } from "@/lib/match-encounter";
 import { getFirebaseDb } from "@/lib/firebase";
 import { mergeLinkTimestamps, type MatchLinkTimestamps } from "@/lib/match-link-times";
 
@@ -119,24 +120,27 @@ export function subscribeMyConnectionCode(
   );
 }
 
-export type OutboundLinkRow = { peerUid: string } & MatchLinkTimestamps;
+export type OutboundLinkRow = { peerUid: string; encounterCount: number } & MatchLinkTimestamps;
 
-export type MergedMatchRow = { peerUid: string } & MatchLinkTimestamps;
+export type MergedMatchRow = { peerUid: string; encounterCount: number } & MatchLinkTimestamps;
 
 /** outbound（自分がスキャン）と linkedFrom（相手がスキャン）をマージしたマッチ一覧 */
 export function mergeMatchLinks(
   outbound: OutboundLinkRow[],
   inbound: InboundLinkRow[]
 ): MergedMatchRow[] {
-  const byPeer = new Map<string, MatchLinkTimestamps>();
-  const upsert = (peerUid: string, fields: MatchLinkTimestamps) => {
-    byPeer.set(peerUid, mergeLinkTimestamps(byPeer.get(peerUid), fields));
+  const byPeer = new Map<string, MatchLinkTimestamps & { encounterCount: number }>();
+  const upsert = (peerUid: string, fields: MatchLinkTimestamps, encounterCount: number) => {
+    const prev = byPeer.get(peerUid);
+    const merged = mergeLinkTimestamps(prev, fields);
+    const count = Math.max(prev?.encounterCount ?? 1, encounterCount);
+    byPeer.set(peerUid, { ...merged, encounterCount: count });
   };
   for (const r of outbound) {
-    upsert(r.peerUid, { createdAt: r.createdAt, lastMatchedAt: r.lastMatchedAt });
+    upsert(r.peerUid, { createdAt: r.createdAt, lastMatchedAt: r.lastMatchedAt }, r.encounterCount);
   }
   for (const r of inbound) {
-    upsert(r.sourceUid, { createdAt: r.createdAt, lastMatchedAt: r.lastMatchedAt });
+    upsert(r.sourceUid, { createdAt: r.createdAt, lastMatchedAt: r.lastMatchedAt }, 1);
   }
   return [...byPeer.entries()].map(([peerUid, fields]) => ({ peerUid, ...fields }));
 }
@@ -162,6 +166,7 @@ export function subscribeOutboundLinks(
           peerUid: d.id,
           createdAt: data.createdAt,
           lastMatchedAt: data.lastMatchedAt,
+          encounterCount: normalizeEncounterCount(data.encounterCount),
         });
       });
       onData(rows);
@@ -255,7 +260,11 @@ export async function registerLinkByPeerCode(
     try {
       const batch = writeBatch(db);
       const rematchedAt = serverTimestamp();
-      batch.update(linkRef, { lastMatchedAt: rematchedAt });
+      const prevCount = normalizeEncounterCount(existing.data()?.encounterCount);
+      batch.update(linkRef, {
+        lastMatchedAt: rematchedAt,
+        encounterCount: prevCount + 1,
+      });
       const inboundSnap = await getDoc(inboundRef);
       if (inboundSnap.exists()) {
         batch.update(inboundRef, { lastMatchedAt: rematchedAt });
@@ -274,7 +283,7 @@ export async function registerLinkByPeerCode(
   }
   try {
     const batch = writeBatch(db);
-    batch.set(linkRef, { createdAt: serverTimestamp() });
+    batch.set(linkRef, { createdAt: serverTimestamp(), encounterCount: 1 });
     batch.set(inboundRef, { createdAt: serverTimestamp() });
     await batch.commit();
     return { ok: true };

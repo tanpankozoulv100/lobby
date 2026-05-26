@@ -10,6 +10,10 @@ import {
 import { getFirebaseDb } from "@/lib/firebase";
 import type { LobbyGender, UserProfileFields } from "@/lib/lobby-firestore-types";
 import {
+  sanitizeCompatibilityAnswers,
+  type CompatibilityAnswers,
+} from "@/lib/compatibility-questions";
+import {
   computeAgeFromBirthDate,
   isPrefectureValid,
   parseBirthDateInput,
@@ -49,6 +53,9 @@ function mapProfileDoc(d: Record<string, unknown>): UserProfileFields {
       d.accountStatus === "active" || d.accountStatus === "suspended" ? d.accountStatus : undefined,
     reportReceivedCount: typeof d.reportReceivedCount === "number" ? d.reportReceivedCount : undefined,
     cohortFlipActive: d.cohortFlipActive === true ? true : undefined,
+    avatarPath: typeof d.avatarPath === "string" ? d.avatarPath : undefined,
+    coverPath: typeof d.coverPath === "string" ? d.coverPath : undefined,
+    compatibilityAnswers: sanitizeCompatibilityAnswers(d.compatibilityAnswers),
     createdAt: d.createdAt as UserProfileFields["createdAt"],
     updatedAt: d.updatedAt as UserProfileFields["updatedAt"],
   };
@@ -226,4 +233,45 @@ export async function updateUserProfile(
 export function getProfileAge(profile: UserProfileFields | null | undefined): number | null {
   if (!profile?.birthDate) return null;
   return computeAgeFromBirthDate(profile.birthDate);
+}
+
+export async function updateUserProfilePresentation(
+  uid: string,
+  bio: string,
+  compatibilityAnswers: CompatibilityAnswers
+): Promise<{ ok: true } | { ok: false; message: string }> {
+  const db = getFirebaseDb();
+  if (!db) {
+    return { ok: false, message: "Firestore に接続できません。" };
+  }
+  const bioTrim = bio.trim();
+  if (bioTrim.length > 500) {
+    return { ok: false, message: "メッセージは500文字以内にしてください。" };
+  }
+  const answers = sanitizeCompatibilityAnswers(compatibilityAnswers);
+  try {
+    await updateDoc(doc(db, USERS, uid), {
+      bio: bioTrim,
+      compatibilityAnswers: answers,
+      updatedAt: serverTimestamp(),
+    });
+    return { ok: true };
+  } catch (err: unknown) {
+    const code = err && typeof err === "object" && "code" in err ? String((err as { code: string }).code) : "";
+    if (code === "permission-denied") {
+      return { ok: false, message: "保存が拒否されました。セキュリティルールを確認してください。" };
+    }
+    return { ok: false, message: "保存に失敗しました。" };
+  }
+}
+
+/** マッチ相手の公開プロフィール（ルール上、マッチ済みユーザーのみ読める） */
+export async function fetchUserProfile(
+  uid: string
+): Promise<UserProfileFields | null> {
+  const db = getFirebaseDb();
+  if (!db) return null;
+  const snap = await getDoc(doc(db, USERS, uid));
+  if (!snap.exists()) return null;
+  return mapProfileDoc(snap.data() as Record<string, unknown>);
 }

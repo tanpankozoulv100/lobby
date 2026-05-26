@@ -5,9 +5,20 @@ import type { User } from "firebase/auth";
 import { doc, getDoc } from "firebase/firestore";
 import { getFirebaseDb, isFirebaseConfigComplete } from "@/lib/firebase";
 import { subscribeChatPeers, type ChatPeerEntry } from "@/lib/firestore-chat-date";
-import { subscribeBlockedPeerUids } from "@/lib/firestore-safety";
 import { useLobbyStaff } from "@/lib/use-lobby-staff";
 import { ChatConversation } from "@/components/chat-conversation";
+import { MatchedPeerDetailSheet } from "@/components/matched-peer-detail-sheet";
+import { MatchCompatibilityInline } from "@/components/match-compatibility-inline";
+import {
+  mergeMatchLinks,
+  subscribeInboundLinks,
+  subscribeOutboundLinks,
+} from "@/lib/firestore-connections";
+import {
+  ensureUserProfile,
+  subscribeUserProfile,
+} from "@/lib/firestore-users";
+import type { CompatibilityAnswers } from "@/lib/compatibility-questions";
 
 function formatExpiryShort(d: Date): string {
   return d.toLocaleString("ja-JP", { month: "numeric", day: "numeric", hour: "2-digit", minute: "2-digit" });
@@ -35,11 +46,13 @@ function TalkListRow({
   peer,
   displayName,
   isStaff,
+  myAnswers,
   onSelect,
 }: {
   peer: ChatPeerEntry;
   displayName: string;
   isStaff: boolean;
+  myAnswers: CompatibilityAnswers | undefined;
   onSelect: () => void;
 }) {
   const subtitle = isStaff
@@ -59,7 +72,12 @@ function TalkListRow({
           {displayName.slice(0, 1)}
         </span>
         <span className="min-w-0 flex-1">
-          <span className="block truncate text-[15px] font-medium text-zinc-900">{displayName}</span>
+          <span className="flex min-w-0 items-baseline gap-2">
+            <span className="truncate text-[15px] font-medium text-zinc-900">{displayName}</span>
+            {!isStaff ? (
+              <MatchCompatibilityInline peerUid={peer.uid} myAnswers={myAnswers} className="text-[13px]" />
+            ) : null}
+          </span>
           <span className={`mt-0.5 block truncate text-xs ${peer.isActive ? "text-zinc-500" : "text-zinc-400"}`}>
             {subtitle}
           </span>
@@ -77,9 +95,38 @@ function DashboardChatLoaded({ user }: { user: User }) {
   const [peers, setPeers] = useState<ChatPeerEntry[] | null>(null);
   const [peerNames, setPeerNames] = useState<Record<string, string>>({});
   const [selectedPeer, setSelectedPeer] = useState<ChatPeerEntry | null>(null);
-  const [blockedUids, setBlockedUids] = useState<string[]>([]);
+  const [myAnswers, setMyAnswers] = useState<CompatibilityAnswers | undefined>();
+  const [encounterByPeer, setEncounterByPeer] = useState<Record<string, number>>({});
+  const [profilePeerUid, setProfilePeerUid] = useState<string | null>(null);
 
-  const blockedSet = useMemo(() => new Set(blockedUids), [blockedUids]);
+  useEffect(() => {
+    let unsub: (() => void) | null = null;
+    void ensureUserProfile(user.uid, user.email).then(() => {
+      unsub = subscribeUserProfile(user.uid, (p) => setMyAnswers(p?.compatibilityAnswers));
+    });
+    return () => unsub?.();
+  }, [user.uid, user.email]);
+
+  useEffect(() => {
+    let outbound: Parameters<typeof mergeMatchLinks>[0] = [];
+    let inbound: Parameters<typeof mergeMatchLinks>[1] = [];
+    const sync = () => {
+      const merged = mergeMatchLinks(outbound, inbound);
+      setEncounterByPeer(Object.fromEntries(merged.map((m) => [m.peerUid, m.encounterCount])));
+    };
+    const u1 = subscribeOutboundLinks(user.uid, (rows) => {
+      outbound = rows;
+      sync();
+    });
+    const u2 = subscribeInboundLinks(user.uid, (rows) => {
+      inbound = rows;
+      sync();
+    });
+    return () => {
+      u1?.();
+      u2?.();
+    };
+  }, [user.uid]);
 
   const sortedPeers = useMemo(() => {
     if (!peers) return null;
@@ -96,10 +143,8 @@ function DashboardChatLoaded({ user }: { user: User }) {
       () => setPeers([]),
       { isLobbyStaff: isStaff }
     );
-    const unsubBlocked = subscribeBlockedPeerUids(user.uid, setBlockedUids);
     return () => {
       unsub?.();
-      unsubBlocked?.();
     };
   }, [user.uid, isStaff]);
 
@@ -122,17 +167,30 @@ function DashboardChatLoaded({ user }: { user: User }) {
 
   if (selectedPeer) {
     const canSend = isStaff || selectedPeer.isActive;
-    const isPeerBlocked = blockedSet.has(selectedPeer.uid);
+    const profileUid = profilePeerUid;
     return (
-      <ChatConversation
-        user={user}
-        peer={selectedPeer}
-        peerDisplayName={peerNames[selectedPeer.uid] ?? selectedPeer.uid.slice(0, 8)}
-        isStaff={isStaff}
-        canSend={canSend}
-        isPeerBlocked={isPeerBlocked}
-        onBack={() => setSelectedPeer(null)}
-      />
+      <>
+        <ChatConversation
+          user={user}
+          peer={selectedPeer}
+          peerDisplayName={peerNames[selectedPeer.uid] ?? selectedPeer.uid.slice(0, 8)}
+          isStaff={isStaff}
+          canSend={canSend}
+          myAnswers={myAnswers}
+          onOpenPeerProfile={() => setProfilePeerUid(selectedPeer.uid)}
+          onBack={() => setSelectedPeer(null)}
+        />
+        {profileUid ? (
+          <MatchedPeerDetailSheet
+            open
+            onClose={() => setProfilePeerUid(null)}
+            user={user}
+            peerUid={profileUid}
+            encounterCount={encounterByPeer[profileUid] ?? 1}
+            myAnswers={myAnswers}
+          />
+        ) : null}
+      </>
     );
   }
 
@@ -160,6 +218,7 @@ function DashboardChatLoaded({ user }: { user: User }) {
               peer={peer}
               displayName={peerNames[peer.uid] ?? "…"}
               isStaff={isStaff}
+              myAnswers={myAnswers}
               onSelect={() => setSelectedPeer(peer)}
             />
           ))}

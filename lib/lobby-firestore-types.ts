@@ -1,4 +1,5 @@
 import type { Timestamp } from "firebase/firestore";
+import type { CompatibilityAnswers } from "@/lib/compatibility-questions";
 
 /** Shopify チケットの性別区分（ユーザー登録時に固定・変更不可） */
 export type LobbyGender = "male" | "female";
@@ -27,6 +28,12 @@ export type UserProfileFields = {
   lobbyOpenedAt?: Timestamp;
   /** @deprecated 表示には使わない（後方互換の読み取りのみ） */
   participantSerial?: string;
+  /** Storage パス（例: users/uid/profile/avatar.jpg） */
+  avatarPath?: string;
+  /** Storage パス（例: users/uid/profile/cover.jpg） */
+  coverPath?: string;
+  /** 相性質問12問の回答（q1〜q12 → 選択肢 id） */
+  compatibilityAnswers?: CompatibilityAnswers;
   /** 本人確認の状態（未設定は none とみなす） */
   identityStatus?: IdentityVerificationStatus;
   /** Storage 上のパス（例: users/uid/identity/xxx.jpg） */
@@ -111,6 +118,16 @@ export type EventDisplayWindowFields = {
  * フィールドは不要（空ドキュメント可）。`/staff/events` からイベント投入する際に参照される。
  */
 
+/**
+ * `eventDestinations/{id}` — 運営が管理サイトで登録する集合場所マスタ（スプシ EventMasterList 相当）。
+ * 書き込みは Admin SDK のみ。アプリ参加者は参照しない。
+ */
+export type EventDestinationFields = {
+  label: string;
+  sortOrder: number;
+  createdAt?: Timestamp;
+};
+
 /** `events/{eventId}` — クライアントは isPublished === true のみクエリ */
 export type EventFields = {
   title: string;
@@ -153,7 +170,7 @@ export type UserReportFields = {
   createdAt?: Timestamp;
 };
 
-/** `users/{uid}/blockedUsers/{blockedUid}` */
+/** `users/{uid}/blockedUsers/{blockedUid}` — レガシー用（ユーザーアプリからは新規作成しない） */
 export type BlockedUserFields = {
   createdAt?: Timestamp;
 };

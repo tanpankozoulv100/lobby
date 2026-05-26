@@ -10,6 +10,8 @@ import {
   type ChatMessageRow,
 } from "@/lib/firestore-chat";
 import { ChatSettingsSheet } from "@/components/chat-settings-sheet";
+import { MatchCompatibilityInline } from "@/components/match-compatibility-inline";
+import type { CompatibilityAnswers } from "@/lib/compatibility-questions";
 
 function formatMessageTime(ts: unknown): string {
   if (
@@ -77,7 +79,8 @@ export function ChatConversation({
   peerDisplayName,
   isStaff,
   canSend,
-  isPeerBlocked,
+  myAnswers,
+  onOpenPeerProfile,
   onBack,
 }: {
   user: User;
@@ -85,7 +88,8 @@ export function ChatConversation({
   peerDisplayName: string;
   isStaff: boolean;
   canSend: boolean;
-  isPeerBlocked: boolean;
+  myAnswers?: CompatibilityAnswers;
+  onOpenPeerProfile: () => void;
   onBack: () => void;
 }) {
   const [messages, setMessages] = useState<ChatMessageRow[] | null>(null);
@@ -122,14 +126,14 @@ export function ChatConversation({
   }, [messages]);
 
   const handleSend = useCallback(async () => {
-    if (!canSend || isPeerBlocked) return;
+    if (!canSend) return;
     setSendError(null);
     setSending(true);
     const res = await sendChatMessage(user.uid, peer.uid, draft);
     setSending(false);
     if (res.ok) setDraft("");
     else setSendError(res.message);
-  }, [user.uid, peer.uid, draft, canSend, isPeerBlocked]);
+  }, [user.uid, peer.uid, draft, canSend]);
 
   return (
     <div className="fixed inset-x-0 top-0 z-40 flex flex-col bg-[var(--lobby-cream)] bottom-[calc(4.75rem+env(safe-area-inset-bottom))] pt-[env(safe-area-inset-top)]">
@@ -156,6 +160,13 @@ export function ChatConversation({
           <span className="block h-0.5 w-5 rounded-full bg-white" />
         </button>
       </header>
+
+      {!isStaff ? (
+        <div className="flex shrink-0 items-center justify-center gap-2 border-b border-zinc-200/80 bg-[var(--lobby-surface-raised)] px-4 py-2.5">
+          <span className="truncate text-sm font-semibold text-zinc-900">{peerDisplayName}</span>
+          <MatchCompatibilityInline peerUid={peer.uid} myAnswers={myAnswers} />
+        </div>
+      ) : null}
 
       <div className="min-h-0 flex-1 overflow-y-auto px-3 py-4" aria-live="polite">
         {loadError ? (
@@ -244,7 +255,7 @@ export function ChatConversation({
             />
             <button
               type="button"
-              disabled={sending || !draft.trim() || isPeerBlocked}
+              disabled={sending || !draft.trim()}
               onClick={() => void handleSend()}
               className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[var(--lobby-red)] text-white disabled:opacity-40"
               aria-label="送信"
@@ -255,9 +266,6 @@ export function ChatConversation({
             </button>
           </div>
           {sendError ? <p className="mt-1 text-xs text-amber-800">{sendError}</p> : null}
-          {isPeerBlocked ? (
-            <p className="mt-1 text-center text-xs text-amber-800">ブロック中のため送信できません。</p>
-          ) : null}
         </div>
       )}
 
@@ -267,7 +275,7 @@ export function ChatConversation({
         myUid={user.uid}
         peerUid={peer.uid}
         peerDisplayName={peerDisplayName}
-        isBlocked={isPeerBlocked}
+        onOpenPeerProfile={onOpenPeerProfile}
       />
     </div>
   );

@@ -1,32 +1,26 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import type { User } from "firebase/auth";
 import { isFirebaseConfigComplete } from "@/lib/firebase";
 import {
   mergeMatchLinks,
   subscribeInboundLinks,
   subscribeOutboundLinks,
-  type InboundLinkRow,
   type MergedMatchRow,
-  type OutboundLinkRow,
 } from "@/lib/firestore-connections";
-import type { UserReportReasonCode } from "@/lib/lobby-firestore-types";
-import {
-  blockPeer,
-  submitUserReport,
-  subscribeBlockedPeerUids,
-  unblockPeer,
-  USER_REPORT_REASON_CODES,
-} from "@/lib/firestore-safety";
 import { DashboardDateInviteSection } from "@/components/dashboard-date-invite-section";
-
-const REPORT_REASON_LABEL: Record<UserReportReasonCode, string> = {
-  harassment: "嫌がらせ・脅迫",
-  spam: "スパム・広告",
-  inappropriate: "不適切な内容",
-  other: "その他",
-};
+import { MatchHistoryHelpModal } from "@/components/match-history-help-modal";
+import { MatchedPeerDetailSheet } from "@/components/matched-peer-detail-sheet";
+import { MatchCompatibilityInline } from "@/components/match-compatibility-inline";
+import { ensureUserProfile, fetchUserProfile, subscribeUserProfile } from "@/lib/firestore-users";
+import type { CompatibilityAnswers } from "@/lib/compatibility-questions";
+import { LOBBY_SEASON_UI } from "@/lib/season-config";
+import {
+  getMatchEncounterBadgeTone,
+  MATCH_ENCOUNTER_BADGE_CLASS,
+} from "@/lib/match-encounter";
+import { useProfileMediaUrl } from "@/lib/use-profile-media-url";
 
 function HistoryConfigMissing() {
   return (
@@ -37,216 +31,185 @@ function HistoryConfigMissing() {
   );
 }
 
+function MatchGridAvatar({
+  peerUid,
+  encounterCount,
+  displayName,
+  avatarPath,
+  myAnswers,
+  onSelect,
+}: {
+  peerUid: string;
+  encounterCount: number;
+  displayName: string;
+  avatarPath?: string;
+  myAnswers: CompatibilityAnswers | undefined;
+  onSelect: () => void;
+}) {
+  const avatarUrl = useProfileMediaUrl(avatarPath);
+  const tone = getMatchEncounterBadgeTone(encounterCount);
+  const badgeClass = MATCH_ENCOUNTER_BADGE_CLASS[tone];
+
+  return (
+    <button
+      type="button"
+      onClick={onSelect}
+      className="flex flex-col items-center gap-1 rounded-xl p-1 text-center transition active:bg-zinc-100"
+    >
+      <span className="relative">
+        {avatarUrl ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={avatarUrl} alt="" className="h-[72px] w-[72px] rounded-full object-cover" />
+        ) : (
+          <span className="flex h-[72px] w-[72px] items-center justify-center rounded-full bg-zinc-200 text-lg font-semibold text-zinc-600">
+            {displayName.slice(0, 1)}
+          </span>
+        )}
+        <span
+          className={`absolute -bottom-0.5 -right-0.5 flex h-6 min-w-[1.5rem] items-center justify-center rounded-full px-1 text-[11px] font-bold shadow ${badgeClass}`}
+        >
+          {encounterCount}
+        </span>
+      </span>
+      <span className="flex max-w-full items-baseline justify-center gap-1 px-0.5">
+        <span className="truncate text-[11px] font-medium text-zinc-800">{displayName}</span>
+        <MatchCompatibilityInline peerUid={peerUid} myAnswers={myAnswers} className="text-[10px]" />
+      </span>
+    </button>
+  );
+}
+
 function DashboardConnectionsLoaded({ user }: { user: User }) {
-  const [outbound, setOutbound] = useState<OutboundLinkRow[] | null>(null);
-  const [inbound, setInbound] = useState<InboundLinkRow[] | null>(null);
   const [links, setLinks] = useState<MergedMatchRow[] | null>(null);
   const [linksError, setLinksError] = useState<string | null>(null);
-  const [blockedUids, setBlockedUids] = useState<string[]>([]);
-  const [statusMessage, setStatusMessage] = useState<string | null>(null);
-  const [reportForUid, setReportForUid] = useState<string | null>(null);
-  const [reportReason, setReportReason] = useState<UserReportReasonCode>("other");
-  const [reportNote, setReportNote] = useState("");
-  const [reportPending, setReportPending] = useState(false);
-  const [reportMessage, setReportMessage] = useState<string | null>(null);
-  const [blockBusyUid, setBlockBusyUid] = useState<string | null>(null);
+  const [myAnswers, setMyAnswers] = useState<CompatibilityAnswers | undefined>();
+  const [peerMeta, setPeerMeta] = useState<
+    Record<string, { displayName: string; avatarPath?: string }>
+  >({});
+  const [helpOpen, setHelpOpen] = useState(false);
+  const [selectedPeer, setSelectedPeer] = useState<MergedMatchRow | null>(null);
 
   useEffect(() => {
-    let outboundRows: OutboundLinkRow[] = [];
-    let inboundRows: InboundLinkRow[] = [];
-    const syncLinks = () => {
-      setLinks(mergeMatchLinks(outboundRows, inboundRows));
+    let unsub: (() => void) | null = null;
+    void ensureUserProfile(user.uid, user.email).then(() => {
+      unsub = subscribeUserProfile(user.uid, (p) => setMyAnswers(p?.compatibilityAnswers));
+    });
+    return () => unsub?.();
+  }, [user.uid, user.email]);
+
+  useEffect(() => {
+    let outbound: Parameters<typeof mergeMatchLinks>[0] = [];
+    let inbound: Parameters<typeof mergeMatchLinks>[1] = [];
+    const sync = () => setLinks(mergeMatchLinks(outbound, inbound));
+
+    const u1 = subscribeOutboundLinks(user.uid, (rows) => {
+      outbound = rows;
+      sync();
       setLinksError(null);
-    };
-
-    const unsubLinks = subscribeOutboundLinks(
-      user.uid,
-      (rows) => {
-        outboundRows = rows;
-        setOutbound(rows);
-        syncLinks();
-      },
-      (msg) => setLinksError(msg)
-    );
-
-    const unsubInbound = subscribeInboundLinks(
-      user.uid,
-      (rows) => {
-        inboundRows = rows;
-        setInbound(rows);
-        syncLinks();
-      },
-      () => {
-        inboundRows = [];
-        setInbound(null);
-        syncLinks();
-      }
-    );
-
-    const unsubBlocked = subscribeBlockedPeerUids(user.uid, setBlockedUids);
-
+    }, setLinksError);
+    const u2 = subscribeInboundLinks(user.uid, (rows) => {
+      inbound = rows;
+      sync();
+    });
     return () => {
-      unsubLinks?.();
-      unsubInbound?.();
-      unsubBlocked?.();
+      u1?.();
+      u2?.();
     };
   }, [user.uid]);
 
-  const handleToggleBlock = useCallback(
-    async (peerUid: string) => {
-      setStatusMessage(null);
-      setBlockBusyUid(peerUid);
-      const isBlocked = blockedUids.includes(peerUid);
-      const result = isBlocked ? await unblockPeer(user.uid, peerUid) : await blockPeer(user.uid, peerUid);
-      setBlockBusyUid(null);
-      if (result.ok) {
-        setStatusMessage(isBlocked ? "ブロックを解除しました。" : "ブロックしました。");
-        if (reportForUid === peerUid) setReportForUid(null);
-      } else {
-        setStatusMessage(result.message);
-      }
-    },
-    [user.uid, blockedUids, reportForUid]
-  );
-
-  const handleSubmitReport = useCallback(async () => {
-    if (!reportForUid) return;
-    setReportMessage(null);
-    setReportPending(true);
-    const result = await submitUserReport({
-      reporterUid: user.uid,
-      reportedUid: reportForUid,
-      reasonCode: reportReason,
-      note: reportNote,
+  useEffect(() => {
+    if (!links?.length) return;
+    let cancelled = false;
+    void Promise.all(
+      links.map(async (row) => {
+        const peer = await fetchUserProfile(row.peerUid);
+        return [
+          row.peerUid,
+          {
+            displayName: peer?.displayName?.trim() || `No.${row.peerUid.slice(0, 6)}`,
+            avatarPath: peer?.avatarPath,
+          },
+        ] as const;
+      })
+    ).then((pairs) => {
+      if (!cancelled) setPeerMeta(Object.fromEntries(pairs));
     });
-    setReportPending(false);
-    if (result.ok) {
-      setReportMessage("通報を受け付けました。運営が内容を確認します。");
-      setReportForUid(null);
-      setReportNote("");
-      setReportReason("other");
-    } else {
-      setReportMessage(result.message);
-    }
-  }, [user.uid, reportForUid, reportReason, reportNote]);
+    return () => {
+      cancelled = true;
+    };
+  }, [links]);
 
   return (
-    <div className="space-y-4">
+    <div className="-mx-4 space-y-4">
       <DashboardDateInviteSection user={user} />
 
-      <section className="rounded-xl border border-zinc-200/80 bg-[var(--lobby-cream)] p-5 shadow-sm">
-      <h2 className="text-center font-serif text-lg font-semibold text-[var(--lobby-red)]">マッチング履歴</h2>
-      <p className="mt-2 text-center text-sm text-zinc-600">
-        ホームの「スキャン」または「表示する」のQRでマッチした相手の一覧です。問題がある場合は通報・ブロックできます。
-      </p>
+      <div className="overflow-hidden rounded-2xl border border-zinc-200/80 bg-[var(--lobby-cream)] shadow-sm">
+        <div className="bg-[var(--lobby-red)] px-4 py-2.5 text-center text-sm font-medium text-white">
+          あなたが参加中のシーズン
+        </div>
 
-      {statusMessage ? (
-        <p className="mt-3 rounded-lg bg-zinc-100 px-3 py-2 text-sm text-zinc-800">{statusMessage}</p>
-      ) : null}
-      {reportMessage ? (
-        <p className="mt-3 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-900">
-          {reportMessage}
-        </p>
-      ) : null}
-
-      <div className="mt-4">
-        <p className="text-sm font-medium text-zinc-800">
-          マッチ数: {links === null ? "…" : links.length}
-        </p>
-        {linksError ? <p className="mt-1 text-sm text-amber-800">{linksError}</p> : null}
-
-        {links === null ? (
-          <p className="mt-3 text-sm text-zinc-500">読み込み中…</p>
-        ) : links.length === 0 ? (
-          <p className="mt-3 rounded-lg bg-zinc-50 px-3 py-4 text-sm text-zinc-600">
-            まだマッチがありません。ホームから相手のQRをスキャンするか、相手にあなたのQRを読み取ってもらってください。
+        <div className="px-4 py-4">
+          <h2 className="text-center font-serif text-lg font-semibold text-[var(--lobby-red)]">
+            マッチング履歴
+          </h2>
+          <p className="mt-2 text-center text-sm font-medium text-zinc-800">{LOBBY_SEASON_UI.cardTitle}</p>
+          <p className="mt-1 text-center text-xs text-zinc-500">
+            {LOBBY_SEASON_UI.participatingCountLabel}
           </p>
-        ) : (
-          <ul className="mt-3 space-y-3">
-            {links.map((row) => {
-              const mutual =
-                (outbound?.some((o) => o.peerUid === row.peerUid) ?? false) &&
-                (inbound?.some((i) => i.sourceUid === row.peerUid) ?? false);
-              const isBlocked = blockedUids.includes(row.peerUid);
-              const reporting = reportForUid === row.peerUid;
-              return (
-                <li
-                  key={row.peerUid}
-                  className="rounded-xl border border-zinc-200 bg-zinc-50/80 p-3"
-                >
-                  <div className="flex flex-wrap items-center gap-2">
-                    <span className="text-sm font-medium text-zinc-900">
-                      {mutual ? "相互マッチ" : "マッチ"}
-                    </span>
-                    {isBlocked ? (
-                      <span className="rounded bg-zinc-200 px-1.5 py-0.5 text-[10px] font-medium text-zinc-700">
-                        ブロック中
-                      </span>
-                    ) : null}
-                    <span className="ml-auto flex flex-wrap gap-1.5">
-                      <button
-                        type="button"
-                        disabled={blockBusyUid === row.peerUid}
-                        onClick={() => void handleToggleBlock(row.peerUid)}
-                        className="rounded-lg border border-zinc-300 bg-[var(--lobby-cream)] px-2.5 py-1 text-xs font-medium text-zinc-800 disabled:opacity-50"
-                      >
-                        {blockBusyUid === row.peerUid
-                          ? "…"
-                          : isBlocked
-                            ? "ブロック解除"
-                            : "ブロック"}
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setReportMessage(null);
-                          setReportForUid((prev) => (prev === row.peerUid ? null : row.peerUid));
-                        }}
-                        className="rounded-lg border border-rose-200 bg-rose-50 px-2.5 py-1 text-xs font-medium text-rose-900"
-                      >
-                        {reporting ? "閉じる" : "通報"}
-                      </button>
-                    </span>
-                  </div>
-                  {reporting ? (
-                    <div className="mt-3 space-y-2 border-t border-zinc-200 pt-3">
-                      <label className="block text-xs font-medium text-zinc-500">理由</label>
-                      <select
-                        value={reportReason}
-                        onChange={(e) => setReportReason(e.target.value as UserReportReasonCode)}
-                        className="w-full rounded-lg border border-zinc-300 bg-[var(--lobby-cream)] px-2 py-2 text-sm"
-                      >
-                        {USER_REPORT_REASON_CODES.map((code) => (
-                          <option key={code} value={code}>
-                            {REPORT_REASON_LABEL[code]}
-                          </option>
-                        ))}
-                      </select>
-                      <textarea
-                        value={reportNote}
-                        onChange={(e) => setReportNote(e.target.value)}
-                        maxLength={500}
-                        rows={2}
-                        placeholder="補足（任意）"
-                        className="w-full resize-y rounded-lg border border-zinc-300 px-2 py-2 text-sm"
-                      />
-                      <button
-                        type="button"
-                        disabled={reportPending}
-                        onClick={() => void handleSubmitReport()}
-                        className="rounded-lg bg-rose-600 px-3 py-2 text-xs font-medium text-white disabled:opacity-50"
-                      >
-                        {reportPending ? "送信中…" : "通報を送信"}
-                      </button>
-                    </div>
-                  ) : null}
-                </li>
-              );
-            })}
-          </ul>
-        )}
+
+          <div className="mt-5 flex items-center justify-center gap-1">
+            <h3 className="text-sm font-semibold text-zinc-900">これまでにマッチングした一覧</h3>
+            <button
+              type="button"
+              onClick={() => setHelpOpen(true)}
+              className="flex h-5 w-5 items-center justify-center rounded-full border border-zinc-300 text-[11px] font-bold text-zinc-500"
+              aria-label="マッチング一覧の説明"
+            >
+              ?
+            </button>
+          </div>
+
+          {linksError ? <p className="mt-3 text-center text-sm text-amber-800">{linksError}</p> : null}
+
+          {links === null ? (
+            <p className="mt-6 text-center text-sm text-zinc-500">読み込み中…</p>
+          ) : links.length === 0 ? (
+            <p className="mt-6 rounded-xl border border-zinc-200 bg-white px-4 py-8 text-center text-sm text-zinc-600">
+              現在、マッチングしていません
+            </p>
+          ) : (
+            <div className="mt-4 grid grid-cols-3 gap-2 sm:gap-3">
+              {links.map((row) => {
+                const meta = peerMeta[row.peerUid];
+                return (
+                  <MatchGridAvatar
+                    key={row.peerUid}
+                    peerUid={row.peerUid}
+                    encounterCount={row.encounterCount}
+                    displayName={meta?.displayName ?? "…"}
+                    avatarPath={meta?.avatarPath}
+                    myAnswers={myAnswers}
+                    onSelect={() => setSelectedPeer(row)}
+                  />
+                );
+              })}
+            </div>
+          )}
+        </div>
       </div>
-    </section>
+
+      <MatchHistoryHelpModal open={helpOpen} onClose={() => setHelpOpen(false)} />
+
+      {selectedPeer ? (
+        <MatchedPeerDetailSheet
+          open={!!selectedPeer}
+          onClose={() => setSelectedPeer(null)}
+          user={user}
+          peerUid={selectedPeer.peerUid}
+          encounterCount={selectedPeer.encounterCount}
+          myAnswers={myAnswers}
+        />
+      ) : null}
     </div>
   );
 }

@@ -48,11 +48,13 @@
 | 領域 | 指示・仕様 | 実装状況 | 主なコード |
 |------|------------|----------|------------|
 | ホーム | QR 表示・スキャン・コード入力、お知らせ、シーズン帯 | 実装済 | `dashboard-home-screen.tsx` 等 |
-| 履歴 | マッチ一覧・通報・ブロック（コード入力はホーム） | 実装済 | `dashboard-connections-section.tsx` |
+| 履歴 | マッチ一覧・**通報**（ブロックなし。コード入力はホーム） | 実装済 | `dashboard-connections-section.tsx` |
 | チャット | 24h/72h、再マッチ、過去閲覧、運営は期限なし | 実装済 | `dashboard-chat-section.tsx`、`LOBBY_FINAL_SPEC` §4 |
 | イベント | カレンダー・A/B 枠・任意参加 | 実装済 | `dashboard-events-section.tsx`、`use-event-calendar-slots.ts` |
 | マイページ | No.xxx 表示（UID は出さない方針） | 実装済 | `dashboard-mypage-tab.tsx` |
-| 安全 | 通報・ブロック・Functions 停止・コホート反転 | 実装済 | `firestore-safety.ts`、`functions/` |
+| 安全 | **通報のみ**（ブロックなし）・Functions 停止・コホート反転 | 実装済 | `reportPeer`、`functions/` |
+
+**通報の趣旨（メモ）:** 他アプリのブロック（合わない人を切る）とは別。**迷惑行為・嫌がらせ・不適切な利用**など運営対応が必要なとき用。単に相性が合わないだけの用途ではない。
 | 運営仮 UI | `/staff/events` | **廃止予定** → 管理サイトへ | `app/staff/events` |
 
 ---
@@ -92,3 +94,4 @@
 | 2026-05-19 | 指示書運用開始。管理サイト分離・仕様書更新ポリシーを `SPEC_MAINTENANCE_POLICY.md` に定義 |
 | 2026-05-19 | 新規登録: 本名・性別・生年月日・都道府県・表示名。チケット `intendedGender` 照合。本名・性別・生年月日は変更不可 |
 | 2026-05-19 | 本人確認: 顔写真付き書類、3年保管設計メモ `IDENTITY_DOCUMENT_RETENTION.md` |
+| 2026-05-20 | ユーザー向けは通報のみ（自動ブロック廃止。「通報・ブロック」表記をやめる） |

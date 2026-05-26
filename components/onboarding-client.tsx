@@ -8,7 +8,11 @@ import { ensureUserProfile, subscribeUserProfile } from "@/lib/firestore-users";
 import { redeemSeasonTicket } from "@/lib/firestore-tickets";
 import { submitIdentityDocument } from "@/lib/identity-upload";
 import { normalizeSeasonTicketCode } from "@/lib/ticket-code";
-import { isLobbyAccessGranted, isOnboardingBypassActiveForUser } from "@/lib/onboarding-status";
+import {
+  getPostLobbyEntryPath,
+  isLobbyAccessGranted,
+  isOnboardingBypassActiveForUser,
+} from "@/lib/onboarding-status";
 import { useLobbyStaff } from "@/lib/use-lobby-staff";
 import type { UserProfileFields } from "@/lib/lobby-firestore-types";
 import { GENDER_LABELS, formatBirthDateJa, hasRequiredRegistrationFields } from "@/lib/lobby-profile";
@@ -89,14 +93,14 @@ export function OnboardingClient({ user }: { user: User }) {
   useEffect(() => {
     if (!staffGateReady) return;
     if (isOnboardingBypassActiveForUser(user.uid, bypassCtx)) {
-      router.replace("/dashboard");
+      router.replace(getPostLobbyEntryPath(profile, user.uid, bypassCtx));
     }
-  }, [router, user.uid, staffGateReady, isStaff]);
+  }, [router, user.uid, staffGateReady, isStaff, profile]);
 
   useEffect(() => {
     if (!staffGateReady || loading || !profile) return;
     if (isLobbyAccessGranted(profile, user.uid, bypassCtx)) {
-      router.replace("/dashboard");
+      router.replace(getPostLobbyEntryPath(profile, user.uid, bypassCtx));
     }
   }, [loading, profile, router, user.uid, staffGateReady, isStaff]);
 
@@ -203,7 +207,15 @@ export function OnboardingClient({ user }: { user: User }) {
       <section className="rounded-xl border border-zinc-200 bg-zinc-50/80 p-5">
         <h2 className="text-sm font-semibold text-zinc-900">1. 本人確認（顔写真付き書類）</h2>
         <p className="mt-2 text-xs leading-relaxed text-zinc-600">
-          顔写真付きの本人確認書類（運転免許証・マイナンバーカード・パスポート等）の写真をアップロードしてください。登録した本名と書類の記載が一致しているか、運営が目視で確認します。
+          次のいずれか、<strong>顔写真が写っている本人確認書類</strong>の写真を1枚アップロードしてください。
+        </p>
+        <ul className="mt-2 list-inside list-disc text-xs text-zinc-600">
+          <li>運転免許証</li>
+          <li>マイナンバーカード（顔写真がある面）</li>
+          <li>パスポート（顔写真ページ）</li>
+        </ul>
+        <p className="mt-2 text-xs leading-relaxed text-zinc-600">
+          登録した本名と書類の記載が一致しているか、運営が目視で確認します。
         </p>
         <p className="mt-2 text-xs leading-relaxed text-zinc-500">
           提出画像と受領日時は法令に基づき3年間保管します（詳細は利用規約・プライバシーポリシーに準じます）。

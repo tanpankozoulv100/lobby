@@ -13,7 +13,12 @@ import {
   type PublishedEventRow,
 } from "@/lib/firestore-events";
 import { ensureUserProfile, subscribeUserProfile } from "@/lib/firestore-users";
-import { isAccountSuspended, isLobbyAccessGranted, isOnboardingBypassActiveForUser } from "@/lib/onboarding-status";
+import {
+  isAccountSuspended,
+  isCompatibilityTutorialComplete,
+  isLobbyAccessGranted,
+  isOnboardingBypassActiveForUser,
+} from "@/lib/onboarding-status";
 import { useLobbyStaff } from "@/lib/use-lobby-staff";
 import type { UserProfileFields } from "@/lib/lobby-firestore-types";
 import { DashboardMypageTab } from "@/components/dashboard-mypage-tab";
@@ -219,6 +224,14 @@ export function DashboardClient() {
     if (profile && isAccountSuspended(profile)) return;
     if (profile && !isLobbyAccessGranted(profile, user.uid, bypassCtx)) {
       router.replace("/onboarding");
+      return;
+    }
+    if (
+      profile &&
+      isLobbyAccessGranted(profile, user.uid, bypassCtx) &&
+      !isCompatibilityTutorialComplete(profile, user.uid, bypassCtx)
+    ) {
+      router.replace("/tutorial");
     }
   }, [loading, user, profile, profileGateReady, staffGateReady, router, isStaff]);
 
@@ -275,6 +288,32 @@ export function DashboardClient() {
       <div className="relative min-h-dvh flex-1 bg-[var(--lobby-screen-bg)]">
         <div className="flex min-h-dvh items-center justify-center px-6 py-24">
           <p className="text-sm text-zinc-500">利用開始の確認へ移動しています…</p>
+        </div>
+        {showEventsDebug ? (
+          <DashboardEventsDebugPanel
+            eventsSubDebug={eventsSubDebug}
+            className="bottom-2"
+            configOk={isFirebaseConfigComplete()}
+            profileGateReady={profileGateReady}
+            hasDb={!!getFirebaseDb()}
+          />
+        ) : null}
+      </div>
+    );
+  }
+
+  if (
+    isFirebaseConfigComplete() &&
+    profileGateReady &&
+    staffGateReady &&
+    profile &&
+    isLobbyAccessGranted(profile, user.uid, bypassCtx) &&
+    !isCompatibilityTutorialComplete(profile, user.uid, bypassCtx)
+  ) {
+    return (
+      <div className="relative min-h-dvh flex-1 bg-[var(--lobby-screen-bg)]">
+        <div className="flex min-h-dvh items-center justify-center px-6 py-24">
+          <p className="text-sm text-zinc-500">相性質問へ移動しています…</p>
         </div>
         {showEventsDebug ? (
           <DashboardEventsDebugPanel

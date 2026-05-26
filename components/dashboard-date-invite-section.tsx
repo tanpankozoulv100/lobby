@@ -15,8 +15,6 @@ import {
   subscribeActiveDateInviteTickets,
   type ActiveDateInviteTicket,
 } from "@/lib/firestore-chat-date";
-import { subscribeBlockedPeerUids } from "@/lib/firestore-safety";
-
 async function fetchDisplayName(uid: string): Promise<string> {
   const db = getFirebaseDb();
   if (!db) return uid.slice(0, 8);
@@ -39,7 +37,6 @@ function DashboardDateInviteLoaded({ user }: { user: User }) {
   const [ticketRows, setTicketRows] = useState<ActiveDateInviteTicket[]>([]);
   const [matchPeerUids, setMatchPeerUids] = useState<string[]>([]);
   const [peerNames, setPeerNames] = useState<Record<string, string>>({});
-  const [blockedUids, setBlockedUids] = useState<string[]>([]);
   const [inviteToUid, setInviteToUid] = useState("");
   const [inviteLocation, setInviteLocation] = useState("");
   const [inviteProposedAt, setInviteProposedAt] = useState("");
@@ -48,11 +45,7 @@ function DashboardDateInviteLoaded({ user }: { user: User }) {
   const [inviteNotice, setInviteNotice] = useState<string | null>(null);
   const [expanded, setExpanded] = useState(false);
 
-  const blockedSet = useMemo(() => new Set(blockedUids), [blockedUids]);
-  const inviteTargets = useMemo(
-    () => matchPeerUids.filter((uid) => !blockedSet.has(uid)),
-    [matchPeerUids, blockedSet]
-  );
+  const inviteTargets = useMemo(() => matchPeerUids, [matchPeerUids]);
   const effectiveInviteToUid = useMemo(() => {
     if (inviteToUid && inviteTargets.includes(inviteToUid)) return inviteToUid;
     return inviteTargets[0] ?? "";
@@ -79,12 +72,10 @@ function DashboardDateInviteLoaded({ user }: { user: User }) {
       inbound = rows;
       syncMatches();
     });
-    const unsubBlocked = subscribeBlockedPeerUids(user.uid, setBlockedUids);
     return () => {
       unsubTickets?.();
       unsubOut?.();
       unsubIn?.();
-      unsubBlocked?.();
     };
   }, [user.uid]);
 

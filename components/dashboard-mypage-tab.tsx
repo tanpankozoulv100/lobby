@@ -22,6 +22,9 @@ import { LOBBY_SEASON_UI } from "@/lib/season-config";
 import type { UserProfileFields } from "@/lib/lobby-firestore-types";
 import type { DashboardTab } from "@/components/dashboard-bottom-nav";
 import { LobbyBottomSheet } from "@/components/lobby-bottom-sheet";
+import { ProfileEditSheet } from "@/components/profile-edit-sheet";
+import { useProfileMediaUrl } from "@/lib/use-profile-media-url";
+import { countAnsweredQuestions } from "@/lib/compatibility-questions";
 
 function ChevronRight() {
   return (
@@ -64,7 +67,7 @@ function MenuRow({
   );
 }
 
-function ProfileEditSheet({
+function AccountSettingsSheet({
   user,
   open,
   onClose,
@@ -230,8 +233,13 @@ export function DashboardMypageTab({
   const [profile, setProfile] = useState<UserProfileFields | null>(null);
   const [matchCount, setMatchCount] = useState(0);
   const [recentMatchHint, setRecentMatchHint] = useState<string | null>(null);
+  const [profileEditOpen, setProfileEditOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [helpOpen, setHelpOpen] = useState(false);
+
+  const avatarUrl = useProfileMediaUrl(profile?.avatarPath);
+  const coverUrl = useProfileMediaUrl(profile?.coverPath);
+  const compatAnswered = countAnsweredQuestions(profile?.compatibilityAnswers);
 
   useEffect(() => {
     if (!isFirebaseConfigComplete()) return;
@@ -294,17 +302,27 @@ export function DashboardMypageTab({
 
       <div className="relative px-4 pb-2">
         <div
-          className="h-28 overflow-hidden rounded-t-2xl bg-gradient-to-br from-[var(--lobby-red)]/30 via-zinc-300/40 to-[var(--lobby-cream)]"
+          className="h-28 overflow-hidden rounded-t-2xl bg-gradient-to-br from-[var(--lobby-red)]/30 via-zinc-300/40 to-[var(--lobby-cream)] bg-cover bg-center"
+          style={coverUrl ? { backgroundImage: `url(${coverUrl})` } : undefined}
           aria-hidden
         />
         <div className="-mt-12 flex flex-col items-center">
           <div className="relative">
-            <div className="flex h-24 w-24 items-center justify-center rounded-full border-4 border-[var(--lobby-cream)] bg-[var(--lobby-surface-raised)] text-2xl font-semibold text-[var(--lobby-red)] shadow-md">
-              {displayName.slice(0, 1)}
-            </div>
+            {avatarUrl ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={avatarUrl}
+                alt=""
+                className="h-24 w-24 rounded-full border-4 border-[var(--lobby-cream)] object-cover shadow-md"
+              />
+            ) : (
+              <div className="flex h-24 w-24 items-center justify-center rounded-full border-4 border-[var(--lobby-cream)] bg-[var(--lobby-surface-raised)] text-2xl font-semibold text-[var(--lobby-red)] shadow-md">
+                {displayName.slice(0, 1)}
+              </div>
+            )}
             <button
               type="button"
-              onClick={() => setSettingsOpen(true)}
+              onClick={() => setProfileEditOpen(true)}
               className="absolute -bottom-1 -right-1 flex h-9 w-9 items-center justify-center rounded-full border-2 border-[var(--lobby-cream)] bg-[var(--lobby-red)] text-white shadow"
               aria-label="プロフィールを編集"
             >
@@ -321,11 +339,20 @@ export function DashboardMypageTab({
           </div>
           <p className="mt-3 text-lg font-bold text-zinc-900">{displayName}</p>
           <p className="mt-0.5 font-mono text-sm text-zinc-500">No.{noLabel}</p>
+          {compatAnswered < 12 ? (
+            <button
+              type="button"
+              onClick={() => setProfileEditOpen(true)}
+              className="mt-2 text-xs text-[var(--lobby-red)] underline-offset-2 hover:underline"
+            >
+              相性質問 {compatAnswered}/12 — 続きを答える
+            </button>
+          ) : null}
         </div>
       </div>
 
       {inSeason ? (
-        <p className="mx-4 mt-2 rounded-full bg-[var(--lobby-surface-raised)] py-2.5 text-center text-sm font-medium text-[var(--lobby-red)]">
+        <p className="mx-4 mt-2 rounded-full border border-[var(--lobby-red)]/30 bg-[var(--lobby-surface-raised)] py-2.5 text-center text-sm font-medium text-[var(--lobby-red)]">
           シーズン参加中
         </p>
       ) : null}
@@ -356,7 +383,7 @@ export function DashboardMypageTab({
             </svg>
           }
           title="各種設定"
-          subtitle="表示名・自己紹介・アカウント"
+          subtitle="表示名・居住地・アカウント"
           onClick={() => setSettingsOpen(true)}
         />
         <MenuRow
@@ -381,7 +408,13 @@ export function DashboardMypageTab({
         </button>
       </div>
 
-      <ProfileEditSheet user={user} open={settingsOpen} onClose={() => setSettingsOpen(false)} />
+      <ProfileEditSheet
+        user={user}
+        open={profileEditOpen}
+        onClose={() => setProfileEditOpen(false)}
+        previewDisplayName={displayName}
+      />
+      <AccountSettingsSheet user={user} open={settingsOpen} onClose={() => setSettingsOpen(false)} />
 
       <LobbyBottomSheet open={helpOpen} title="お問い合わせ・ヘルプ" onClose={() => setHelpOpen(false)}>
         <div className="space-y-3 pt-2">
@@ -389,7 +422,7 @@ export function DashboardMypageTab({
             {LOBBY_SEASON_UI.cardTitle} に関するお問い合わせは、運営窓口までご連絡ください。
           </p>
           <p className="mt-3 text-xs text-zinc-500">
-            マッチングやチャットの不具合は、履歴タブから通報・ブロックもご利用いただけます。
+            マッチングやチャットの不具合は、履歴タブから通報をご利用いただけます。
           </p>
         </div>
       </LobbyBottomSheet>

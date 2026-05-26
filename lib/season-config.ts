@@ -7,8 +7,10 @@ export const LOBBY_COHORT_SEASON_KEY = "nagoya-s1-2026";
 
 export const LOBBY_SEASON_UI = {
   headerTitle: "シーズン名が入ります",
-  cardTitle: "Nagoya Season 1",
+  cardTitle: "2026年名古屋シーズン",
   dateRangeLabel: "2026.04.17-05.18",
+  /** 履歴画面の参加人数表示（運営確定値に差し替え可） */
+  participatingCountLabel: "このシーズンには60人が参加しています",
   /** アラート行の本文プレースホルダー */
   alertBody: "ここにテキストが入ります",
 } as const;
