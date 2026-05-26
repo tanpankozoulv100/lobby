@@ -9,7 +9,7 @@ import {
   updateUserProfile,
   updateUserProfilePresentation,
 } from "@/lib/firestore-users";
-import { GENDER_LABELS, JAPAN_PREFECTURES, computeAgeFromBirthDate, formatBirthDateJa } from "@/lib/lobby-profile";
+import { GENDER_LABELS, JAPAN_PREFECTURES, formatBirthDateJa } from "@/lib/lobby-profile";
 import type { LobbyGender } from "@/lib/lobby-firestore-types";
 import {
   COMPATIBILITY_QUESTIONS,
@@ -17,7 +17,6 @@ import {
   type CompatibilityAnswers,
   type CompatibilityQuestionId,
 } from "@/lib/compatibility-questions";
-import { formatBirthDateJa } from "@/lib/lobby-profile";
 import { uploadProfileMedia } from "@/lib/profile-media-upload";
 import { useProfileMediaUrl } from "@/lib/use-profile-media-url";
 
