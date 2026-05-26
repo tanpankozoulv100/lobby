@@ -15,32 +15,28 @@ type Props = {
   tall?: boolean;
 };
 
+/** iOS Safari では body を position:fixed にすると <select> 後に画面がずれるため overflow のみ */
 function useBodyScrollLock(active: boolean) {
   useEffect(() => {
     if (!active) return;
 
-    const scrollY = window.scrollY;
     const { documentElement: html, body } = document;
 
     const prevHtmlOverflow = html.style.overflow;
     const prevBodyOverflow = body.style.overflow;
-    const prevBodyPosition = body.style.position;
-    const prevBodyTop = body.style.top;
-    const prevBodyWidth = body.style.width;
+    const prevHtmlOverscroll = html.style.overscrollBehavior;
+    const prevBodyOverscroll = body.style.overscrollBehavior;
 
     html.style.overflow = "hidden";
     body.style.overflow = "hidden";
-    body.style.position = "fixed";
-    body.style.top = `-${scrollY}px`;
-    body.style.width = "100%";
+    html.style.overscrollBehavior = "none";
+    body.style.overscrollBehavior = "none";
 
     return () => {
       html.style.overflow = prevHtmlOverflow;
       body.style.overflow = prevBodyOverflow;
-      body.style.position = prevBodyPosition;
-      body.style.top = prevBodyTop;
-      body.style.width = prevBodyWidth;
-      window.scrollTo(0, scrollY);
+      html.style.overscrollBehavior = prevHtmlOverscroll;
+      body.style.overscrollBehavior = prevBodyOverscroll;
     };
   }, [active]);
 }

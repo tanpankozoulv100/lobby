@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import type { User } from "firebase/auth";
 import { LobbyBottomSheet } from "@/components/lobby-bottom-sheet";
+import { LobbyOptionPicker } from "@/components/lobby-option-picker";
 import {
   ensureUserProfile,
   subscribeUserProfile,
@@ -237,27 +238,18 @@ export function ProfileEditSheet({
                       maxLength={50}
                       value={displayName}
                       onChange={(e) => setDisplayName(e.target.value)}
-                      className="w-full rounded-xl border border-zinc-200 bg-[var(--lobby-surface-raised)] px-3 py-2.5 text-sm"
+                      className="w-full rounded-xl border border-zinc-200 bg-[var(--lobby-surface-raised)] px-3 py-2.5 text-base"
                     />
                   </div>
-                  <div>
-                    <label htmlFor="profile-prefecture" className="mb-1 block text-xs font-medium text-zinc-600">
-                      居住地（都道府県）
-                    </label>
-                    <select
-                      id="profile-prefecture"
-                      className="w-full rounded-xl border border-zinc-200 bg-[var(--lobby-surface-raised)] px-3 py-2.5 text-sm"
-                      value={prefecture}
-                      onChange={(e) => setPrefecture(e.target.value)}
-                    >
-                      <option value="">選択してください</option>
-                      {JAPAN_PREFECTURES.map((p) => (
-                        <option key={p} value={p}>
-                          {p}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
+                  <LobbyOptionPicker
+                    id="profile-prefecture"
+                    label="居住地（都道府県）"
+                    value={prefecture}
+                    placeholder="選択してください"
+                    listMaxHeightClassName="max-h-56"
+                    options={JAPAN_PREFECTURES.map((p) => ({ value: p, label: p }))}
+                    onChange={setPrefecture}
+                  />
                   <div className="text-xs text-zinc-600">
                     <p>本名: {legalName || "—"}（変更不可）</p>
                     <p className="mt-1">
@@ -291,7 +283,7 @@ export function ProfileEditSheet({
                     placeholder="メッセージを入力してください"
                     value={bio}
                     onChange={(e) => setBio(e.target.value)}
-                    className="w-full rounded-xl border border-zinc-200 bg-[var(--lobby-surface-raised)] px-3 py-2.5 text-sm"
+                    className="w-full rounded-xl border border-zinc-200 bg-[var(--lobby-surface-raised)] px-3 py-2.5 text-base"
                   />
                 </div>
 
@@ -303,22 +295,13 @@ export function ProfileEditSheet({
                   <ul className="mt-3 space-y-4">
                     {COMPATIBILITY_QUESTIONS.map((q, idx) => (
                       <li key={q.id}>
-                        <label htmlFor={`compat-${q.id}`} className="mb-1 block text-xs font-medium text-zinc-700">
-                          Q{idx + 1}. {q.label}
-                        </label>
-                        <select
+                        <LobbyOptionPicker
                           id={`compat-${q.id}`}
+                          label={`Q${idx + 1}. ${q.label}`}
                           value={answers[q.id] ?? ""}
-                          onChange={(e) => setAnswer(q.id, e.target.value)}
-                          className="w-full rounded-xl border border-zinc-200 bg-[var(--lobby-surface-raised)] px-3 py-2.5 text-sm"
-                        >
-                          <option value="">未選択</option>
-                          {q.options.map((opt) => (
-                            <option key={opt.id} value={opt.id}>
-                              {opt.label}
-                            </option>
-                          ))}
-                        </select>
+                          options={q.options.map((opt) => ({ value: opt.id, label: opt.label }))}
+                          onChange={(optionId) => setAnswer(q.id, optionId)}
+                        />
                       </li>
                     ))}
                   </ul>

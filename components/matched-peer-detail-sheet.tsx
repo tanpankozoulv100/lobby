@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import type { User } from "firebase/auth";
 import { AnimatedSyncRateRing } from "@/components/animated-sync-rate-ring";
 import { LobbyBottomSheet } from "@/components/lobby-bottom-sheet";
+import { LobbyOptionPicker } from "@/components/lobby-option-picker";
 import { MatchPrivateMemoSheet } from "@/components/match-private-memo-sheet";
 import { MatchCompatibilityInline } from "@/components/match-compatibility-inline";
 import { computeCompatibilityMatch } from "@/lib/compatibility-match";
@@ -184,17 +185,15 @@ export function MatchedPeerDetailSheet({
               <p className="text-xs text-zinc-600">
                 迷惑行為・嫌がらせなど、運営の対応が必要な場合にご利用ください。
               </p>
-              <select
+              <LobbyOptionPicker
+                label="通報理由"
                 value={reasonCode}
-                onChange={(e) => setReasonCode(e.target.value as UserReportReasonCode)}
-                className="w-full rounded-lg border border-zinc-200 px-2 py-2 text-sm"
-              >
-                {USER_REPORT_REASON_CODES.map((code) => (
-                  <option key={code} value={code}>
-                    {USER_REPORT_REASON_LABEL[code]}
-                  </option>
-                ))}
-              </select>
+                options={USER_REPORT_REASON_CODES.map((code) => ({
+                  value: code,
+                  label: USER_REPORT_REASON_LABEL[code],
+                }))}
+                onChange={(v) => setReasonCode(v as UserReportReasonCode)}
+              />
               <textarea
                 value={note}
                 onChange={(e) => setNote(e.target.value)}

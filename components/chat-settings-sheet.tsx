@@ -5,6 +5,7 @@ import { reportPeer, USER_REPORT_REASON_CODES, USER_REPORT_REASON_LABEL } from "
 import type { UserReportReasonCode } from "@/lib/lobby-firestore-types";
 import { subscribeChatPref, setDmNotifyEnabled } from "@/lib/firestore-chat-prefs";
 import { LobbyBottomSheet } from "@/components/lobby-bottom-sheet";
+import { LobbyOptionPicker } from "@/components/lobby-option-picker";
 
 function SettingsRow({
   icon,
@@ -197,18 +198,15 @@ export function ChatSettingsSheet({
           <p className="text-xs text-zinc-600">
             迷惑行為・嫌がらせなど、運営の対応が必要な場合にご利用ください。相手の自動ブロックは行いません。
           </p>
-          <label className="mb-1 block text-xs font-medium text-zinc-600">理由</label>
-          <select
+          <LobbyOptionPicker
+            label="理由"
             value={reasonCode}
-            onChange={(e) => setReasonCode(e.target.value as UserReportReasonCode)}
-            className="w-full rounded-xl border border-zinc-200 bg-[var(--lobby-surface-raised)] px-3 py-2.5 text-sm"
-          >
-            {USER_REPORT_REASON_CODES.map((code) => (
-              <option key={code} value={code}>
-                {USER_REPORT_REASON_LABEL[code]}
-              </option>
-            ))}
-          </select>
+            options={USER_REPORT_REASON_CODES.map((code) => ({
+              value: code,
+              label: USER_REPORT_REASON_LABEL[code],
+            }))}
+            onChange={(v) => setReasonCode(v as UserReportReasonCode)}
+          />
           <textarea
             rows={3}
             maxLength={500}
