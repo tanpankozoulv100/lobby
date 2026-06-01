@@ -1,6 +1,6 @@
 # Lobby ユーザーアプリ — 指示書
 
-最終更新: 2026-05-19
+最終更新: 2026-05-27
 
 **技術正本:** `LOBBY_FINAL_SPEC.md`、`firestore.rules`、`lib/lobby-firestore-types.ts`  
 **更新ポリシー:** [`SPEC_MAINTENANCE_POLICY.md`](./SPEC_MAINTENANCE_POLICY.md)
@@ -26,10 +26,10 @@
 |------|--------|----------|
 | メール・パスワード | Auth | 別途 |
 | 本名 | `legalName` | **不可** |
-| ユーザー名 | `displayName` | 可（マイページ） |
+| ユーザー名 | `displayName` | 可（マイページ → **プロフィール編集**） |
 | 性別 | `gender` | **不可** |
 | 生年月日 | `birthDate` | **不可** |
-| 居住地 | `prefecture` | 可（マイページ） |
+| 居住地 | `prefecture` | 可（マイページ → **プロフィール編集**） |
 
 ### オンボーディング
 
@@ -47,11 +47,11 @@
 
 | 領域 | 指示・仕様 | 実装状況 | 主なコード |
 |------|------------|----------|------------|
-| ホーム | QR 表示・スキャン・コード入力、お知らせ、シーズン帯 | 実装済 | `dashboard-home-screen.tsx` 等 |
-| 履歴 | マッチ一覧・**通報**（ブロックなし。コード入力はホーム） | 実装済 | `dashboard-connections-section.tsx` |
-| チャット | 24h/72h、再マッチ、過去閲覧、運営は期限なし | 実装済 | `dashboard-chat-section.tsx`、`LOBBY_FINAL_SPEC` §4 |
-| イベント | カレンダー・A/B 枠・任意参加 | 実装済 | `dashboard-events-section.tsx`、`use-event-calendar-slots.ts` |
-| マイページ | No.xxx 表示（UID は出さない方針） | 実装済 | `dashboard-mypage-tab.tsx` |
+| ホーム | QR 表示・スキャン・**コード入力**（1欄・IME対策）、お知らせ、シーズン帯 | 実装済 | `dashboard-home-screen.tsx`、`lobby-connection-code-input.tsx` |
+| 履歴 | 3列グリッド・回数バッジ・相手詳細・自由メモ・**通報**（ブロックなし） | 実装済 | `dashboard-connections-section.tsx` |
+| チャット | 24h/72h、**再マッチは前回から24h/72h経過後**、過去閲覧、DM通知 per peer、運営は期限なし | 実装済 | `dashboard-chat-section.tsx`、`lib/match-chat-window.ts` |
+| イベント | カレンダー・朝昼夕タブ・色丸（参加登録なし・一覧のみ） | 実装済 | `dashboard-events-section.tsx`、`event-period-slot-list.tsx` |
+| マイページ | No.xxx、**鉛筆→プロフィール編集**、**各種設定→規約リンク一覧** | 実装済 | `dashboard-mypage-tab.tsx`、`profile-edit-sheet.tsx`、`settings-links-sheet.tsx` |
 | 安全 | **通報のみ**（ブロックなし）・Functions 停止・コホート反転 | 実装済 | `reportPeer`、`functions/` |
 
 **通報の趣旨（メモ）:** 他アプリのブロック（合わない人を切る）とは別。**迷惑行為・嫌がらせ・不適切な利用**など運営対応が必要なとき用。単に相性が合わないだけの用途ではない。
@@ -72,7 +72,12 @@
 
 ## 5. マッチングデータ（アプリ）
 
-- 連携: `outboundLinks` / `linkedFrom`（`lastMatchedAt` で再マッチ）。
+- 連携: `outboundLinks` / `linkedFrom`（`encounterCount`・`lastMatchedAt`）。
+- **初回マッチ:** ホームで相手 QR スキャン or 6文字コード入力 → 自分の `outboundLinks` + 相手の `linkedFrom` を作成。
+- **再マッチ:** 相手のコードを**再度**スキャン／入力（自分の QR 表示だけでは不可）。`lastMatchedAt` 更新でチャット送信窓を再開。
+- **再マッチ制限:** 前回マッチから **24時間**（シーズン最終日マッチ起点は **72時間**）未満は不可（チャット窓と同じ）。`lib/match-chat-window.ts`。
+- マッチングコード入力: 英数字6文字・単一 input（日本語変換の重複を避ける）。貼り付け `LOBBY:XXXXXX` 可。
+- 各種設定の規約 URL: `.env` の `NEXT_PUBLIC_LOBBY_*_URL`（未設定時は laughgaki-store の既定 URL）。
 - チャット: `chatThreads/{low_high}/messages`。
 - **日別・組数の運営集計 UI はアプリにはない**（管理サイトバックログ）。
 
@@ -95,3 +100,5 @@
 | 2026-05-19 | 新規登録: 本名・性別・生年月日・都道府県・表示名。チケット `intendedGender` 照合。本名・性別・生年月日は変更不可 |
 | 2026-05-19 | 本人確認: 顔写真付き書類、3年保管設計メモ `IDENTITY_DOCUMENT_RETENTION.md` |
 | 2026-05-20 | ユーザー向けは通報のみ（自動ブロック廃止。「通報・ブロック」表記をやめる） |
+| 2026-05-27 | マイページ B案: 各種設定＝規約リンク一覧、表示名・居住地はプロフィール編集。相性質問はチュートリアル同様のボタン選択（iOS） |
+| 2026-05-27 | 再マッチ: 双方向リンク判定、24h/72h クールダウン、コード入力1欄化。ボトムシートのスマホスクロール・規約 URL 本番フォールバック |

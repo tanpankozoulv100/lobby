@@ -45,7 +45,7 @@ export function LobbyQrModal({
           {formatConnectionCodeDisplay(connectionCode)}
         </p>
         <p className="mt-3 text-center text-xs leading-relaxed text-zinc-500">
-          再マッチするときは、相手にこの QR を読み取ってもらってください。
+          再マッチは24時間（最終日は72時間）経過後、相手にこの QR を読み取ってもらうと可能です。
         </p>
         <p className="mt-6 text-center text-lg font-bold text-[var(--lobby-red)]">{displayName}</p>
       </div>

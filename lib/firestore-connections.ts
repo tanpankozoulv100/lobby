@@ -15,6 +15,10 @@ import {
 import { normalizeEncounterCount } from "@/lib/match-encounter";
 import { getFirebaseDb } from "@/lib/firebase";
 import { ensureChatThread } from "@/lib/firestore-chat";
+import {
+  getRematchCooldownMessage,
+  latestMatchInstantFromLinkFields,
+} from "@/lib/match-chat-window";
 import { mergeLinkTimestamps, type MatchLinkTimestamps } from "@/lib/match-link-times";
 
 const CONNECTION_CODES = "connectionCodes";
@@ -294,6 +298,18 @@ export async function registerLinkByPeerCode(
   };
 
   if (alreadyLinked) {
+    const lastMatchAt = latestMatchInstantFromLinkFields(
+      outboundSnap.exists() ? (outboundSnap.data() as MatchLinkTimestamps) : undefined,
+      inboundOnMeSnap.exists() ? (inboundOnMeSnap.data() as MatchLinkTimestamps) : undefined,
+      inboundOnPeerSnap.exists() ? (inboundOnPeerSnap.data() as MatchLinkTimestamps) : undefined
+    );
+    if (lastMatchAt) {
+      const cooldownMessage = getRematchCooldownMessage(lastMatchAt);
+      if (cooldownMessage) {
+        return { ok: false, message: cooldownMessage };
+      }
+    }
+
     try {
       await commitRematchBatch();
       return { ok: true, rematched: true };

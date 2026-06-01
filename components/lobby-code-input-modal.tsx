@@ -1,7 +1,6 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { formatConnectionCodeDisplay } from "@/lib/connection-code-display";
 import { CONNECTION_CODE_LENGTH } from "@/lib/connection-code-input";
 import { LobbyConnectionCodeInput } from "@/components/lobby-connection-code-input";
 import { registerLinkByPeerCode } from "@/lib/firestore-connections";
@@ -79,7 +78,7 @@ export function LobbyCodeInputModal({
         <p className="mt-2 text-center text-sm leading-relaxed text-zinc-600">
           相手のマッチングコード（6文字）を入力するか、QRをスキャンしてください。
           <span className="mt-1 block text-xs text-zinc-500">
-            再マッチも、相手のコードをもう一度スキャン／入力してください。
+            再マッチは、前回マッチから24時間（最終日は72時間）経過後に可能です。
           </span>
         </p>
         {message ? (
@@ -96,11 +95,6 @@ export function LobbyCodeInputModal({
             onComplete={(filled) => void submit(filled)}
           />
         </div>
-        {code.length === CONNECTION_CODE_LENGTH ? (
-          <p className="mt-2 text-center font-mono text-sm text-zinc-600">
-            {formatConnectionCodeDisplay(code)}
-          </p>
-        ) : null}
         {onBackToCamera ? (
           <button
             type="button"
