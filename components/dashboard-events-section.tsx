@@ -15,11 +15,9 @@ import type { SeasonDisplay } from "@/lib/season-display";
 
 function EventsConfigMissing() {
   return (
-    <section className="rounded-xl border border-zinc-200 bg-zinc-50/80 p-5 dark:border-zinc-700 dark:bg-zinc-800/40">
-      <h2 className="text-lg font-semibold text-zinc-900 dark:text-zinc-50">イベント</h2>
-      <p className="mt-3 text-sm text-zinc-600 dark:text-zinc-400">
-        接続できませんでした。しばらく経ってからお試しください。
-      </p>
+    <section className="rounded-xl border border-zinc-200 bg-zinc-50/80 p-5">
+      <h2 className="text-lg font-semibold text-zinc-900">イベント</h2>
+      <p className="mt-3 text-sm text-zinc-600">接続できませんでした。しばらく経ってからお試しください。</p>
     </section>
   );
 }
@@ -27,8 +25,8 @@ function EventsConfigMissing() {
 function SeasonCountdownBanner({ season }: { season: SeasonDisplay }) {
   const days = getSeasonRemainingDaysForDisplay(season);
   return (
-    <div className="flex items-center gap-3 rounded-xl border border-zinc-200/80 bg-zinc-100/80 px-3 py-2.5 dark:border-zinc-600 dark:bg-zinc-800/60">
-      <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[var(--lobby-cream)] text-zinc-500 shadow-sm dark:bg-zinc-900 dark:text-zinc-400">
+    <div className="flex items-center gap-3 rounded-xl border border-zinc-200/80 bg-zinc-100/80 px-3 py-2.5">
+      <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[var(--lobby-cream)] text-zinc-500 shadow-sm">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden>
           <path
             d="M12 3a5 5 0 0 0-5 5v2.5L5 14h14l-2-3.5V8a5 5 0 0 0-5-5Z"
@@ -39,7 +37,7 @@ function SeasonCountdownBanner({ season }: { season: SeasonDisplay }) {
           <path d="M9 18a3 3 0 0 0 6 0" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
         </svg>
       </span>
-      <p className="text-xs font-medium text-zinc-600 dark:text-zinc-300">{formatCountdownBanner(days)}</p>
+      <p className="text-xs font-medium text-zinc-600">{formatCountdownBanner(days)}</p>
     </div>
   );
 }
@@ -75,7 +73,7 @@ function DashboardEventsLoaded({ user, publishedEvents: events, cohortFlipActive
   };
 
   return (
-    <section className="rounded-xl border border-zinc-200 bg-zinc-50/80 p-4 dark:border-zinc-700 dark:bg-zinc-800/40 sm:p-5">
+    <section className="rounded-xl border border-zinc-200 bg-zinc-50/80 p-4 sm:p-5">
       <div className="flex flex-col gap-2">
         <h2 className="text-center font-serif text-lg font-semibold text-[var(--lobby-red)]">イベントカレンダー</h2>
         <SeasonCountdownBanner season={season} />
@@ -88,7 +86,7 @@ function DashboardEventsLoaded({ user, publishedEvents: events, cohortFlipActive
         ) : (
           <>
             {events.length === 0 ? (
-              <p className="text-sm text-zinc-600 dark:text-zinc-400">公開中のイベントはまだありません。</p>
+              <p className="text-sm text-zinc-600">公開中のイベントはまだありません。</p>
             ) : null}
 
             <EventsMonthCalendar

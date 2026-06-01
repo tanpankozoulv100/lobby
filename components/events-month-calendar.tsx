@@ -36,12 +36,12 @@ export function EventsMonthCalendar({
   const todayKey = dateKeyFromLocalDate(today);
 
   return (
-    <div className="rounded-2xl border border-zinc-200/80 bg-white p-4 shadow-sm dark:border-zinc-600 dark:bg-zinc-900">
+    <div className="rounded-2xl border border-zinc-200/80 bg-white p-4 shadow-sm">
       <div className="flex items-center justify-between gap-2">
         <button
           type="button"
           onClick={onPrevMonth}
-          className="flex h-9 w-9 items-center justify-center rounded-full text-lg text-zinc-500 hover:bg-zinc-100 dark:text-zinc-400 dark:hover:bg-zinc-800"
+          className="flex h-9 w-9 items-center justify-center rounded-full text-lg text-zinc-500 hover:bg-zinc-100"
           aria-label="前の月"
         >
           ‹
@@ -52,7 +52,7 @@ export function EventsMonthCalendar({
         <button
           type="button"
           onClick={onNextMonth}
-          className="flex h-9 w-9 items-center justify-center rounded-full text-lg text-zinc-500 hover:bg-zinc-100 dark:text-zinc-400 dark:hover:bg-zinc-800"
+          className="flex h-9 w-9 items-center justify-center rounded-full text-lg text-zinc-500 hover:bg-zinc-100"
           aria-label="次の月"
         >
           ›
@@ -82,17 +82,24 @@ export function EventsMonthCalendar({
                   key={`${date.getTime()}-${wi}`}
                   type="button"
                   onClick={() => onSelectDate(new Date(date.getFullYear(), date.getMonth(), date.getDate()))}
-                  className={[
-                    "relative flex min-h-[2.85rem] flex-col items-center justify-center rounded-full py-1 text-sm transition",
-                    inCurrentMonth ? "text-zinc-900 dark:text-zinc-100" : "text-zinc-300 dark:text-zinc-600",
-                    selected
-                      ? "bg-[var(--lobby-red)] font-semibold text-white"
-                      : isToday
-                        ? "ring-1 ring-zinc-300 dark:ring-zinc-600"
-                        : "hover:bg-zinc-50 dark:hover:bg-zinc-800/60",
-                  ].join(" ")}
+                  className="flex min-h-[2.85rem] flex-col items-center justify-center gap-0.5 py-1 transition"
                 >
-                  <span className="tabular-nums">{date.getDate()}</span>
+                  <span
+                    className={[
+                      "flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-sm tabular-nums",
+                      selected
+                        ? "bg-[var(--lobby-red)] font-semibold text-white"
+                        : inCurrentMonth
+                          ? "text-zinc-900"
+                          : "text-zinc-300",
+                      !selected && isToday ? "ring-1 ring-zinc-300" : "",
+                      !selected ? "hover:bg-zinc-50" : "",
+                    ]
+                      .filter(Boolean)
+                      .join(" ")}
+                  >
+                    {date.getDate()}
+                  </span>
                   {hasDots ? (
                     <span className="mt-0.5 flex gap-0.5" aria-hidden>
                       {EVENT_PERIOD_ORDER.map((period) =>

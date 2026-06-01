@@ -1,5 +1,8 @@
 @import "tailwindcss";
 
+/* OS ダークモードでも dark: を効かせない（.lobby-dark を付けたときだけ有効） */
+@custom-variant dark (&:where(.lobby-dark, .lobby-dark *));
+
 :root {
   --background: #fafafa;
   --foreground: #18181b;
@@ -22,15 +25,20 @@
   --font-mono: var(--font-geist-mono);
 }
 
+/* Lobby はクリーム基調のライト UI 固定（OS ダークモードでも同じ見た目） */
 @media (prefers-color-scheme: dark) {
   :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+    --background: #f4f4f5;
+    --foreground: #18181b;
   }
 }
 
+html {
+  color-scheme: light;
+}
+
 body {
-  background: var(--background);
-  color: var(--foreground);
+  background: var(--lobby-screen-bg);
+  color: #18181b;
   font-family: var(--font-noto-sans-jp), ui-sans-serif, system-ui, sans-serif;
 }

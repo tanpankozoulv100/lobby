@@ -16,7 +16,7 @@ import {
   saveEventSignup,
   type UserEventSignupRow,
 } from "@/lib/firestore-event-signups";
-import { formatStartTimeLabel } from "@/lib/event-slot-display";
+import { EventSlotChoiceDisplay } from "@/components/event-slot-choice-display";
 
 type Props = {
   user: User;
@@ -124,15 +124,13 @@ export function EventSlotSection({
 
   if (slotErr) {
     return (
-      <p className="mt-3 text-xs text-zinc-500 dark:text-zinc-400">
-        表示できませんでした。しばらくしてからお試しください。
-      </p>
+      <p className="mt-3 text-xs text-zinc-500">表示できませんでした。しばらくしてからお試しください。</p>
     );
   }
 
   if (!rows?.length) {
     return (
-      <p className="mt-3 text-xs text-zinc-500 dark:text-zinc-400">このイベントの行き先はまだありません。</p>
+      <p className="mt-3 text-xs text-zinc-500">このイベントの行き先はまだありません。</p>
     );
   }
 
@@ -152,8 +150,8 @@ export function EventSlotSection({
   if (dateKeysRender.length === 0 && focusDateKey) {
     if (sheetVariant && focusPeriod) {
       return (
-        <div className={sheetVariant ? "mt-3" : "mt-4 border-t border-zinc-200 pt-4 dark:border-zinc-600"}>
-          <p className="text-xs text-zinc-500 dark:text-zinc-400">
+        <div className={sheetVariant ? "mt-3" : "mt-4 border-t border-zinc-200 pt-4"}>
+          <p className="text-xs text-zinc-500">
             開催はありません
             <span className="mt-1 block text-[11px] leading-relaxed">
               他の日から参加可能なイベントをチェックしよう！
@@ -163,8 +161,8 @@ export function EventSlotSection({
       );
     }
     return (
-      <div className="mt-4 border-t border-zinc-200 pt-4 dark:border-zinc-600">
-        <p className="text-xs text-zinc-500 dark:text-zinc-400">
+      <div className="mt-4 border-t border-zinc-200 pt-4">
+        <p className="text-xs text-zinc-500">
           選択した日（{formatEventDateKey(focusDateKey)}）に、あなたのグループ向けの行き先枠はまだありません。
         </p>
       </div>
@@ -175,17 +173,17 @@ export function EventSlotSection({
 
   const wrapClass = sheetVariant
     ? "mt-3"
-    : "mt-4 border-t border-zinc-200 pt-4 dark:border-zinc-600";
+    : "mt-4 border-t border-zinc-200 pt-4";
 
   return (
     <div className={wrapClass}>
       {actionError ? (
-        <p className="mb-2 rounded-lg bg-amber-50 px-2 py-1.5 text-xs text-amber-900 dark:bg-amber-950/40 dark:text-amber-100">
+        <p className="mb-2 rounded-lg bg-amber-50 px-2 py-1.5 text-xs text-amber-900">
           {actionError}
         </p>
       ) : null}
       {showCohortHint ? (
-        <p className="text-xs font-medium text-zinc-700 dark:text-zinc-300">
+        <p className="text-xs font-medium text-zinc-700">
           あなたのグループ: <span className="text-[var(--lobby-red)]">{cohort}</span>（週ごとに自動更新）
         </p>
       ) : null}
@@ -193,7 +191,7 @@ export function EventSlotSection({
         {dateKeysRender.map((dateKey) => (
           <div key={dateKey}>
             {!sheetVariant ? (
-              <p className="text-sm font-semibold text-zinc-900 dark:text-zinc-50">{formatEventDateKey(dateKey)}</p>
+              <p className="text-sm font-semibold text-zinc-900">{formatEventDateKey(dateKey)}</p>
             ) : null}
             <div className={sheetVariant ? "space-y-4" : "mt-2 space-y-4"}>
               {periodsToShow.map((period) => {
@@ -203,11 +201,10 @@ export function EventSlotSection({
                 const current = signupMap.get(key);
                 const saving = busyKey === key;
                 return (
-                  <fieldset key={key} className="rounded-lg border border-zinc-100 bg-zinc-50/80 p-3 dark:border-zinc-700 dark:bg-zinc-900/50">
-                    <div className="mt-2 space-y-2">
+                  <fieldset key={key} className="space-y-4 border-0 p-0">
+                    <div className="space-y-4">
                       {list.map((choice) => {
                         const selected = current?.eventId === eventId && current?.slotChoiceId === choice.id;
-                        const timeLabel = formatStartTimeLabel(choice.startTime, period);
                         return (
                           <button
                             key={choice.id}
@@ -245,25 +242,19 @@ export function EventSlotSection({
                                 if (!res.ok) setActionError(res.message);
                               })();
                             }}
-                            className={`flex w-full items-start rounded-md px-2 py-2 text-left text-sm transition ${
-                              selected
-                                ? "bg-zinc-200/70 dark:bg-zinc-800"
-                                : "hover:bg-zinc-100/80 dark:hover:bg-zinc-800/60"
+                            className={`flex w-full items-start rounded-md px-1 py-1 text-left transition ${
+                              selected ? "bg-zinc-100" : "hover:bg-zinc-50"
                             } disabled:opacity-50`}
                           >
-                            <span className="space-y-1">
-                              <span className="block text-zinc-800 dark:text-zinc-200">
-                                {timeLabel} {choice.destinationLabel}
-                                {selected ? (
+                            <EventSlotChoiceDisplay
+                              choice={choice}
+                              period={period}
+                              suffix={
+                                selected ? (
                                   <span className="ml-1.5 text-xs font-medium text-zinc-500">（参加登録済み）</span>
-                                ) : null}
-                              </span>
-                              {choice.eventDetail ? (
-                                <span className="block text-xs text-zinc-500 dark:text-zinc-400">
-                                  {choice.eventDetail}
-                                </span>
-                              ) : null}
-                            </span>
+                                ) : null
+                              }
+                            />
                           </button>
                         );
                       })}
