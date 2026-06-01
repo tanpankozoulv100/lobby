@@ -3,6 +3,7 @@
 最終更新: 2026-05-27
 
 **技術正本:** `LOBBY_FINAL_SPEC.md`、`firestore.rules`、`lib/lobby-firestore-types.ts`  
+**シーズン・シリアル・No. 採番:** [`SEASON_AND_TICKET_SPEC.md`](./SEASON_AND_TICKET_SPEC.md)（必読）  
 **更新ポリシー:** [`SPEC_MAINTENANCE_POLICY.md`](./SPEC_MAINTENANCE_POLICY.md)
 
 管理サイトの指示書は別ファイル: `lobby-admin/docs/ADMIN_INSTRUCTIONS.md`
@@ -37,8 +38,8 @@
 |------|------|
 | 必須 | 本人確認 `approved`（顔写真付き書類）、シーズンチケット `ticketRedeemedAt` |
 | 保管 | 方針 **A**: Storage + `identitySubmittedAt` を3年（`docs/IDENTITY_DOCUMENT_RETENTION.md`） |
-| チケット | `ticketCodes.intendedGender` とユーザー `gender` が一致すること |
-| 運営 | `admins/{uid}` で上記スキップ。No.000 固定 |
+| チケット | 本人確認後に **シリアル** 入力。形式・採番・参加人数は [`SEASON_AND_TICKET_SPEC.md`](./SEASON_AND_TICKET_SPEC.md) |
+| 運営 | `admins/{uid}` で上記スキップ。No.000 固定（ダッシュボード初回） |
 | 停止 | `accountStatus: suspended` で停止画面 |
 
 ---
@@ -47,8 +48,8 @@
 
 | 領域 | 指示・仕様 | 実装状況 | 主なコード |
 |------|------------|----------|------------|
-| ホーム | QR 表示・スキャン・**コード入力**（1欄・IME対策）、お知らせ、シーズン残日数赤帯。表示文言は Firestore `seasons`（運営管理） | 実装済 | `dashboard-home-screen.tsx`、`use-user-season.ts` |
-| 履歴 | 3列グリッド・回数バッジ・相手詳細・自由メモ・**通報**（ブロックなし） | 実装済 | `dashboard-connections-section.tsx` |
+| ホーム | QR・スキャン・コード入力、お知らせ、シーズン帯。**No. はシリアル引き換え順**（シーズンごと） | 実装済 | `dashboard-home-screen.tsx`、`use-user-season.ts` |
+| 履歴 | 3列グリッド・**シーズン名・参加人数（自動）**・相手詳細・通報 | 実装済 | `dashboard-connections-section.tsx` |
 | チャット | 24h/72h、**再マッチは前回から24h/72h経過後**、過去閲覧、DM通知 per peer、運営は期限なし。アイコンはプロフィール写真 | 実装済 | `dashboard-chat-section.tsx`、`profile-avatar-circle.tsx` |
 | イベント | カレンダー・朝昼夕タブ・色丸（参加登録なし・一覧のみ） | 実装済 | `dashboard-events-section.tsx`、`event-period-slot-list.tsx` |
 | マイページ | No.xxx、**鉛筆→プロフィール編集**、**各種設定→規約リンク一覧** | 実装済 | `dashboard-mypage-tab.tsx`、`profile-edit-sheet.tsx`、`settings-links-sheet.tsx` |
@@ -104,3 +105,5 @@
 | 2026-05-27 | 再マッチ: 双方向リンク判定、24h/72h クールダウン、コード入力1欄化。ボトムシートのスマホスクロール・規約 URL 本番フォールバック |
 | 2026-06-01 | ホーム: シーズン残日数のイボリーアラート枠を削除（赤帯のみ）。チャット: 一覧・会話の相手／自分アイコンをプロフィール写真（未設定時はイニシャル）に統一 |
 | 2026-06-01 | シーズン表示を Firestore `seasons` に移行（管理サイトで CRUD）。`users.currentSeasonId`・チケット `seasonId` で同時期複数開催・同年複数回に対応 |
+| 2026-06-01 | 参加人数・No. をシリアル引き換え順で自動化。管理サイトでシリアル発行（nagoya202601xabcd 形式）。手動の参加人数入力は廃止 |
+| 2026-06-01 | 仕様正本 `docs/SEASON_AND_TICKET_SPEC.md` を追加（シーズン・シリアル・採番・運用） |

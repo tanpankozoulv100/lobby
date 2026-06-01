@@ -59,6 +59,7 @@ export type UserProfileFields = {
 export type TicketCodeFields = {
   usedBy: string | null;
   usedAt?: Timestamp;
+  createdAt?: Timestamp;
   /** Shopify 購入区分（男性用 / 女性用チケット）。未設定の旧コードは照合スキップ */
   intendedGender?: LobbyGender;
   /** 紐づくシーズン（`seasons/{id}`）。同時期の複数開催・年複数回に対応 */
@@ -83,8 +84,16 @@ export type SeasonFields = {
   endAt: Timestamp;
   /** A/B コホートハッシュ用（シーズンごとに一意） */
   cohortSeasonKey: string;
-  /** 参加人数（「このシーズンには N 人が…」の N） */
-  participatingCount: number;
+  /** シリアル接頭辞用（例: nagoya） */
+  locationSlug: string;
+  /** 開催年（例: 2026） */
+  year: number;
+  /** 開催回数（1=一回目） */
+  round: number;
+  /** シリアル引き換え済み人数（自動集計） */
+  redeemedCount?: number;
+  /** 発行済みシリアル数（自動集計） */
+  issuedTicketCount?: number;
   status: SeasonStatus;
   /** チケット未紐づけ・旧ユーザーの表示フォールバック（1 件のみ推奨） */
   isLegacyDefault?: boolean;

@@ -258,7 +258,7 @@ export function OnboardingClient({ user }: { user: User }) {
               autoComplete="off"
               value={ticketRaw}
               onChange={(ev) => setTicketRaw(ev.target.value)}
-              placeholder="例: LOBBY-XXXX-YYYY"
+              placeholder="例: nagoya202601xabcd"
               className="w-full rounded-xl border border-zinc-200 bg-white px-3 py-2.5 text-sm text-zinc-900 outline-none ring-[var(--lobby-red)] focus:ring-2"
             />
             <button

@@ -143,7 +143,8 @@ export function DashboardHomeScreen({
   useEffect(() => {
     if (!profile || !staffGateReady) return;
     if (!canUseLobbyDashboard(profile, user.uid, bypassCtx)) return;
-    if (profile.lobbyOpenedAt != null && typeof profile.participantNo === "number") return;
+    if (typeof profile.participantNo === "number") return;
+    if (!isStaff && profile.ticketRedeemedAt != null) return;
 
     let cancelled = false;
     void (async () => {

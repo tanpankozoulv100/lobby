@@ -24,7 +24,11 @@ function parseSeasonDoc(id: string, d: Record<string, unknown>): SeasonFields | 
   const cardTitle = typeof d.cardTitle === "string" ? d.cardTitle.trim() : "";
   const dateRangeLabel = typeof d.dateRangeLabel === "string" ? d.dateRangeLabel.trim() : "";
   const cohortSeasonKey = typeof d.cohortSeasonKey === "string" ? d.cohortSeasonKey.trim() : "";
-  const participatingCount = typeof d.participatingCount === "number" ? d.participatingCount : 0;
+  const locationSlug = typeof d.locationSlug === "string" ? d.locationSlug.trim().toLowerCase() : "";
+  const year = typeof d.year === "number" ? d.year : 0;
+  const round = typeof d.round === "number" ? d.round : 1;
+  const redeemedCount = typeof d.redeemedCount === "number" ? d.redeemedCount : 0;
+  const issuedTicketCount = typeof d.issuedTicketCount === "number" ? d.issuedTicketCount : 0;
   if (!name || !cardTitle || !cohortSeasonKey || !d.startAt || !d.endAt) return null;
   return {
     name,
@@ -35,7 +39,11 @@ function parseSeasonDoc(id: string, d: Record<string, unknown>): SeasonFields | 
     startAt: d.startAt as SeasonFields["startAt"],
     endAt: d.endAt as SeasonFields["endAt"],
     cohortSeasonKey,
-    participatingCount: Math.max(0, Math.floor(participatingCount)),
+    locationSlug: locationSlug || cohortSeasonKey.split("-")[0] || "",
+    year: year > 0 ? year : new Date().getFullYear(),
+    round: round >= 1 ? Math.floor(round) : 1,
+    redeemedCount: Math.max(0, Math.floor(redeemedCount)),
+    issuedTicketCount: Math.max(0, Math.floor(issuedTicketCount)),
     status: status as SeasonStatus,
     isLegacyDefault: d.isLegacyDefault === true,
     sortOrder: typeof d.sortOrder === "number" ? d.sortOrder : undefined,

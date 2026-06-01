@@ -31,7 +31,7 @@ export function seasonFieldsToDisplay(id: string, fields: SeasonFields): SeasonD
     headerTitle: fields.headerTitle.trim() || fields.cardTitle.trim(),
     cardTitle: fields.cardTitle.trim(),
     dateRangeLabel: fields.dateRangeLabel.trim(),
-    participatingCountLabel: formatParticipatingCountLabel(fields.participatingCount),
+    participatingCountLabel: formatParticipatingCountLabel(fields.redeemedCount ?? 0),
     cohortSeasonKey: fields.cohortSeasonKey.trim(),
     locationLabel: fields.locationLabel.trim(),
     startAt,

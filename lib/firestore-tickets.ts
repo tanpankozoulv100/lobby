@@ -1,9 +1,31 @@
-import { doc, runTransaction, serverTimestamp } from "firebase/firestore";
+import {
+  collection,
+  doc,
+  getDocs,
+  increment,
+  limit,
+  query,
+  runTransaction,
+  serverTimestamp,
+  where,
+} from "firebase/firestore";
 import { getFirebaseDb } from "@/lib/firebase";
+import { assignSeasonParticipantNoInTransaction } from "@/lib/firestore-season-participant-no";
 import { normalizeSeasonTicketCode } from "@/lib/ticket-code";
 
 const TICKET_CODES = "ticketCodes";
 const SEASONS = "seasons";
+
+async function resolveLegacyDefaultSeasonId(
+  db: NonNullable<ReturnType<typeof getFirebaseDb>>
+): Promise<string | null> {
+  const snap = await getDocs(
+    query(collection(db, SEASONS), where("isLegacyDefault", "==", true), limit(1))
+  );
+  const first = snap.docs[0];
+  if (!first || first.data()?.status !== "published") return null;
+  return first.id;
+}
 
 export async function redeemSeasonTicket(
   uid: string,
@@ -58,27 +80,37 @@ export async function redeemSeasonTicket(
         throw new Error("PROFILE_GENDER_MISSING");
       }
 
-      const ticketSeasonId = typeof t.seasonId === "string" ? t.seasonId.trim() : "";
-      if (ticketSeasonId) {
-        const seasonRef = doc(db, SEASONS, ticketSeasonId);
-        const seasonSnap = await transaction.get(seasonRef);
-        if (!seasonSnap.exists() || seasonSnap.data()?.status !== "published") {
-          throw new Error("SEASON_INVALID");
-        }
+      let seasonId = typeof t.seasonId === "string" ? t.seasonId.trim() : "";
+      if (!seasonId) {
+        const legacyId = await resolveLegacyDefaultSeasonId(db);
+        if (!legacyId) throw new Error("SEASON_REQUIRED");
+        seasonId = legacyId;
       }
+
+      const seasonRef = doc(db, SEASONS, seasonId);
+      const seasonSnap = await transaction.get(seasonRef);
+      if (!seasonSnap.exists() || seasonSnap.data()?.status !== "published") {
+        throw new Error("SEASON_INVALID");
+      }
+
+      const participantNo = await assignSeasonParticipantNoInTransaction(transaction, db, seasonId);
 
       transaction.update(ticketRef, {
         usedBy: uid,
+        usedAt: serverTimestamp(),
       });
-      const userPatch: Record<string, unknown> = {
+      transaction.update(seasonRef, {
+        redeemedCount: increment(1),
+        updatedAt: serverTimestamp(),
+      });
+      transaction.update(userRef, {
         ticketRedeemedAt: serverTimestamp(),
         seasonTicketCode: normalized,
+        currentSeasonId: seasonId,
+        participantNo,
+        lobbyOpenedAt: serverTimestamp(),
         updatedAt: serverTimestamp(),
-      };
-      if (ticketSeasonId) {
-        userPatch.currentSeasonId = ticketSeasonId;
-      }
-      transaction.update(userRef, userPatch);
+      });
     });
     return { ok: true };
   } catch (err: unknown) {
@@ -110,6 +142,15 @@ export async function redeemSeasonTicket(
         ok: false,
         message: "このチケットに紐づくシーズンが見つからないか、まだ公開されていません。運営にお問い合わせください。",
       };
+    }
+    if (msg === "SEASON_REQUIRED") {
+      return {
+        ok: false,
+        message: "このシリアルはシーズンに紐づいていません。運営にお問い合わせください。",
+      };
+    }
+    if (msg === "participant_full") {
+      return { ok: false, message: "このシーズンの参加者番号の上限に達しました。" };
     }
     const code = err && typeof err === "object" && "code" in err ? String((err as { code: string }).code) : "";
     if (code === "permission-denied") {

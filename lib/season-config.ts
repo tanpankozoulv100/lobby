@@ -9,8 +9,8 @@ export const LOBBY_SEASON_UI = {
   headerTitle: "シーズン名が入ります",
   cardTitle: "2026年名古屋シーズン",
   dateRangeLabel: "2026.04.17-05.18",
-  /** 履歴画面の参加人数表示（運営確定値に差し替え可） */
-  participatingCountLabel: "このシーズンには60人が参加しています",
+  /** 履歴画面の参加人数表示（フォールバック。正本は seasons.redeemedCount） */
+  participatingCountLabel: "このシーズンには0人が参加しています",
 } as const;
 
 /** カウントダウン用: シーズン終了（JST 2026-05-18 23:59:59） */

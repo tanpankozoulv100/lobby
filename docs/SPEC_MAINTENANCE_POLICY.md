@@ -23,6 +23,7 @@
 | `UI_UX_SPEC.md` | UI 記録（PDF ベース。実装と矛盾時は [`DESIGN_IMPLEMENTATION_POLICY.md`](./DESIGN_IMPLEMENTATION_POLICY.md) 優先） |
 | `docs/DESIGN_IMPLEMENTATION_POLICY.md` | Figma / スクショ vs 実装の優先関係 |
 | `docs/THEME_COLORS.md` | テーマカラー |
+| `docs/SEASON_AND_TICKET_SPEC.md` | シーズン・シリアル・No. 採番・参加人数の正本 |
 
 ## 更新タイミング（チェックリスト）
 
