@@ -12,6 +12,7 @@ import {
 import { getFirebaseDb } from "@/lib/firebase";
 import type { SeasonFields, SeasonStatus } from "@/lib/lobby-firestore-types";
 import { seasonFieldsToDisplay, type SeasonDisplay } from "@/lib/season-display";
+import { buildCohortSeasonKey } from "@/lib/season-cohort-key";
 
 const SEASONS = "seasons";
 
@@ -23,10 +24,13 @@ function parseSeasonDoc(id: string, d: Record<string, unknown>): SeasonFields | 
   const headerTitle = typeof d.headerTitle === "string" ? d.headerTitle.trim() : "";
   const cardTitle = typeof d.cardTitle === "string" ? d.cardTitle.trim() : "";
   const dateRangeLabel = typeof d.dateRangeLabel === "string" ? d.dateRangeLabel.trim() : "";
-  const cohortSeasonKey = typeof d.cohortSeasonKey === "string" ? d.cohortSeasonKey.trim() : "";
   const locationSlug = typeof d.locationSlug === "string" ? d.locationSlug.trim().toLowerCase() : "";
   const year = typeof d.year === "number" ? d.year : 0;
   const round = typeof d.round === "number" ? d.round : 1;
+  const cohortSeasonKey =
+    typeof d.cohortSeasonKey === "string" && d.cohortSeasonKey.trim()
+      ? d.cohortSeasonKey.trim()
+      : buildCohortSeasonKey(locationSlug, year > 0 ? year : new Date().getFullYear(), round);
   const redeemedCount = typeof d.redeemedCount === "number" ? d.redeemedCount : 0;
   const issuedTicketCount = typeof d.issuedTicketCount === "number" ? d.issuedTicketCount : 0;
   if (!name || !cardTitle || !cohortSeasonKey || !d.startAt || !d.endAt) return null;
@@ -39,7 +43,7 @@ function parseSeasonDoc(id: string, d: Record<string, unknown>): SeasonFields | 
     startAt: d.startAt as SeasonFields["startAt"],
     endAt: d.endAt as SeasonFields["endAt"],
     cohortSeasonKey,
-    locationSlug: locationSlug || cohortSeasonKey.split("-")[0] || "",
+    locationSlug,
     year: year > 0 ? year : new Date().getFullYear(),
     round: round >= 1 ? Math.floor(round) : 1,
     redeemedCount: Math.max(0, Math.floor(redeemedCount)),

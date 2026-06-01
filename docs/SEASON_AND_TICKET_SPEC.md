@@ -33,7 +33,7 @@
 | `cardTitle` | string | カード・マッチング履歴のタイトル |
 | `dateRangeLabel` | string | 表示用期間（例: `2026.04.17-05.18`） |
 | `startAt` / `endAt` | timestamp | シーズン期間（カウントダウン・最終日72h判定） |
-| `cohortSeasonKey` | string | A/B コホートハッシュ用（シーズンごとに一意） |
+| `cohortSeasonKey` | string | A/B フォールバック用（**自動**: `{場所スラッグ}-{年}-{回数2桁}` 例: `nagoya-2026-01`） |
 | `redeemedCount` | number | **自動** — シリアル引き換え済み人数 |
 | `issuedTicketCount` | number | **自動** — 管理サイトで発行したシリアル数 |
 | `status` | `draft` \| `published` \| `archived` | 公開状態 |
