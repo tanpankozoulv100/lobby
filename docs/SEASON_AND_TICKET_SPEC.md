@@ -74,23 +74,25 @@
 
 ---
 
-## 3. シリアル番号の形式
+## 3. シリアル番号の形式（運営が外部で発行する際の目安）
+
+運営が Shopify 等でコードを作るときの**推奨パターン**。管理サイトはこの形式を自動生成しない。
 
 ```
-{locationSlug}{year}{round(2桁)}{gender}{random}
+{locationSlug}{year}{round(2桁)}{gender}{任意の末尾}
 ```
 
 | 部分 | 例 | 説明 |
 |------|-----|------|
-| locationSlug | `nagoya` | 場所（英小文字・数字） |
+| locationSlug | `nagoya` | 場所（英小文字・数字）— シーズンの `locationSlug` と揃える |
 | year | `2026` | 4桁の年 |
 | round | `01` | 回数（01〜99） |
-| gender | `x` / `y` | **x = 女性**, **y = 男性** |
-| random | `abcd` | ランダム英小文字（既定4文字） |
+| gender | `x` / `y` | **x = 女性**, **y = 男性**（照合は `intendedGender` が正） |
+| 末尾 | `abcd` | 任意（重複回避用） |
 
-**例:** 2026年名古屋一回目・女性 → `nagoya202601xabcd`（保存時は大文字化され `NAGOYA202601XABCD` になることあり）
+**例:** 2026年名古屋一回目・女性 → `nagoya202601xabcd`（Firestore では英数字のみ・大文字化して保存）
 
-実装: `lib/ticket-serial.ts`（管理サイトは `lobby-admin/lib/ticket-serial.ts` と同期）
+アプリは `seasonId` + `intendedGender` + 引き換え順で振り分け。末尾文字列のパースは必須ではない。
 
 ---
 
@@ -136,19 +138,24 @@
 
 1. 開催地・**場所スラッグ**・年・回数・表示文言・期間・コホートキーを登録
 2. ステータスを **公開中** にする
-3. シーズンを保存後、同画面の **「シリアル番号（チケット）」** パネルで発行
+3. シーズンを保存後、同画面の **「シリアル番号（チケット）」** パネルで、用意したコードを**手入力登録**
 
-### 5.2 シリアル一括発行
+### 5.2 シリアルの手入力登録（自動生成なし）
 
+Shopify 等で運営が用意したコードを、管理サイトで Firestore に登録する。
+
+- 画面: `/dashboard/seasons` → シーズン編集 → **シリアル番号（チケット）** パネル
+- 1行1件（またはカンマ・改行区切り）で貼り付け、**性別区分**（男性用/女性用）を選んで登録
 - API: `POST /api/admin/seasons/{id}/tickets`  
-  body: `{ "gender": "female" | "male", "count": 1..500 }`
+  body: `{ "gender": "female" | "male", "codesText": "…" }` または `{ "codes": ["…"] }`
 - `ticketCodes` にドキュメント作成、`seasons.issuedTicketCount` を加算
+- **自動ランダム発行はしない**（命名規則はアプリ側の読み取り・振り分けの説明用）
 
-### 5.3 参加人数の再集計（メンテ用）
+### 5.3 件数の再集計（メンテ用）
 
 - API: `POST /api/admin/seasons/{id}/tickets`  
-  body: `{ "action": "sync_redeemed" }`
-- `ticketCodes` の `usedBy` あり件数を数え `seasons.redeemedCount` を上書き
+  body: `{ "action": "sync_counts" }`
+- `ticketCodes` を数え `redeemedCount`（引き換え済）と `issuedTicketCount`（登録数）を上書き
 
 ### 5.4 旧チケット
 
@@ -189,3 +196,4 @@
 | 日付 | 内容 |
 |------|------|
 | 2026-06-01 | 初版: Firestore `seasons`、管理サイト CRUD、シリアル形式・自動採番・自動参加人数 |
+| 2026-06-01 | シリアルは運営手入力登録のみ（自動一括発行を廃止）。命名規則は目安として記載 |
