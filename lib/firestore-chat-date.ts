@@ -23,7 +23,6 @@ import {
 import { chatWindowStartFromLink } from "@/lib/match-link-times";
 import { isPeerBlocked, subscribeBlockedPeerUids } from "@/lib/firestore-safety";
 import { getSeasonEndDate } from "@/lib/season-config";
-
 const CHAT_WINDOW_HOURS = 24;
 const FINAL_DAY_CHAT_WINDOW_HOURS = 72;
 const TICKET_WINDOW_HOURS = 72;
@@ -71,8 +70,9 @@ function ymdInJst(d: Date): string {
   return `${y}-${m}-${day}`;
 }
 
-function chatWindowHoursForMatch(matchedAt: Date): number {
-  const isFinalDay = ymdInJst(matchedAt) === ymdInJst(getSeasonEndDate());
+function chatWindowHoursForMatch(matchedAt: Date, seasonEndAt?: Date): number {
+  const end = seasonEndAt ?? getSeasonEndDate();
+  const isFinalDay = ymdInJst(matchedAt) === ymdInJst(end);
   return isFinalDay ? FINAL_DAY_CHAT_WINDOW_HOURS : CHAT_WINDOW_HOURS;
 }
 
@@ -82,7 +82,7 @@ export function subscribeChatPeers(
   uid: string,
   onData: (rows: ChatPeerEntry[]) => void,
   onError?: (message: string) => void,
-  options?: { isLobbyStaff?: boolean }
+  options?: { isLobbyStaff?: boolean; seasonEndAt?: Date }
 ): Unsubscribe | null {
   const db = getFirebaseDb();
   if (!db) {
@@ -112,7 +112,7 @@ export function subscribeChatPeers(
             isActive: true,
           };
         }
-        const chatWindowHours = chatWindowHoursForMatch(matchedAt);
+        const chatWindowHours = chatWindowHoursForMatch(matchedAt, options?.seasonEndAt);
         const expiresAt = new Date(matchedAt.getTime() + chatWindowHours * 60 * 60 * 1000);
         return {
           uid: r.peerUid,

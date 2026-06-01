@@ -11,6 +11,7 @@ import {
 } from "@/lib/firestore-chat";
 import { ChatSettingsSheet } from "@/components/chat-settings-sheet";
 import { MatchCompatibilityInline } from "@/components/match-compatibility-inline";
+import { ProfileAvatarCircle } from "@/components/profile-avatar-circle";
 import type { CompatibilityAnswers } from "@/lib/compatibility-questions";
 
 function formatMessageTime(ts: unknown): string {
@@ -77,6 +78,9 @@ export function ChatConversation({
   user,
   peer,
   peerDisplayName,
+  peerAvatarPath,
+  myDisplayName,
+  myAvatarPath,
   isStaff,
   canSend,
   myAnswers,
@@ -86,6 +90,9 @@ export function ChatConversation({
   user: User;
   peer: ChatPeerEntry;
   peerDisplayName: string;
+  peerAvatarPath?: string;
+  myDisplayName: string;
+  myAvatarPath?: string;
   isStaff: boolean;
   canSend: boolean;
   myAnswers?: CompatibilityAnswers;
@@ -191,11 +198,11 @@ export function ChatConversation({
               const mine = m.senderUid === user.uid;
               return (
                 <div key={m.id} className={`flex gap-2 ${mine ? "flex-row-reverse" : "flex-row"}`}>
-                  {!mine ? (
-                    <span className="mt-1 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-zinc-300 text-xs font-medium text-white">
-                      {peerDisplayName.slice(0, 1)}
-                    </span>
-                  ) : null}
+                  <ProfileAvatarCircle
+                    displayName={mine ? myDisplayName : peerDisplayName}
+                    avatarPath={mine ? myAvatarPath : peerAvatarPath}
+                    className="mt-1 h-8 w-8 text-xs"
+                  />
                   <div className={`flex max-w-[78%] flex-col ${mine ? "items-end" : "items-start"}`}>
                     <div
                       className={`rounded-2xl px-3 py-2 text-sm ${

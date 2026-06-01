@@ -3,6 +3,7 @@ import { getFirebaseDb } from "@/lib/firebase";
 import { normalizeSeasonTicketCode } from "@/lib/ticket-code";
 
 const TICKET_CODES = "ticketCodes";
+const SEASONS = "seasons";
 
 export async function redeemSeasonTicket(
   uid: string,
@@ -57,14 +58,27 @@ export async function redeemSeasonTicket(
         throw new Error("PROFILE_GENDER_MISSING");
       }
 
+      const ticketSeasonId = typeof t.seasonId === "string" ? t.seasonId.trim() : "";
+      if (ticketSeasonId) {
+        const seasonRef = doc(db, SEASONS, ticketSeasonId);
+        const seasonSnap = await transaction.get(seasonRef);
+        if (!seasonSnap.exists() || seasonSnap.data()?.status !== "published") {
+          throw new Error("SEASON_INVALID");
+        }
+      }
+
       transaction.update(ticketRef, {
         usedBy: uid,
       });
-      transaction.update(userRef, {
+      const userPatch: Record<string, unknown> = {
         ticketRedeemedAt: serverTimestamp(),
         seasonTicketCode: normalized,
         updatedAt: serverTimestamp(),
-      });
+      };
+      if (ticketSeasonId) {
+        userPatch.currentSeasonId = ticketSeasonId;
+      }
+      transaction.update(userRef, userPatch);
     });
     return { ok: true };
   } catch (err: unknown) {
@@ -90,6 +104,12 @@ export async function redeemSeasonTicket(
     }
     if (msg === "NO_USER") {
       return { ok: false, message: "プロフィールがまだありません。ページを再読み込みしてください。" };
+    }
+    if (msg === "SEASON_INVALID") {
+      return {
+        ok: false,
+        message: "このチケットに紐づくシーズンが見つからないか、まだ公開されていません。運営にお問い合わせください。",
+      };
     }
     const code = err && typeof err === "object" && "code" in err ? String((err as { code: string }).code) : "";
     if (code === "permission-denied") {

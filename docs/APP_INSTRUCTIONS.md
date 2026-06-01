@@ -47,9 +47,9 @@
 
 | 領域 | 指示・仕様 | 実装状況 | 主なコード |
 |------|------------|----------|------------|
-| ホーム | QR 表示・スキャン・**コード入力**（1欄・IME対策）、お知らせ、シーズン帯 | 実装済 | `dashboard-home-screen.tsx`、`lobby-connection-code-input.tsx` |
+| ホーム | QR 表示・スキャン・**コード入力**（1欄・IME対策）、お知らせ、シーズン残日数赤帯。表示文言は Firestore `seasons`（運営管理） | 実装済 | `dashboard-home-screen.tsx`、`use-user-season.ts` |
 | 履歴 | 3列グリッド・回数バッジ・相手詳細・自由メモ・**通報**（ブロックなし） | 実装済 | `dashboard-connections-section.tsx` |
-| チャット | 24h/72h、**再マッチは前回から24h/72h経過後**、過去閲覧、DM通知 per peer、運営は期限なし | 実装済 | `dashboard-chat-section.tsx`、`lib/match-chat-window.ts` |
+| チャット | 24h/72h、**再マッチは前回から24h/72h経過後**、過去閲覧、DM通知 per peer、運営は期限なし。アイコンはプロフィール写真 | 実装済 | `dashboard-chat-section.tsx`、`profile-avatar-circle.tsx` |
 | イベント | カレンダー・朝昼夕タブ・色丸（参加登録なし・一覧のみ） | 実装済 | `dashboard-events-section.tsx`、`event-period-slot-list.tsx` |
 | マイページ | No.xxx、**鉛筆→プロフィール編集**、**各種設定→規約リンク一覧** | 実装済 | `dashboard-mypage-tab.tsx`、`profile-edit-sheet.tsx`、`settings-links-sheet.tsx` |
 | 安全 | **通報のみ**（ブロックなし）・Functions 停止・コホート反転 | 実装済 | `reportPeer`、`functions/` |
@@ -102,3 +102,5 @@
 | 2026-05-20 | ユーザー向けは通報のみ（自動ブロック廃止。「通報・ブロック」表記をやめる） |
 | 2026-05-27 | マイページ B案: 各種設定＝規約リンク一覧、表示名・居住地はプロフィール編集。相性質問はチュートリアル同様のボタン選択（iOS） |
 | 2026-05-27 | 再マッチ: 双方向リンク判定、24h/72h クールダウン、コード入力1欄化。ボトムシートのスマホスクロール・規約 URL 本番フォールバック |
+| 2026-06-01 | ホーム: シーズン残日数のイボリーアラート枠を削除（赤帯のみ）。チャット: 一覧・会話の相手／自分アイコンをプロフィール写真（未設定時はイニシャル）に統一 |
+| 2026-06-01 | シーズン表示を Firestore `seasons` に移行（管理サイトで CRUD）。`users.currentSeasonId`・チケット `seasonId` で同時期複数開催・同年複数回に対応 |

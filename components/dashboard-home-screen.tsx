@@ -10,11 +10,9 @@ import {
 import { ensureUserProfile, subscribeUserProfile } from "@/lib/firestore-users";
 import type { UserProfileFields } from "@/lib/lobby-firestore-types";
 import type { PublishedAnnouncementRow } from "@/lib/firestore-announcements";
-import {
-  LOBBY_SEASON_UI,
-  formatCountdownBanner,
-  getSeasonRemainingDays,
-} from "@/lib/season-config";
+import { formatCountdownBanner } from "@/lib/season-config";
+import { getSeasonRemainingDaysForDisplay } from "@/lib/season-display";
+import { useUserSeason } from "@/lib/use-user-season";
 import { LobbyQrModal } from "@/components/lobby-qr-modal";
 import { LobbyCameraScanModal } from "@/components/lobby-camera-scan-modal";
 import { LobbyCodeInputModal } from "@/components/lobby-code-input-modal";
@@ -79,7 +77,8 @@ export function DashboardHomeScreen({
   const [codeErr, setCodeErr] = useState<string | null>(null);
   const [qrOpen, setQrOpen] = useState(false);
   const [matchFlow, setMatchFlow] = useState<MatchFlow>(null);
-  const daysLeft = getSeasonRemainingDays();
+  const { season } = useUserSeason(user.uid);
+  const daysLeft = getSeasonRemainingDaysForDisplay(season);
 
   useEffect(() => {
     let cancelled = false;
@@ -201,22 +200,9 @@ export function DashboardHomeScreen({
       ) : null}
 
       <div className="pt-2 text-center">
-        <h1 className="text-base font-bold text-[var(--lobby-red)]">{LOBBY_SEASON_UI.headerTitle}</h1>
+        <h1 className="text-base font-bold text-[var(--lobby-red)]">{season.headerTitle}</h1>
         <div className="mt-2 rounded-none bg-[var(--lobby-red)] py-2.5 text-center text-sm font-medium text-white">
           {formatCountdownBanner(daysLeft)}
-        </div>
-      </div>
-
-      <div className="mt-3 flex items-start gap-3 rounded-xl bg-[var(--lobby-cream)]/90 px-3 py-3 shadow-sm">
-        <div
-          className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-sm font-bold text-white"
-          style={{ background: "linear-gradient(145deg,#c45c32,#8b3d1f)" }}
-        >
-          {daysLeft}
-        </div>
-        <div className="min-w-0 flex-1">
-          <p className="text-sm font-bold text-[var(--lobby-red)]">{formatCountdownBanner(daysLeft)}</p>
-          <p className="mt-0.5 text-xs leading-relaxed text-zinc-600">{LOBBY_SEASON_UI.alertBody}</p>
         </div>
       </div>
 
@@ -235,8 +221,8 @@ export function DashboardHomeScreen({
 
       <div className="mt-4 rounded-3xl border border-zinc-200/80 bg-[var(--lobby-cream)] px-5 pb-6 pt-5 shadow-md">
         <p className="font-serif text-2xl font-semibold text-[var(--lobby-red)]">Lobby</p>
-        <p className="mt-1 text-sm font-semibold text-[var(--lobby-red)]">{LOBBY_SEASON_UI.cardTitle}</p>
-        <p className="mt-0.5 text-xs text-[var(--lobby-red)]">{LOBBY_SEASON_UI.dateRangeLabel}</p>
+        <p className="mt-1 text-sm font-semibold text-[var(--lobby-red)]">{season.cardTitle}</p>
+        <p className="mt-0.5 text-xs text-[var(--lobby-red)]">{season.dateRangeLabel}</p>
 
         <div className="mt-6 text-center">
           <p className="font-serif text-6xl font-bold tabular-nums leading-none tracking-tight text-[var(--lobby-red)] md:text-7xl">
@@ -270,8 +256,8 @@ export function DashboardHomeScreen({
         onClose={() => setQrOpen(false)}
         connectionCode={code ?? ""}
         displayName={name}
-        seasonCardTitle={LOBBY_SEASON_UI.cardTitle}
-        seasonDateLabel={LOBBY_SEASON_UI.dateRangeLabel}
+        seasonCardTitle={season.cardTitle}
+        seasonDateLabel={season.dateRangeLabel}
       />
 
       <LobbyCameraScanModal

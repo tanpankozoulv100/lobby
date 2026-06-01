@@ -43,6 +43,8 @@ export type UserProfileFields = {
   ticketRedeemedAt?: Timestamp;
   /** 正規化済みシリアル（監査・表示用） */
   seasonTicketCode?: string;
+  /** 参加中シーズン（`seasons/{id}`。チケット引き換え時に設定） */
+  currentSeasonId?: string;
   /** 利用可否（通報3件で suspended — Cloud Functions が設定） */
   accountStatus?: AccountStatus;
   /** 自分に対する通報の累計（Functions が increment） */
@@ -59,6 +61,36 @@ export type TicketCodeFields = {
   usedAt?: Timestamp;
   /** Shopify 購入区分（男性用 / 女性用チケット）。未設定の旧コードは照合スキップ */
   intendedGender?: LobbyGender;
+  /** 紐づくシーズン（`seasons/{id}`）。同時期の複数開催・年複数回に対応 */
+  seasonId?: string;
+};
+
+/** `seasons/{seasonId}` — 運営が管理サイトで CRUD。アプリは published のみ参照 */
+export type SeasonStatus = "draft" | "published" | "archived";
+
+export type SeasonFields = {
+  /** 管理画面用の短い名前 */
+  name: string;
+  /** 開催地ラベル（例: 名古屋） */
+  locationLabel: string;
+  /** ホーム上部など */
+  headerTitle: string;
+  /** カード・履歴のメインタイトル */
+  cardTitle: string;
+  /** 表示用期間（例: 2026.04.17-05.18） */
+  dateRangeLabel: string;
+  startAt: Timestamp;
+  endAt: Timestamp;
+  /** A/B コホートハッシュ用（シーズンごとに一意） */
+  cohortSeasonKey: string;
+  /** 参加人数（「このシーズンには N 人が…」の N） */
+  participatingCount: number;
+  status: SeasonStatus;
+  /** チケット未紐づけ・旧ユーザーの表示フォールバック（1 件のみ推奨） */
+  isLegacyDefault?: boolean;
+  sortOrder?: number;
+  createdAt?: Timestamp;
+  updatedAt?: Timestamp;
 };
 
 /** イベント日の朝 / 昼 / 夜（Firestore にもこの文字列で保存） */

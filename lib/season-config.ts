@@ -11,8 +11,6 @@ export const LOBBY_SEASON_UI = {
   dateRangeLabel: "2026.04.17-05.18",
   /** 履歴画面の参加人数表示（運営確定値に差し替え可） */
   participatingCountLabel: "このシーズンには60人が参加しています",
-  /** アラート行の本文プレースホルダー */
-  alertBody: "ここにテキストが入ります",
 } as const;
 
 /** カウントダウン用: シーズン終了（JST 2026-05-18 23:59:59） */

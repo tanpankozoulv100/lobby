@@ -19,6 +19,7 @@ import {
   getRematchCooldownMessage,
   latestMatchInstantFromLinkFields,
 } from "@/lib/match-chat-window";
+import { fetchUserSeasonEndDate } from "@/lib/firestore-seasons";
 import { mergeLinkTimestamps, type MatchLinkTimestamps } from "@/lib/match-link-times";
 
 const CONNECTION_CODES = "connectionCodes";
@@ -304,7 +305,8 @@ export async function registerLinkByPeerCode(
       inboundOnPeerSnap.exists() ? (inboundOnPeerSnap.data() as MatchLinkTimestamps) : undefined
     );
     if (lastMatchAt) {
-      const cooldownMessage = getRematchCooldownMessage(lastMatchAt);
+      const seasonEndAt = (await fetchUserSeasonEndDate(myUid)) ?? undefined;
+      const cooldownMessage = getRematchCooldownMessage(lastMatchAt, new Date(), seasonEndAt);
       if (cooldownMessage) {
         return { ok: false, message: cooldownMessage };
       }

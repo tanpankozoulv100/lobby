@@ -24,9 +24,13 @@ export type { DayPeriodMarkers };
 export function useEventCalendarSlots(
   uid: string,
   eventIds: string[] | null | undefined,
-  cohortFlipActive?: boolean
+  cohortFlipActive?: boolean,
+  cohortSeasonKey?: string
 ) {
-  const cohort = useMemo(() => getEffectiveLobbyCohortForSeason(uid, cohortFlipActive), [uid, cohortFlipActive]);
+  const cohort = useMemo(
+    () => getEffectiveLobbyCohortForSeason(uid, cohortFlipActive, cohortSeasonKey),
+    [uid, cohortFlipActive, cohortSeasonKey]
+  );
   const [rowsByEvent, setRowsByEvent] = useState<Record<string, SlotChoiceRow[]>>({});
   const [cohortWeeks, setCohortWeeks] = useState<CohortWeekRow[]>([]);
   const [displayWindow, setDisplayWindow] = useState<EventDisplayWindowRow | null>(null);

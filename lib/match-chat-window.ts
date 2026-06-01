@@ -19,22 +19,25 @@ function ymdInJst(d: Date): string {
 }
 
 /** マッチ日に応じたチャット／再マッチ待ち時間（時間） */
-export function matchChatWindowHours(matchedAt: Date): number {
-  return ymdInJst(matchedAt) === ymdInJst(getSeasonEndDate())
-    ? FINAL_DAY_CHAT_WINDOW_HOURS
-    : CHAT_WINDOW_HOURS;
+export function matchChatWindowHours(matchedAt: Date, seasonEndAt?: Date): number {
+  const end = seasonEndAt ?? getSeasonEndDate();
+  return ymdInJst(matchedAt) === ymdInJst(end) ? FINAL_DAY_CHAT_WINDOW_HOURS : CHAT_WINDOW_HOURS;
 }
 
-export function rematchAllowedAfter(lastMatchAt: Date): Date {
-  const hours = matchChatWindowHours(lastMatchAt);
+export function rematchAllowedAfter(lastMatchAt: Date, seasonEndAt?: Date): Date {
+  const hours = matchChatWindowHours(lastMatchAt, seasonEndAt);
   return new Date(lastMatchAt.getTime() + hours * 60 * 60 * 1000);
 }
 
-export function getRematchCooldownMessage(lastMatchAt: Date, now = new Date()): string | null {
-  const allowedAfter = rematchAllowedAfter(lastMatchAt);
+export function getRematchCooldownMessage(
+  lastMatchAt: Date,
+  now = new Date(),
+  seasonEndAt?: Date
+): string | null {
+  const allowedAfter = rematchAllowedAfter(lastMatchAt, seasonEndAt);
   if (now.getTime() >= allowedAfter.getTime()) return null;
 
-  const windowHours = matchChatWindowHours(lastMatchAt);
+  const windowHours = matchChatWindowHours(lastMatchAt, seasonEndAt);
   const remainMs = allowedAfter.getTime() - now.getTime();
   const remainHours = Math.max(1, Math.ceil(remainMs / (60 * 60 * 1000)));
   return `再マッチは前回のマッチから${windowHours}時間経過後にできます。あと約${remainHours}時間お待ちください。`;

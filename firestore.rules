@@ -203,6 +203,18 @@ service cloud.firestore {
             && request.resource.data.seasonTicketCode.size() <= 64
             && !resource.data.keys().hasAny(['ticketRedeemedAt'])
           )
+          || (
+            request.resource.data.diff(resource.data).affectedKeys().hasOnly(['ticketRedeemedAt', 'seasonTicketCode', 'currentSeasonId', 'updatedAt'])
+            && request.resource.data.seasonTicketCode is string
+            && request.resource.data.seasonTicketCode.size() >= 8
+            && request.resource.data.seasonTicketCode.size() <= 64
+            && request.resource.data.currentSeasonId is string
+            && request.resource.data.currentSeasonId.size() >= 1
+            && request.resource.data.currentSeasonId.size() <= 128
+            && exists(/databases/$(database)/documents/seasons/$(request.resource.data.currentSeasonId))
+            && get(/databases/$(database)/documents/seasons/$(request.resource.data.currentSeasonId)).data.status == 'published'
+            && !resource.data.keys().hasAny(['ticketRedeemedAt'])
+          )
         );
 
       match /eventSignups/{signupId} {
@@ -404,6 +416,14 @@ service cloud.firestore {
 
         allow delete: if isLobbyStaff();
       }
+    }
+
+    match /seasons/{seasonId} {
+      allow read: if request.auth != null && (
+        resource.data.status == 'published' ||
+        isLobbyStaff()
+      );
+      allow write: if false;
     }
 
     match /announcements/{announcementId} {

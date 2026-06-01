@@ -49,6 +49,7 @@ function mapProfileDoc(d: Record<string, unknown>): UserProfileFields {
     identitySubmittedAt: d.identitySubmittedAt as UserProfileFields["identitySubmittedAt"],
     ticketRedeemedAt: d.ticketRedeemedAt as UserProfileFields["ticketRedeemedAt"],
     seasonTicketCode: typeof d.seasonTicketCode === "string" ? d.seasonTicketCode : undefined,
+    currentSeasonId: typeof d.currentSeasonId === "string" ? d.currentSeasonId : undefined,
     accountStatus:
       d.accountStatus === "active" || d.accountStatus === "suspended" ? d.accountStatus : undefined,
     reportReceivedCount: typeof d.reportReceivedCount === "number" ? d.reportReceivedCount : undefined,

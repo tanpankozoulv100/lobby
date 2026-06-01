@@ -12,7 +12,7 @@ import {
   subscribeOutboundLinks,
 } from "@/lib/firestore-connections";
 import { matchTimestampMs } from "@/lib/match-link-times";
-import { LOBBY_SEASON_UI } from "@/lib/season-config";
+import { useUserSeason } from "@/lib/use-user-season";
 import type { UserProfileFields } from "@/lib/lobby-firestore-types";
 import type { DashboardTab } from "@/components/dashboard-bottom-nav";
 import { LobbyBottomSheet } from "@/components/lobby-bottom-sheet";
@@ -72,6 +72,7 @@ export function DashboardMypageTab({
   onNavigateTab: (tab: DashboardTab) => void;
 }) {
   const { isStaff } = useLobbyStaff(user.uid);
+  const { season } = useUserSeason(user.uid);
   const [profile, setProfile] = useState<UserProfileFields | null>(null);
   const [matchCount, setMatchCount] = useState(0);
   const [recentMatchHint, setRecentMatchHint] = useState<string | null>(null);
@@ -261,7 +262,7 @@ export function DashboardMypageTab({
       <LobbyBottomSheet open={helpOpen} title="お問い合わせ・ヘルプ" onClose={() => setHelpOpen(false)}>
         <div className="space-y-3 pt-2">
           <p className="text-sm leading-relaxed text-zinc-700">
-            {LOBBY_SEASON_UI.cardTitle} に関するお問い合わせは、運営窓口までご連絡ください。
+            {season.cardTitle} に関するお問い合わせは、運営窓口までご連絡ください。
           </p>
           <p className="mt-3 text-xs text-zinc-500">
             マッチングやチャットの不具合は、履歴タブから通報をご利用いただけます。

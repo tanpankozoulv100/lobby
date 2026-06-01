@@ -15,7 +15,7 @@ import { MatchedPeerDetailSheet } from "@/components/matched-peer-detail-sheet";
 import { MatchCompatibilityInline } from "@/components/match-compatibility-inline";
 import { ensureUserProfile, fetchUserProfile, subscribeUserProfile } from "@/lib/firestore-users";
 import type { CompatibilityAnswers } from "@/lib/compatibility-questions";
-import { LOBBY_SEASON_UI } from "@/lib/season-config";
+import { useUserSeason } from "@/lib/use-user-season";
 import {
   getMatchEncounterBadgeTone,
   MATCH_ENCOUNTER_BADGE_CLASS,
@@ -80,6 +80,7 @@ function MatchGridAvatar({
 }
 
 function DashboardConnectionsLoaded({ user }: { user: User }) {
+  const { season } = useUserSeason(user.uid);
   const [links, setLinks] = useState<MergedMatchRow[] | null>(null);
   const [linksError, setLinksError] = useState<string | null>(null);
   const [myAnswers, setMyAnswers] = useState<CompatibilityAnswers | undefined>();
@@ -152,10 +153,8 @@ function DashboardConnectionsLoaded({ user }: { user: User }) {
           <h2 className="text-center font-serif text-lg font-semibold text-[var(--lobby-red)]">
             マッチング履歴
           </h2>
-          <p className="mt-2 text-center text-sm font-medium text-zinc-800">{LOBBY_SEASON_UI.cardTitle}</p>
-          <p className="mt-1 text-center text-xs text-zinc-500">
-            {LOBBY_SEASON_UI.participatingCountLabel}
-          </p>
+          <p className="mt-2 text-center text-sm font-medium text-zinc-800">{season.cardTitle}</p>
+          <p className="mt-1 text-center text-xs text-zinc-500">{season.participatingCountLabel}</p>
 
           <div className="mt-5 flex items-center justify-center gap-1">
             <h3 className="text-sm font-semibold text-zinc-900">これまでにマッチングした一覧</h3>

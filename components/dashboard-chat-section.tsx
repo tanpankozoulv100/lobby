@@ -2,8 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import type { User } from "firebase/auth";
-import { doc, getDoc } from "firebase/firestore";
-import { getFirebaseDb, isFirebaseConfigComplete } from "@/lib/firebase";
+import { isFirebaseConfigComplete } from "@/lib/firebase";
 import { subscribeChatPeers, type ChatPeerEntry } from "@/lib/firestore-chat-date";
 import { useLobbyStaff } from "@/lib/use-lobby-staff";
 import { ChatConversation } from "@/components/chat-conversation";
@@ -16,21 +15,15 @@ import {
 } from "@/lib/firestore-connections";
 import {
   ensureUserProfile,
+  fetchUserProfile,
   subscribeUserProfile,
 } from "@/lib/firestore-users";
 import type { CompatibilityAnswers } from "@/lib/compatibility-questions";
+import { ProfileAvatarCircle } from "@/components/profile-avatar-circle";
+import { useUserSeason } from "@/lib/use-user-season";
 
 function formatExpiryShort(d: Date): string {
   return d.toLocaleString("ja-JP", { month: "numeric", day: "numeric", hour: "2-digit", minute: "2-digit" });
-}
-
-async function fetchDisplayName(uid: string): Promise<string> {
-  const db = getFirebaseDb();
-  if (!db) return uid.slice(0, 8);
-  const snap = await getDoc(doc(db, "users", uid));
-  const name = snap.data()?.displayName;
-  if (typeof name === "string" && name.trim()) return name.trim();
-  return `No.${uid.slice(0, 6)}`;
 }
 
 function ChatConfigMissing() {
@@ -45,12 +38,14 @@ function ChatConfigMissing() {
 function TalkListRow({
   peer,
   displayName,
+  avatarPath,
   isStaff,
   myAnswers,
   onSelect,
 }: {
   peer: ChatPeerEntry;
   displayName: string;
+  avatarPath?: string;
   isStaff: boolean;
   myAnswers: CompatibilityAnswers | undefined;
   onSelect: () => void;
@@ -68,9 +63,11 @@ function TalkListRow({
         onClick={onSelect}
         className="flex w-full items-center gap-3 border-b border-zinc-200/60 px-4 py-3.5 text-left transition active:bg-[var(--lobby-red)]/5"
       >
-        <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-zinc-300/90 text-base font-semibold text-white">
-          {displayName.slice(0, 1)}
-        </span>
+        <ProfileAvatarCircle
+          displayName={displayName}
+          avatarPath={avatarPath}
+          className="h-12 w-12 text-base"
+        />
         <span className="min-w-0 flex-1">
           <span className="flex min-w-0 items-baseline gap-2">
             <span className="truncate text-[15px] font-medium text-zinc-900">{displayName}</span>
@@ -92,17 +89,26 @@ function TalkListRow({
 
 function DashboardChatLoaded({ user }: { user: User }) {
   const { isStaff } = useLobbyStaff(user.uid);
+  const { season } = useUserSeason(user.uid);
   const [peers, setPeers] = useState<ChatPeerEntry[] | null>(null);
-  const [peerNames, setPeerNames] = useState<Record<string, string>>({});
+  const [peerMeta, setPeerMeta] = useState<
+    Record<string, { displayName: string; avatarPath?: string }>
+  >({});
   const [selectedPeer, setSelectedPeer] = useState<ChatPeerEntry | null>(null);
   const [myAnswers, setMyAnswers] = useState<CompatibilityAnswers | undefined>();
+  const [myAvatarPath, setMyAvatarPath] = useState<string | undefined>();
+  const [myDisplayName, setMyDisplayName] = useState("あなた");
   const [encounterByPeer, setEncounterByPeer] = useState<Record<string, number>>({});
   const [profilePeerUid, setProfilePeerUid] = useState<string | null>(null);
 
   useEffect(() => {
     let unsub: (() => void) | null = null;
     void ensureUserProfile(user.uid, user.email).then(() => {
-      unsub = subscribeUserProfile(user.uid, (p) => setMyAnswers(p?.compatibilityAnswers));
+      unsub = subscribeUserProfile(user.uid, (p) => {
+        setMyAnswers(p?.compatibilityAnswers);
+        setMyAvatarPath(p?.avatarPath);
+        setMyDisplayName(p?.displayName?.trim() || "あなた");
+      });
     });
     return () => unsub?.();
   }, [user.uid, user.email]);
@@ -141,25 +147,30 @@ function DashboardChatLoaded({ user }: { user: User }) {
       user.uid,
       (rows) => setPeers(rows),
       () => setPeers([]),
-      { isLobbyStaff: isStaff }
+      { isLobbyStaff: isStaff, seasonEndAt: season.endAt }
     );
     return () => {
       unsub?.();
     };
-  }, [user.uid, isStaff]);
+  }, [user.uid, isStaff, season.endAt]);
 
   useEffect(() => {
     if (!peers?.length) return;
     let cancelled = false;
-    void (async () => {
-      const names: Record<string, string> = {};
-      await Promise.all(
-        peers.map(async (p) => {
-          names[p.uid] = await fetchDisplayName(p.uid);
-        })
-      );
-      if (!cancelled) setPeerNames(names);
-    })();
+    void Promise.all(
+      peers.map(async (p) => {
+        const profile = await fetchUserProfile(p.uid);
+        return [
+          p.uid,
+          {
+            displayName: profile?.displayName?.trim() || `No.${p.uid.slice(0, 6)}`,
+            avatarPath: profile?.avatarPath,
+          },
+        ] as const;
+      })
+    ).then((pairs) => {
+      if (!cancelled) setPeerMeta(Object.fromEntries(pairs));
+    });
     return () => {
       cancelled = true;
     };
@@ -173,7 +184,12 @@ function DashboardChatLoaded({ user }: { user: User }) {
         <ChatConversation
           user={user}
           peer={selectedPeer}
-          peerDisplayName={peerNames[selectedPeer.uid] ?? selectedPeer.uid.slice(0, 8)}
+          peerDisplayName={
+            peerMeta[selectedPeer.uid]?.displayName ?? selectedPeer.uid.slice(0, 8)
+          }
+          peerAvatarPath={peerMeta[selectedPeer.uid]?.avatarPath}
+          myDisplayName={myDisplayName}
+          myAvatarPath={myAvatarPath}
           isStaff={isStaff}
           canSend={canSend}
           myAnswers={myAnswers}
@@ -216,7 +232,8 @@ function DashboardChatLoaded({ user }: { user: User }) {
             <TalkListRow
               key={peer.uid}
               peer={peer}
-              displayName={peerNames[peer.uid] ?? "…"}
+              displayName={peerMeta[peer.uid]?.displayName ?? "…"}
+              avatarPath={peerMeta[peer.uid]?.avatarPath}
               isStaff={isStaff}
               myAnswers={myAnswers}
               onSelect={() => setSelectedPeer(peer)}

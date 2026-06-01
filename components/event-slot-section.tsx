@@ -30,6 +30,7 @@ type Props = {
   prefetchedRows?: SlotChoiceRow[];
   showCohortHint?: boolean;
   cohortOverride?: LobbyCohort;
+  cohortSeasonKey?: string;
   displayWindow?: EventDisplayWindowRow | null;
   /** 下部シート用の余白・文言 */
   sheetVariant?: boolean;
@@ -48,10 +49,14 @@ export function EventSlotSection({
   prefetchedRows,
   showCohortHint = true,
   cohortOverride,
+  cohortSeasonKey,
   displayWindow,
   sheetVariant = false,
 }: Props) {
-  const hashedCohort = useMemo(() => getLobbyCohortForSeason(user.uid), [user.uid]);
+  const hashedCohort = useMemo(
+    () => getLobbyCohortForSeason(user.uid, cohortSeasonKey),
+    [user.uid, cohortSeasonKey]
+  );
   const cohort = cohortOverride ?? hashedCohort;
   const usePrefetch = prefetchedRows !== undefined;
   const [localRows, setLocalRows] = useState<SlotChoiceRow[] | null>(null);

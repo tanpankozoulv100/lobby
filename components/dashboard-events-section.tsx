@@ -8,7 +8,10 @@ import { EventCalendarDetailSheet } from "@/components/event-calendar-detail-she
 import { EventsMonthCalendar } from "@/components/events-month-calendar";
 import { useEventCalendarSlots } from "@/components/use-event-calendar-slots";
 import { addMonths, dateKeyFromLocalDate, startOfMonth } from "@/lib/calendar-utils";
-import { formatCountdownBanner, getSeasonRemainingDays } from "@/lib/season-config";
+import { formatCountdownBanner } from "@/lib/season-config";
+import { getSeasonRemainingDaysForDisplay } from "@/lib/season-display";
+import { useUserSeason } from "@/lib/use-user-season";
+import type { SeasonDisplay } from "@/lib/season-display";
 
 function EventsConfigMissing() {
   return (
@@ -21,8 +24,8 @@ function EventsConfigMissing() {
   );
 }
 
-function SeasonCountdownBanner() {
-  const days = getSeasonRemainingDays();
+function SeasonCountdownBanner({ season }: { season: SeasonDisplay }) {
+  const days = getSeasonRemainingDaysForDisplay(season);
   return (
     <div className="flex items-center gap-3 rounded-xl border border-zinc-200/80 bg-zinc-100/80 px-3 py-2.5 dark:border-zinc-600 dark:bg-zinc-800/60">
       <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[var(--lobby-cream)] text-zinc-500 shadow-sm dark:bg-zinc-900 dark:text-zinc-400">
@@ -48,6 +51,7 @@ type LoadedProps = {
 };
 
 function DashboardEventsLoaded({ user, publishedEvents: events, cohortFlipActive = false }: LoadedProps) {
+  const { season } = useUserSeason(user.uid);
   const [visibleMonth, setVisibleMonth] = useState(() => startOfMonth(new Date()));
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
 
@@ -55,7 +59,8 @@ function DashboardEventsLoaded({ user, publishedEvents: events, cohortFlipActive
   const { markersByDate, rowsByEvent, cohortForDateKey, displayWindow } = useEventCalendarSlots(
     user.uid,
     events === null ? null : eventIds,
-    cohortFlipActive
+    cohortFlipActive,
+    season.cohortSeasonKey
   );
 
   const handleSelectDate = (d: Date) => {
@@ -73,7 +78,7 @@ function DashboardEventsLoaded({ user, publishedEvents: events, cohortFlipActive
     <section className="rounded-xl border border-zinc-200 bg-zinc-50/80 p-4 dark:border-zinc-700 dark:bg-zinc-800/40 sm:p-5">
       <div className="flex flex-col gap-2">
         <h2 className="text-center font-serif text-lg font-semibold text-[var(--lobby-red)]">イベントカレンダー</h2>
-        <SeasonCountdownBanner />
+        <SeasonCountdownBanner season={season} />
         <p className="text-center text-xs text-zinc-500">日付を選ぶと、その日のイベント一覧が表示されます。</p>
       </div>
 
