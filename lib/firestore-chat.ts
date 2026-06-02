@@ -25,6 +25,14 @@ export type ChatMessageRow = {
   createdAt?: unknown;
 };
 
+/** Firestore Timestamp 等を ms に変換（取得できなければ null） */
+export function chatTimestampMs(ts: unknown): number | null {
+  if (ts && typeof ts === "object" && "toDate" in ts && typeof (ts as { toDate: () => Date }).toDate === "function") {
+    return (ts as { toDate: () => Date }).toDate().getTime();
+  }
+  return null;
+}
+
 /** 参加者 UID を辞書順に並べたスレッド ID（`participantLow_participantHigh`） */
 export function chatThreadId(uidA: string, uidB: string): string {
   const [low, high] = [uidA, uidB].sort();
@@ -101,6 +109,47 @@ export function subscribeChatMessages(
         onError?.("メッセージの取得に失敗しました。");
       }
     }
+  );
+}
+
+/** 自分がスレッドを読んだ時刻を記録（相手の画面の「既読」表示に使う） */
+export async function markChatThreadRead(myUid: string, peerUid: string): Promise<void> {
+  const db = getFirebaseDb();
+  if (!db) return;
+  const [low, high] = [myUid, peerUid].sort();
+  const threadId = `${low}_${high}`;
+  const field = myUid === low ? "lastReadLow" : "lastReadHigh";
+  try {
+    await updateDoc(doc(db, CHAT_THREADS, threadId), { [field]: serverTimestamp() });
+  } catch {
+    // スレッド未作成・権限などは既読更新失敗として無視（チャット自体は継続）
+  }
+}
+
+export type ChatThreadReadState = {
+  /** 相手が最後にこのスレッドを読んだ時刻（ms）。未読/未取得は null */
+  peerLastReadMs: number | null;
+};
+
+/** スレッドの既読時刻を購読し、相手側の最終既読 ms を返す */
+export function subscribeChatThreadRead(
+  myUid: string,
+  peerUid: string,
+  onData: (state: ChatThreadReadState) => void
+): Unsubscribe | null {
+  const db = getFirebaseDb();
+  if (!db) return null;
+  const [low, high] = [myUid, peerUid].sort();
+  const threadId = `${low}_${high}`;
+  // 相手の既読フィールド（自分が low なら相手は high 側）
+  const peerField = myUid === low ? "lastReadHigh" : "lastReadLow";
+  return onSnapshot(
+    doc(db, CHAT_THREADS, threadId),
+    (snap) => {
+      const data = snap.data();
+      onData({ peerLastReadMs: chatTimestampMs(data?.[peerField]) });
+    },
+    () => onData({ peerLastReadMs: null })
   );
 }
 

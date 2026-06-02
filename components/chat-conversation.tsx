@@ -5,8 +5,11 @@ import type { User } from "firebase/auth";
 import type { ChatPeerEntry } from "@/lib/firestore-chat-date";
 import {
   chatThreadId,
+  chatTimestampMs,
+  markChatThreadRead,
   sendChatMessage,
   subscribeChatMessages,
+  subscribeChatThreadRead,
   type ChatMessageRow,
 } from "@/lib/firestore-chat";
 import { ChatSettingsSheet } from "@/components/chat-settings-sheet";
@@ -105,6 +108,7 @@ export function ChatConversation({
   const [sending, setSending] = useState(false);
   const [sendError, setSendError] = useState<string | null>(null);
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [peerLastReadMs, setPeerLastReadMs] = useState<number | null>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
 
   const threadId = chatThreadId(user.uid, peer.uid);
@@ -112,6 +116,18 @@ export function ChatConversation({
     () => (messages && messages.length > 0 ? groupMessagesWithDates(messages) : []),
     [messages]
   );
+
+  // 相手が読んだ自分の最新メッセージにだけ「既読」を出す
+  const lastReadMineId = useMemo(() => {
+    if (!messages || peerLastReadMs == null) return null;
+    let id: string | null = null;
+    for (const m of messages) {
+      if (m.senderUid !== user.uid) continue;
+      const ms = chatTimestampMs(m.createdAt);
+      if (ms != null && ms <= peerLastReadMs) id = m.id;
+    }
+    return id;
+  }, [messages, peerLastReadMs, user.uid]);
 
   useEffect(() => {
     const unsub = subscribeChatMessages(
@@ -131,6 +147,20 @@ export function ChatConversation({
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
+
+  // 相手の既読時刻を購読
+  useEffect(() => {
+    const unsub = subscribeChatThreadRead(user.uid, peer.uid, (s) =>
+      setPeerLastReadMs(s.peerLastReadMs)
+    );
+    return () => unsub?.();
+  }, [user.uid, peer.uid]);
+
+  // この会話を開いている／新着が届いたら自分の既読を記録
+  useEffect(() => {
+    if (!messages) return;
+    void markChatThreadRead(user.uid, peer.uid);
+  }, [user.uid, peer.uid, messages]);
 
   const handleSend = useCallback(async () => {
     if (!canSend) return;
@@ -215,7 +245,9 @@ export function ChatConversation({
                     </div>
                     <p className={`mt-1 flex items-center gap-1 text-[10px] text-zinc-500 ${mine ? "justify-end" : ""}`}>
                       {formatMessageTime(m.createdAt)}
-                      {mine && canSend ? <span className="text-[var(--lobby-red)]">既読</span> : null}
+                      {mine && m.id === lastReadMineId ? (
+                        <span className="text-[var(--lobby-red)]">既読</span>
+                      ) : null}
                     </p>
                   </div>
                 </div>

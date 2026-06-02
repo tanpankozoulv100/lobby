@@ -575,9 +575,24 @@ service cloud.firestore {
       allow update: if request.auth != null
         && isChatThreadDocParticipant(resource.data)
         && isChatThreadDocParticipant(request.resource.data)
-        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['updatedAt'])
         && request.resource.data.participantLow == resource.data.participantLow
-        && request.resource.data.participantHigh == resource.data.participantHigh;
+        && request.resource.data.participantHigh == resource.data.participantHigh
+        && (
+          // メッセージ送信時の updatedAt 更新
+          request.resource.data.diff(resource.data).affectedKeys().hasOnly(['updatedAt'])
+          // 自分（low 側）の既読時刻の更新
+          || (
+            request.auth.uid == resource.data.participantLow
+            && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['lastReadLow'])
+            && request.resource.data.lastReadLow is timestamp
+          )
+          // 自分（high 側）の既読時刻の更新
+          || (
+            request.auth.uid == resource.data.participantHigh
+            && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['lastReadHigh'])
+            && request.resource.data.lastReadHigh is timestamp
+          )
+        );
       allow delete: if false;
 
       match /messages/{messageId} {
