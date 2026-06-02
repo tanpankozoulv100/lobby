@@ -305,7 +305,13 @@ export async function registerLinkByPeerCode(
       inboundOnPeerSnap.exists() ? (inboundOnPeerSnap.data() as MatchLinkTimestamps) : undefined
     );
     if (lastMatchAt) {
-      const seasonEndAt = (await fetchUserSeasonEndDate(myUid)) ?? undefined;
+      let seasonEndAt: Date | undefined;
+      try {
+        seasonEndAt = (await fetchUserSeasonEndDate(myUid)) ?? undefined;
+      } catch {
+        // シーズン終了日の取得に失敗しても再マッチ判定は止めない（既定の24時間で判定）
+        seasonEndAt = undefined;
+      }
       const cooldownMessage = getRematchCooldownMessage(lastMatchAt, new Date(), seasonEndAt);
       if (cooldownMessage) {
         return { ok: false, message: cooldownMessage };

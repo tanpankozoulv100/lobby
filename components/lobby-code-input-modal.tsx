@@ -40,8 +40,14 @@ export function LobbyCodeInputModal({
       setMessage(null);
       setSuccess(null);
       setBusy(true);
-      const result = await registerLinkByPeerCode(uid, raw);
-      setBusy(false);
+      let result: Awaited<ReturnType<typeof registerLinkByPeerCode>>;
+      try {
+        result = await registerLinkByPeerCode(uid, raw);
+      } catch {
+        result = { ok: false, message: "マッチングに失敗しました。通信環境を確認して、もう一度お試しください。" };
+      } finally {
+        setBusy(false);
+      }
       if (result.ok) {
         const text = result.rematched
           ? "再マッチしました。チャットの送信期限が更新されます。"

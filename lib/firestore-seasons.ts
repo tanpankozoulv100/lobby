@@ -73,7 +73,13 @@ export async function fetchSeasonDisplay(seasonId: string): Promise<SeasonDispla
 export async function fetchLegacyDefaultSeasonDisplay(): Promise<SeasonDisplay | null> {
   const db = getFirebaseDb();
   if (!db) return null;
-  const q = query(collection(db, SEASONS), where("isLegacyDefault", "==", true), limit(1));
+  // status の絞り込みを含めないと seasons の read ルール（published のみ）でクエリが拒否される
+  const q = query(
+    collection(db, SEASONS),
+    where("isLegacyDefault", "==", true),
+    where("status", "==", "published"),
+    limit(1)
+  );
   const snap = await getDocs(q);
   const first = snap.docs[0];
   if (!first) return null;
@@ -85,20 +91,25 @@ export async function fetchLegacyDefaultSeasonDisplay(): Promise<SeasonDisplay |
 export async function fetchUserSeasonEndDate(uid: string): Promise<Date | null> {
   const db = getFirebaseDb();
   if (!db) return null;
-  const userSnap = await getDoc(doc(db, "users", uid));
-  if (!userSnap.exists()) return null;
-  const seasonId = userSnap.data()?.currentSeasonId;
-  if (typeof seasonId !== "string" || !seasonId) {
-    const legacy = await fetchLegacyDefaultSeasonDisplay();
-    return legacy?.endAt ?? null;
+  try {
+    const userSnap = await getDoc(doc(db, "users", uid));
+    if (!userSnap.exists()) return null;
+    const seasonId = userSnap.data()?.currentSeasonId;
+    if (typeof seasonId !== "string" || !seasonId) {
+      const legacy = await fetchLegacyDefaultSeasonDisplay();
+      return legacy?.endAt ?? null;
+    }
+    const fields = await fetchSeasonFields(seasonId);
+    if (!fields) return null;
+    const end = fields.endAt;
+    if (end && typeof end === "object" && "toDate" in end && typeof end.toDate === "function") {
+      return end.toDate();
+    }
+    return null;
+  } catch {
+    // シーズン情報が取れなくても呼び出し側を止めない
+    return null;
   }
-  const fields = await fetchSeasonFields(seasonId);
-  if (!fields) return null;
-  const end = fields.endAt;
-  if (end && typeof end === "object" && "toDate" in end && typeof end.toDate === "function") {
-    return end.toDate();
-  }
-  return null;
 }
 
 export function subscribeSeason(

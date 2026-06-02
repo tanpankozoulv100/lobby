@@ -26,6 +26,7 @@ export function LobbyCameraScanModal({
   const scannerRef = useRef<Html5Qrcode | null>(null);
   const handledRef = useRef(false);
   const [message, setMessage] = useState<string | null>(null);
+  const [success, setSuccess] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
   const stopScanner = useCallback(async () => {
@@ -53,12 +54,27 @@ export function LobbyCameraScanModal({
       handledRef.current = true;
       setBusy(true);
       setMessage(null);
-      const result = await registerLinkByPeerCode(uid, code);
-      setBusy(false);
+      setSuccess(null);
+      let result: Awaited<ReturnType<typeof registerLinkByPeerCode>>;
+      try {
+        result = await registerLinkByPeerCode(uid, code);
+      } catch {
+        result = { ok: false, message: "マッチングに失敗しました。通信環境を確認して、もう一度お試しください。" };
+      } finally {
+        setBusy(false);
+      }
       if (result.ok) {
         await stopScanner();
         onMatched?.({ rematched: result.rematched === true });
-        onClose();
+        setSuccess(
+          result.rematched
+            ? "再マッチしました。チャットの送信期限が更新されます。"
+            : "マッチングしました。"
+        );
+        window.setTimeout(() => {
+          setSuccess(null);
+          onClose();
+        }, 1100);
         return;
       }
       handledRef.current = false;
@@ -71,6 +87,7 @@ export function LobbyCameraScanModal({
     if (!open) {
       handledRef.current = false;
       setMessage(null);
+      setSuccess(null);
       setBusy(false);
       void stopScanner();
       return;
@@ -146,6 +163,13 @@ export function LobbyCameraScanModal({
         {busy ? (
           <div className="pointer-events-none absolute inset-0 flex items-center justify-center bg-black/40">
             <p className="rounded-lg bg-black/70 px-4 py-2 text-sm text-white">マッチング中…</p>
+          </div>
+        ) : null}
+        {success ? (
+          <div className="pointer-events-none absolute inset-0 flex items-center justify-center bg-black/55 px-6">
+            <p className="rounded-xl bg-emerald-500/95 px-4 py-3 text-center text-sm font-medium text-white shadow-lg">
+              {success}
+            </p>
           </div>
         ) : null}
       </div>
