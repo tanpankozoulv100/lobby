@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import { CONNECTION_CODE_LENGTH } from "@/lib/connection-code-input";
 import { LobbyConnectionCodeInput } from "@/components/lobby-connection-code-input";
 import { registerLinkByPeerCode } from "@/lib/firestore-connections";
+import { withTimeout } from "@/lib/promise-timeout";
 
 type Props = {
   open: boolean;
@@ -42,7 +43,10 @@ export function LobbyCodeInputModal({
       setBusy(true);
       let result: Awaited<ReturnType<typeof registerLinkByPeerCode>>;
       try {
-        result = await registerLinkByPeerCode(uid, raw);
+        result = await withTimeout(registerLinkByPeerCode(uid, raw), 15000, {
+          ok: false,
+          message: "通信に時間がかかっています。電波状況を確認して、もう一度お試しください。",
+        });
       } catch {
         result = { ok: false, message: "マッチングに失敗しました。通信環境を確認して、もう一度お試しください。" };
       } finally {

@@ -6,6 +6,7 @@ import {
   extractPeerCodeFromQrOrInput,
   registerLinkByPeerCode,
 } from "@/lib/firestore-connections";
+import { withTimeout } from "@/lib/promise-timeout";
 
 type Props = {
   open: boolean;
@@ -57,7 +58,10 @@ export function LobbyCameraScanModal({
       setSuccess(null);
       let result: Awaited<ReturnType<typeof registerLinkByPeerCode>>;
       try {
-        result = await registerLinkByPeerCode(uid, code);
+        result = await withTimeout(registerLinkByPeerCode(uid, code), 15000, {
+          ok: false,
+          message: "通信に時間がかかっています。電波状況を確認して、もう一度お試しください。",
+        });
       } catch {
         result = { ok: false, message: "マッチングに失敗しました。通信環境を確認して、もう一度お試しください。" };
       } finally {
