@@ -14,6 +14,8 @@ type Props = {
   uid: string;
   onRequestCodeInput: () => void;
   onMatched?: (result: { rematched: boolean }) => void;
+  /** 運営スタッフは再マッチの24時間制限をスキップ（動作確認用） */
+  bypassCooldown?: boolean;
 };
 
 export function LobbyCameraScanModal({
@@ -22,6 +24,7 @@ export function LobbyCameraScanModal({
   uid,
   onRequestCodeInput,
   onMatched,
+  bypassCooldown,
 }: Props) {
   const readerIdRef = useRef(`lobby-qr-reader-${Math.random().toString(36).slice(2, 11)}`);
   const scannerRef = useRef<Html5Qrcode | null>(null);
@@ -58,7 +61,7 @@ export function LobbyCameraScanModal({
       setSuccess(null);
       let result: Awaited<ReturnType<typeof registerLinkByPeerCode>>;
       try {
-        result = await withTimeout(registerLinkByPeerCode(uid, code), 15000, {
+        result = await withTimeout(registerLinkByPeerCode(uid, code, { bypassCooldown }), 15000, {
           ok: false,
           message: "通信に時間がかかっています。電波状況を確認して、もう一度お試しください。",
         });
@@ -84,7 +87,7 @@ export function LobbyCameraScanModal({
       handledRef.current = false;
       setMessage(result.message);
     },
-    [uid, busy, onClose, onMatched, stopScanner]
+    [uid, busy, onClose, onMatched, stopScanner, bypassCooldown]
   );
 
   useEffect(() => {

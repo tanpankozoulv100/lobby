@@ -35,10 +35,15 @@ export function LobbyConnectionCodeInput({ value, onChange, onComplete, disabled
 
   const handleChange = useCallback(
     (e: React.ChangeEvent<HTMLInputElement>) => {
-      if (composingRef.current) return;
-      applyValue(e.target.value);
+      // 予測変換キーボードでは composition が続くため、ここで return すると入力が一切反映されない。
+      // 常に表示を更新し、確定（onComplete）だけ composition 終了後に行う。
+      const next = normalizeConnectionCodeInput(e.target.value);
+      onChange(next);
+      if (!composingRef.current && next.length === CONNECTION_CODE_LENGTH) {
+        onComplete?.(next);
+      }
     },
-    [applyValue]
+    [onChange, onComplete]
   );
 
   const handleCompositionEnd = useCallback(

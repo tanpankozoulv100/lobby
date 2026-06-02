@@ -234,8 +234,10 @@ export function subscribeInboundLinks(
 
 export async function registerLinkByPeerCode(
   myUid: string,
-  peerCodeRaw: string
+  peerCodeRaw: string,
+  opts?: { bypassCooldown?: boolean }
 ): Promise<{ ok: true; rematched?: boolean } | { ok: false; message: string }> {
+  const bypassCooldown = opts?.bypassCooldown === true;
   const db = getFirebaseDb();
   if (!db) return { ok: false, message: "Firestore に接続できません。" };
   const normalized =
@@ -299,7 +301,7 @@ export async function registerLinkByPeerCode(
       outboundSnap.exists() ? (outboundSnap.data() as MatchLinkTimestamps) : undefined,
       inboundOnMeSnap.exists() ? (inboundOnMeSnap.data() as MatchLinkTimestamps) : undefined
     );
-    if (lastMatchAt) {
+    if (lastMatchAt && !bypassCooldown) {
       let seasonEndAt: Date | undefined;
       try {
         seasonEndAt = (await fetchUserSeasonEndDate(myUid)) ?? undefined;

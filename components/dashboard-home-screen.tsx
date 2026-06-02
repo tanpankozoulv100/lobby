@@ -266,6 +266,7 @@ export function DashboardHomeScreen({
         onClose={() => setMatchFlow(null)}
         uid={user.uid}
         onRequestCodeInput={() => setMatchFlow("code")}
+        bypassCooldown={isStaff}
       />
 
       <LobbyCodeInputModal
@@ -273,6 +274,7 @@ export function DashboardHomeScreen({
         onClose={() => setMatchFlow(null)}
         uid={user.uid}
         onBackToCamera={() => setMatchFlow("camera")}
+        bypassCooldown={isStaff}
       />
     </div>
   );

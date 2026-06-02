@@ -12,6 +12,8 @@ type Props = {
   uid: string;
   onBackToCamera?: () => void;
   onMatched?: (result: { rematched: boolean }) => void;
+  /** 運営スタッフは再マッチの24時間制限をスキップ（動作確認用） */
+  bypassCooldown?: boolean;
 };
 
 export function LobbyCodeInputModal({
@@ -20,6 +22,7 @@ export function LobbyCodeInputModal({
   uid,
   onBackToCamera,
   onMatched,
+  bypassCooldown,
 }: Props) {
   const [code, setCode] = useState("");
   const [busy, setBusy] = useState(false);
@@ -43,7 +46,7 @@ export function LobbyCodeInputModal({
       setBusy(true);
       let result: Awaited<ReturnType<typeof registerLinkByPeerCode>>;
       try {
-        result = await withTimeout(registerLinkByPeerCode(uid, raw), 15000, {
+        result = await withTimeout(registerLinkByPeerCode(uid, raw, { bypassCooldown }), 15000, {
           ok: false,
           message: "通信に時間がかかっています。電波状況を確認して、もう一度お試しください。",
         });
@@ -67,7 +70,7 @@ export function LobbyCodeInputModal({
       }
       setMessage(result.message);
     },
-    [uid, busy, onClose, onMatched]
+    [uid, busy, onClose, onMatched, bypassCooldown]
   );
 
   const handleSubmit = useCallback(() => {
