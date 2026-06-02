@@ -8,8 +8,9 @@ import {
   query,
   runTransaction,
   serverTimestamp,
+  setDoc,
+  updateDoc,
   where,
-  writeBatch,
   type Unsubscribe,
 } from "firebase/firestore";
 import { normalizeEncounterCount } from "@/lib/match-encounter";
@@ -265,44 +266,38 @@ export async function registerLinkByPeerCode(
     return { ok: false, message: "自分のコードは入力できません。" };
   }
   const linkRef = doc(db, "users", myUid, OUTBOUND, peerUid);
+  // 相手側ミラー（users/{peer}/linkedFrom/{me}）はルール上「読めない」。書き込み専用で扱う。
   const inboundOnPeerRef = doc(db, "users", peerUid, LINKED_FROM, myUid);
   const inboundOnMeRef = doc(db, "users", myUid, LINKED_FROM, peerUid);
 
-  const [outboundSnap, inboundOnPeerSnap, inboundOnMeSnap] = await Promise.all([
-    getDoc(linkRef),
-    getDoc(inboundOnPeerRef),
-    getDoc(inboundOnMeRef),
-  ]);
+  // 自分が読めるドキュメントだけ取得する（相手の linkedFrom を読むと permission-denied になる）
+  let outboundSnap: Awaited<ReturnType<typeof getDoc>>;
+  let inboundOnMeSnap: Awaited<ReturnType<typeof getDoc>>;
+  try {
+    [outboundSnap, inboundOnMeSnap] = await Promise.all([
+      getDoc(linkRef),
+      getDoc(inboundOnMeRef),
+    ]);
+  } catch {
+    return { ok: false, message: "マッチング状態の確認に失敗しました。通信環境を確認してください。" };
+  }
 
   const rematchedAt = serverTimestamp();
-  const alreadyLinked =
-    outboundSnap.exists() || inboundOnPeerSnap.exists() || inboundOnMeSnap.exists();
+  const alreadyLinked = outboundSnap.exists() || inboundOnMeSnap.exists();
 
-  const commitRematchBatch = async () => {
-    const batch = writeBatch(db);
-    if (outboundSnap.exists()) {
-      const prevCount = normalizeEncounterCount(outboundSnap.data()?.encounterCount);
-      batch.update(linkRef, {
-        lastMatchedAt: rematchedAt,
-        encounterCount: prevCount + 1,
-      });
-    } else {
-      batch.set(linkRef, { createdAt: rematchedAt, encounterCount: 1 });
+  // 相手側ミラーは存在可否が読めないため update→（無ければ）create で冪等に書く
+  const writeInboundOnPeerMirror = async () => {
+    try {
+      await updateDoc(inboundOnPeerRef, { lastMatchedAt: rematchedAt });
+    } catch {
+      await setDoc(inboundOnPeerRef, { createdAt: rematchedAt });
     }
-    if (inboundOnPeerSnap.exists()) {
-      batch.update(inboundOnPeerRef, { lastMatchedAt: rematchedAt });
-    } else {
-      batch.set(inboundOnPeerRef, { createdAt: rematchedAt });
-    }
-    await batch.commit();
-    await ensureChatThread(myUid, peerUid);
   };
 
   if (alreadyLinked) {
     const lastMatchAt = latestMatchInstantFromLinkFields(
       outboundSnap.exists() ? (outboundSnap.data() as MatchLinkTimestamps) : undefined,
-      inboundOnMeSnap.exists() ? (inboundOnMeSnap.data() as MatchLinkTimestamps) : undefined,
-      inboundOnPeerSnap.exists() ? (inboundOnPeerSnap.data() as MatchLinkTimestamps) : undefined
+      inboundOnMeSnap.exists() ? (inboundOnMeSnap.data() as MatchLinkTimestamps) : undefined
     );
     if (lastMatchAt) {
       let seasonEndAt: Date | undefined;
@@ -319,7 +314,15 @@ export async function registerLinkByPeerCode(
     }
 
     try {
-      await commitRematchBatch();
+      if (outboundSnap.exists()) {
+        const prevData = outboundSnap.data() as { encounterCount?: unknown } | undefined;
+        const prevCount = normalizeEncounterCount(prevData?.encounterCount);
+        await updateDoc(linkRef, { lastMatchedAt: rematchedAt, encounterCount: prevCount + 1 });
+      } else {
+        await setDoc(linkRef, { createdAt: rematchedAt, encounterCount: 1 });
+      }
+      await writeInboundOnPeerMirror();
+      await ensureChatThread(myUid, peerUid);
       return { ok: true, rematched: true };
     } catch (err: unknown) {
       const c = err && typeof err === "object" && "code" in err ? String((err as { code: string }).code) : "";
@@ -335,10 +338,8 @@ export async function registerLinkByPeerCode(
   }
 
   try {
-    const batch = writeBatch(db);
-    batch.set(linkRef, { createdAt: serverTimestamp(), encounterCount: 1 });
-    batch.set(inboundOnPeerRef, { createdAt: serverTimestamp() });
-    await batch.commit();
+    await setDoc(linkRef, { createdAt: serverTimestamp(), encounterCount: 1 });
+    await writeInboundOnPeerMirror();
     await ensureChatThread(myUid, peerUid);
     return { ok: true, rematched: false };
   } catch (err: unknown) {
