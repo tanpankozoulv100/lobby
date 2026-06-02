@@ -124,13 +124,13 @@ function setupEventInputSheet() {
   masterSh.setColumnWidth(1, 280);
   masterSh.setColumnWidth(3, 120);
   masterSh.hideColumns(2, 2);
-  SpreadsheetApp.getUi().alert("EventInput setup complete.");
+  showAlert_("EventInput setup complete.");
 }
 
 function insertSampleData() {
   const sh = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(SHEET_NAME);
   if (!sh) {
-    SpreadsheetApp.getUi().alert("Run setup first.");
+    showAlert_("Run setup first.");
     return;
   }
   sh.getRange(2, 1, 4, 10).setValues([
@@ -205,7 +205,7 @@ function normalizeDateKey_(value) {
 function sendPendingRows() {
   const sh = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(SHEET_NAME);
   if (!sh) {
-    SpreadsheetApp.getUi().alert("Sheet not found.");
+    showAlert_("Sheet not found.");
     return;
   }
 
@@ -274,7 +274,15 @@ function sendPendingRows() {
     }
   }
 
-  SpreadsheetApp.getUi().alert(`Done. success=${success}, failure=${failure}`);
+  showAlert_(`Done. success=${success}, failure=${failure}`);
+}
+
+/**
+ * time-based trigger から呼ぶ用（UI なしでも失敗しない）。
+ * Trigger はこの関数を指定する。
+ */
+function sendPendingRowsTrigger() {
+  sendPendingRows();
 }
 
 function validateRowPayload_(p) {
@@ -324,4 +332,13 @@ function postJson_(url, payload, headers) {
 function getOrCreateSheet_(ss, name) {
   const s = ss.getSheetByName(name);
   return s || ss.insertSheet(name);
+}
+
+function showAlert_(message) {
+  try {
+    SpreadsheetApp.getUi().alert(String(message));
+  } catch (_e) {
+    // time-based trigger など UI コンテキストがない実行ではログ出力のみ
+    Logger.log(String(message));
+  }
 }
