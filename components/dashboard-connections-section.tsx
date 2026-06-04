@@ -21,6 +21,7 @@ import {
   MATCH_ENCOUNTER_BADGE_CLASS,
 } from "@/lib/match-encounter";
 import { useProfileMediaUrl } from "@/lib/use-profile-media-url";
+import { ProfileHitokotoBubble } from "@/components/profile-hitokoto-bubble";
 
 function HistoryConfigMissing() {
   return (
@@ -36,6 +37,7 @@ function MatchGridAvatar({
   encounterCount,
   displayName,
   avatarPath,
+  bio,
   myAnswers,
   onSelect,
 }: {
@@ -43,6 +45,7 @@ function MatchGridAvatar({
   encounterCount: number;
   displayName: string;
   avatarPath?: string;
+  bio?: string;
   myAnswers: CompatibilityAnswers | undefined;
   onSelect: () => void;
 }) {
@@ -56,6 +59,9 @@ function MatchGridAvatar({
       onClick={onSelect}
       className="flex flex-col items-center gap-1 rounded-xl p-1 text-center transition active:bg-zinc-100"
     >
+      <span className="flex min-h-[1.75rem] items-end px-0.5">
+        <ProfileHitokotoBubble text={bio} tail="bottom" />
+      </span>
       <span className="relative">
         {avatarUrl ? (
           // eslint-disable-next-line @next/next/no-img-element
@@ -85,7 +91,7 @@ function DashboardConnectionsLoaded({ user }: { user: User }) {
   const [linksError, setLinksError] = useState<string | null>(null);
   const [myAnswers, setMyAnswers] = useState<CompatibilityAnswers | undefined>();
   const [peerMeta, setPeerMeta] = useState<
-    Record<string, { displayName: string; avatarPath?: string }>
+    Record<string, { displayName: string; avatarPath?: string; bio?: string }>
   >({});
   const [helpOpen, setHelpOpen] = useState(false);
   const [selectedPeer, setSelectedPeer] = useState<MergedMatchRow | null>(null);
@@ -129,6 +135,7 @@ function DashboardConnectionsLoaded({ user }: { user: User }) {
           {
             displayName: peer?.displayName?.trim() || `No.${row.peerUid.slice(0, 6)}`,
             avatarPath: peer?.avatarPath,
+            bio: peer?.bio,
           },
         ] as const;
       })
@@ -187,6 +194,7 @@ function DashboardConnectionsLoaded({ user }: { user: User }) {
                     encounterCount={row.encounterCount}
                     displayName={meta?.displayName ?? "…"}
                     avatarPath={meta?.avatarPath}
+                    bio={meta?.bio}
                     myAnswers={myAnswers}
                     onSelect={() => setSelectedPeer(row)}
                   />

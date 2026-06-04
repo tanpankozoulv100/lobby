@@ -19,6 +19,7 @@ import {
   parseBirthDateInput,
   validateLegalName,
 } from "@/lib/lobby-profile";
+import { HITOKOTO_MAX_LENGTH } from "@/lib/hitokoto";
 
 const USERS = "users";
 
@@ -204,8 +205,8 @@ export async function updateUserProfile(
   if (name.length > 50) {
     return { ok: false, message: "表示名は50文字以内にしてください。" };
   }
-  if (bioTrim.length > 500) {
-    return { ok: false, message: "自己紹介は500文字以内にしてください。" };
+  if (bioTrim.length > HITOKOTO_MAX_LENGTH) {
+    return { ok: false, message: `ひとことは${HITOKOTO_MAX_LENGTH}文字以内にしてください。` };
   }
   if (!isPrefectureValid(pref)) {
     return { ok: false, message: "居住地（都道府県）を選択してください。" };
@@ -246,8 +247,8 @@ export async function updateUserProfilePresentation(
     return { ok: false, message: "Firestore に接続できません。" };
   }
   const bioTrim = bio.trim();
-  if (bioTrim.length > 500) {
-    return { ok: false, message: "メッセージは500文字以内にしてください。" };
+  if (bioTrim.length > HITOKOTO_MAX_LENGTH) {
+    return { ok: false, message: `ひとことは${HITOKOTO_MAX_LENGTH}文字以内にしてください。` };
   }
   const answers = sanitizeCompatibilityAnswers(compatibilityAnswers);
   try {

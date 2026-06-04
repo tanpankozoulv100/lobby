@@ -20,6 +20,7 @@ import {
 } from "@/lib/compatibility-questions";
 import { uploadProfileMedia } from "@/lib/profile-media-upload";
 import { useProfileMediaUrl } from "@/lib/use-profile-media-url";
+import { HITOKOTO_MAX_LENGTH } from "@/lib/hitokoto";
 
 function MediaAddButton({
   label,
@@ -279,12 +280,15 @@ export function ProfileEditSheet({
                   <input
                     id="profile-bio"
                     type="text"
-                    maxLength={500}
-                    placeholder="メッセージを入力してください"
+                    maxLength={HITOKOTO_MAX_LENGTH}
+                    placeholder={`ひとこと（${HITOKOTO_MAX_LENGTH}字以内）`}
                     value={bio}
                     onChange={(e) => setBio(e.target.value)}
                     className="w-full rounded-xl border border-zinc-200 bg-[var(--lobby-surface-raised)] px-3 py-2.5 text-base"
                   />
+                  <p className="mt-1 text-right text-[11px] text-zinc-400">
+                    {bio.trim().length}/{HITOKOTO_MAX_LENGTH}
+                  </p>
                 </div>
 
                 <div>

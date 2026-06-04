@@ -20,6 +20,7 @@ import {
 } from "@/lib/firestore-users";
 import type { CompatibilityAnswers } from "@/lib/compatibility-questions";
 import { ProfileAvatarCircle } from "@/components/profile-avatar-circle";
+import { ProfileHitokotoBubble } from "@/components/profile-hitokoto-bubble";
 import { useUserSeason } from "@/lib/use-user-season";
 
 function formatExpiryShort(d: Date): string {
@@ -39,6 +40,7 @@ function TalkListRow({
   peer,
   displayName,
   avatarPath,
+  bio,
   isStaff,
   myAnswers,
   onSelect,
@@ -46,6 +48,7 @@ function TalkListRow({
   peer: ChatPeerEntry;
   displayName: string;
   avatarPath?: string;
+  bio?: string;
   isStaff: boolean;
   myAnswers: CompatibilityAnswers | undefined;
   onSelect: () => void;
@@ -75,6 +78,9 @@ function TalkListRow({
               <MatchCompatibilityInline peerUid={peer.uid} myAnswers={myAnswers} className="text-[13px]" />
             ) : null}
           </span>
+          {!isStaff && bio?.trim() ? (
+            <ProfileHitokotoBubble text={bio} tail="left" className="mt-1.5 ml-1" />
+          ) : null}
           <span className={`mt-0.5 block truncate text-xs ${peer.isActive ? "text-zinc-500" : "text-zinc-400"}`}>
             {subtitle}
           </span>
@@ -92,7 +98,7 @@ function DashboardChatLoaded({ user }: { user: User }) {
   const { season } = useUserSeason(user.uid);
   const [peers, setPeers] = useState<ChatPeerEntry[] | null>(null);
   const [peerMeta, setPeerMeta] = useState<
-    Record<string, { displayName: string; avatarPath?: string }>
+    Record<string, { displayName: string; avatarPath?: string; bio?: string }>
   >({});
   const [selectedPeer, setSelectedPeer] = useState<ChatPeerEntry | null>(null);
   const [myAnswers, setMyAnswers] = useState<CompatibilityAnswers | undefined>();
@@ -165,6 +171,7 @@ function DashboardChatLoaded({ user }: { user: User }) {
           {
             displayName: profile?.displayName?.trim() || `No.${p.uid.slice(0, 6)}`,
             avatarPath: profile?.avatarPath,
+            bio: profile?.bio,
           },
         ] as const;
       })
@@ -234,6 +241,7 @@ function DashboardChatLoaded({ user }: { user: User }) {
               peer={peer}
               displayName={peerMeta[peer.uid]?.displayName ?? "…"}
               avatarPath={peerMeta[peer.uid]?.avatarPath}
+              bio={peerMeta[peer.uid]?.bio}
               isStaff={isStaff}
               myAnswers={myAnswers}
               onSelect={() => setSelectedPeer(peer)}
