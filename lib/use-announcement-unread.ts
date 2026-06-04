@@ -17,11 +17,21 @@ export function useAnnouncementUnread(uid: string | null) {
       setRows([]);
       return;
     }
-    const unsub = subscribePublishedAnnouncements(
-      (list) => setRows(list),
-      () => setRows([])
-    );
-    return () => unsub?.();
+    let unsub: (() => void) | null = null;
+    // 予約配信は publishedAt<=now でフィルタするため、定期的に now を更新して再購読する
+    const start = () => {
+      unsub?.();
+      unsub = subscribePublishedAnnouncements(
+        (list) => setRows(list),
+        () => setRows((prev) => prev ?? [])
+      );
+    };
+    start();
+    const iv = window.setInterval(start, 60_000);
+    return () => {
+      window.clearInterval(iv);
+      unsub?.();
+    };
   }, []);
 
   const hasUnread = useMemo(() => {

@@ -42,9 +42,11 @@ export function subscribePublishedAnnouncements(
     onError?.("Firestore に接続できません。");
     return null;
   }
+  // publishedAt が現在以前のものだけ表示（未来日時＝予約配信は時刻到来まで隠す）
   const q = query(
     collection(db, ANNOUNCEMENTS),
     where("isPublished", "==", true),
+    where("publishedAt", "<=", Timestamp.now()),
     orderBy("publishedAt", "desc"),
     limit(LIST_LIMIT)
   );
