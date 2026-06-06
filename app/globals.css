@@ -389,9 +389,10 @@ body {
   pointer-events: none;
 }
 
-/* 床: 光が当たる中央の光だまりと木目 */
+/* 床: 光が当たる中央の光だまりと木目（壁パネルより背面に置く） */
 .lobby-room-floor {
   position: absolute;
+  z-index: 0;
   bottom: 0;
   left: 0;
   right: 0;
@@ -412,6 +413,7 @@ body {
 .lobby-room-scene {
   position: absolute;
   inset: 0;
+  z-index: 1;
   /* 部屋の中心に立っている一人称ビュー。視野角を広めにして壁が左右へ回り込む */
   perspective: 880px;
   perspective-origin: 50% 48%;
