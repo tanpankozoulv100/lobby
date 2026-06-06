@@ -49,20 +49,10 @@ function formatDeadlineBanner(d: Date): string {
 }
 
 /** 罫線つき便箋の読み取り表示 */
-function LetterSheet({
-  text,
-  className,
-  animateOpen,
-}: {
-  text: string;
-  className?: string;
-  animateOpen?: boolean;
-}) {
+function LetterSheet({ text, className }: { text: string; className?: string }) {
   return (
     <div
-      className={`lobby-letter-paper rounded-md border border-[var(--lobby-red)]/15 text-[15px] text-zinc-800 shadow-sm ${
-        animateOpen ? "lobby-letter-opening" : ""
-      } ${className ?? ""}`}
+      className={`lobby-letter-paper rounded-md border border-[var(--lobby-red)]/15 text-[15px] text-zinc-800 shadow-sm ${className ?? ""}`}
       style={{ fontFamily: LETTER_FONT }}
     >
       <p className="whitespace-pre-wrap break-words leading-[2rem]">{text}</p>
@@ -230,13 +220,29 @@ export function ChatConversation({
             </div>
             <div className="relative min-h-0 flex-1 px-4 pb-3">
               {phase === "folding" ? (
-                <>
-                  <LetterSheet text={draft} className="lobby-letter-sending h-full overflow-hidden" />
-                  <div
-                    className="pointer-events-none absolute inset-0"
-                    onAnimationEnd={() => void runSend()}
-                  />
-                </>
+                <div
+                  className="lobby-fold"
+                  onAnimationEnd={(e) => {
+                    if (e.animationName === "lobbyFoldDrop") void runSend();
+                  }}
+                >
+                  <div className="lobby-fold-half lobby-fold-top">
+                    <div
+                      className="lobby-fold-sheet lobby-letter-paper text-[15px] text-zinc-800"
+                      style={{ fontFamily: LETTER_FONT }}
+                    >
+                      <p className="whitespace-pre-wrap break-words leading-[2rem]">{draft}</p>
+                    </div>
+                  </div>
+                  <div className="lobby-fold-half lobby-fold-bottom">
+                    <div
+                      className="lobby-fold-sheet lobby-letter-paper text-[15px] text-zinc-800"
+                      style={{ fontFamily: LETTER_FONT }}
+                    >
+                      <p className="whitespace-pre-wrap break-words leading-[2rem]">{draft}</p>
+                    </div>
+                  </div>
+                </div>
               ) : (
                 <textarea
                   value={draft}

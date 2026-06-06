@@ -56,80 +56,30 @@ body {
 
 /* ===== レター（便箋）UI ===== */
 
-/* 罫線入りの便箋。罫線の起点を content-box にして 1 行目から文字を線に乗せる */
+/* 罫線入りの便箋。紙の質感（グレイン）＋罫線。起点を content-box にして 1 行目から線に乗せる */
 .lobby-letter-paper {
   --letter-rule: 2rem;
   line-height: var(--letter-rule);
   padding: 0.5rem 1.25rem 1.25rem;
-  background-color: #fffdf7;
-  background-image: repeating-linear-gradient(
-    to bottom,
-    transparent 0,
-    transparent calc(var(--letter-rule) - 1px),
-    rgba(178, 0, 27, 0.16) calc(var(--letter-rule) - 1px),
-    rgba(178, 0, 27, 0.16) var(--letter-rule)
-  );
-  background-attachment: local;
-  background-origin: content-box;
-  background-clip: content-box;
+  background-color: #f7f0df;
+  background-image:
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.07'/%3E%3C/svg%3E"),
+    repeating-linear-gradient(
+      to bottom,
+      transparent 0,
+      transparent calc(var(--letter-rule) - 1px),
+      rgba(120, 72, 36, 0.16) calc(var(--letter-rule) - 1px),
+      rgba(120, 72, 36, 0.16) var(--letter-rule)
+    );
+  background-repeat: repeat, repeat;
+  background-size: 180px 180px, auto;
+  background-attachment: local, local;
+  background-origin: content-box, content-box;
+  background-clip: content-box, content-box;
+  box-shadow: inset 0 0 26px rgba(150, 110, 60, 0.09);
 }
 
-/* 折りたたんで投函するアニメーション（送信時） */
-@keyframes lobbyLetterSend {
-  0% {
-    transform: scaleY(1) translateY(0);
-    opacity: 1;
-  }
-  28% {
-    transform: scaleY(0.62) translateY(0);
-  }
-  46% {
-    transform: scaleY(0.34) translateY(0);
-  }
-  62% {
-    transform: scaleY(0.18) translateY(0) rotate(-1deg);
-    opacity: 1;
-  }
-  100% {
-    transform: scaleY(0.18) translateY(70vh) rotate(2deg);
-    opacity: 0;
-  }
-}
-
-.lobby-letter-sending {
-  transform-origin: top center;
-  animation: lobbyLetterSend 1.15s cubic-bezier(0.6, 0, 0.4, 1) forwards;
-}
-
-/* 開封（折りたたまれた手紙を開く）アニメーション（受信時） */
-@keyframes lobbyLetterOpen {
-  0% {
-    transform: scaleY(0.18);
-    opacity: 0.5;
-  }
-  55% {
-    transform: scaleY(1.02);
-    opacity: 1;
-  }
-  100% {
-    transform: scaleY(1);
-    opacity: 1;
-  }
-}
-
-.lobby-letter-opening {
-  transform-origin: top center;
-  animation: lobbyLetterOpen 0.7s ease-out;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .lobby-letter-sending,
-  .lobby-letter-opening {
-    animation-duration: 0.01ms;
-  }
-}
-
-/* 受信した手紙（封筒）。タップで開封 → 中から便箋が出てくる */
+/* 受信した手紙（封筒）。タップでフタが開く → 本文を表示 */
 .lobby-env {
   position: relative;
   width: 100%;
@@ -138,35 +88,7 @@ body {
   cursor: pointer;
 }
 
-/* 封筒の奥側（内張り） */
-.lobby-env-back {
-  position: absolute;
-  inset: 0;
-  border-radius: 0.6rem;
-  background: linear-gradient(135deg, #5c0b18, #7a1020 55%, #5c0b18);
-}
-
-/* 中の便箋（封筒の裏に隠れていて、開封時に上へスライドして出てくる） */
-.lobby-env-paper {
-  position: absolute;
-  left: 7%;
-  right: 7%;
-  top: 6%;
-  height: 130%;
-  z-index: 1;
-  border-radius: 0.25rem;
-  background-color: #fffdf7;
-  background-image: repeating-linear-gradient(
-    to bottom,
-    transparent 0,
-    transparent calc(1.5rem - 1px),
-    rgba(178, 0, 27, 0.13) calc(1.5rem - 1px),
-    rgba(178, 0, 27, 0.13) 1.5rem
-  );
-  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.18);
-}
-
-/* 封筒の前面（便箋を隠すポケット） */
+/* 封筒の本体（便箋は中に隠れているので表には出さない） */
 .lobby-env-pocket {
   position: absolute;
   inset: 0;
@@ -190,11 +112,12 @@ body {
   backface-visibility: hidden;
 }
 
-/* 封蝋（ハートのシール） */
+/* 封蝋（ハートのシール）。三角フタの頂点（apex）に重ねる。フタとは別レイヤーで欠けない */
 .lobby-env-seal {
   position: absolute;
-  top: 34%;
+  top: 66%;
   left: 50%;
+  z-index: 5;
   transform: translate(-50%, -50%);
   display: flex;
   align-items: center;
@@ -204,14 +127,14 @@ body {
   border-radius: 9999px;
   color: #8a1828;
   background: radial-gradient(circle at 35% 30%, #f6e2c8, #d8a86a);
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.25);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
 }
 
 .lobby-env[data-stage="opening"] .lobby-env-flap {
-  animation: lobbyEnvFlap 0.6s ease-in forwards;
+  animation: lobbyEnvFlap 0.55s ease-in forwards;
 }
-.lobby-env[data-stage="opening"] .lobby-env-paper {
-  animation: lobbyEnvPaper 1s cubic-bezier(0.4, 0, 0.2, 1) 0.5s forwards;
+.lobby-env[data-stage="opening"] .lobby-env-seal {
+  animation: lobbyEnvSeal 0.25s ease-in forwards;
 }
 
 @keyframes lobbyEnvFlap {
@@ -219,22 +142,122 @@ body {
     transform: rotateX(0deg);
   }
   to {
-    transform: rotateX(-160deg);
+    transform: rotateX(-165deg);
   }
 }
 
-@keyframes lobbyEnvPaper {
+@keyframes lobbyEnvSeal {
   from {
-    transform: translateY(0);
+    transform: translate(-50%, -50%) scale(1);
+    opacity: 1;
   }
   to {
-    transform: translateY(-72%);
+    transform: translate(-50%, -90%) scale(0.6);
+    opacity: 0;
   }
 }
 
 @media (prefers-reduced-motion: reduce) {
   .lobby-env[data-stage="opening"] .lobby-env-flap,
-  .lobby-env[data-stage="opening"] .lobby-env-paper {
+  .lobby-env[data-stage="opening"] .lobby-env-seal {
+    animation-duration: 0.01ms;
+  }
+}
+
+/* 開封後の本文表示はふわっとフェードイン（上から出てくる動きはしない） */
+.lobby-letter-fadein {
+  animation: lobbyLetterFade 0.4s ease both;
+}
+@keyframes lobbyLetterFade {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+/* ===== 送信時：画面手前側に二つ折り → 投函 ===== */
+.lobby-fold {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  perspective: 1400px;
+  animation: lobbyFoldDrop 0.55s ease-in 0.85s forwards;
+}
+
+.lobby-fold-half {
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 50%;
+  overflow: hidden;
+  border-radius: 0.375rem;
+}
+
+.lobby-fold-top {
+  top: 0;
+  z-index: 1;
+}
+
+/* 下半分が中央の折り目を軸に、画面手前側へめくれて上半分に重なる */
+.lobby-fold-bottom {
+  top: 50%;
+  z-index: 2;
+  transform-origin: top center;
+  background-color: #f1e6cf;
+  animation: lobbyFoldHalf 0.85s cubic-bezier(0.55, 0, 0.35, 1) forwards;
+}
+
+/* 各半分は全体便箋を内包し、表示位置をずらして上半分／下半分を見せる */
+.lobby-fold-sheet {
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 200%;
+}
+.lobby-fold-top .lobby-fold-sheet {
+  top: 0;
+}
+.lobby-fold-bottom .lobby-fold-sheet {
+  top: -100%;
+  backface-visibility: hidden;
+}
+
+/* 折り目の陰影 */
+.lobby-fold-top::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 14px;
+  background: linear-gradient(to top, rgba(0, 0, 0, 0.12), rgba(0, 0, 0, 0));
+}
+
+@keyframes lobbyFoldHalf {
+  from {
+    transform: rotateX(0deg);
+  }
+  to {
+    transform: rotateX(168deg);
+  }
+}
+
+@keyframes lobbyFoldDrop {
+  0% {
+    transform: translateY(0) scale(1) rotate(0deg);
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(72vh) scale(0.6) rotate(3deg);
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .lobby-fold,
+  .lobby-fold-bottom {
     animation-duration: 0.01ms;
   }
 }
