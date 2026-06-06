@@ -1,7 +1,5 @@
 "use client";
 
-import Image from "next/image";
-import Link from "next/link";
 import { startTransition, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import type { User } from "firebase/auth";
@@ -27,6 +25,7 @@ import { DashboardConnectionsSection } from "@/components/dashboard-connections-
 import { DashboardChatSection } from "@/components/dashboard-chat-section";
 import { DashboardBottomNav, type DashboardTab } from "@/components/dashboard-bottom-nav";
 import { DashboardHomeScreen } from "@/components/dashboard-home-screen";
+import { LobbyRoom } from "@/components/lobby-room";
 import { DashboardSuspendedScreen } from "@/components/dashboard-suspended-screen";
 import { useAnnouncementUnread } from "@/lib/use-announcement-unread";
 
@@ -328,69 +327,38 @@ export function DashboardClient() {
     );
   }
 
-  const showBrandHeader = tab !== "home" && tab !== "mypage" && tab !== "chat";
-
   return (
-    <div className="min-h-dvh bg-[var(--lobby-screen-bg)] pb-[calc(5.25rem+env(safe-area-inset-bottom))]">
-      {showBrandHeader ? (
-        <header className="fixed top-0 left-0 right-0 z-40 border-b border-zinc-200/80 bg-[var(--lobby-cream)]/95 pt-[env(safe-area-inset-top)] shadow-sm backdrop-blur-sm">
-          <div className="mx-auto flex h-14 max-w-lg items-center justify-center px-4">
-            <button
-              type="button"
-              onClick={() => setTab("home")}
-              className="relative block h-10 w-36 shrink-0 border-0 bg-transparent p-0"
-              aria-label="Lobby ホームへ"
-            >
-              <Image
-                src="/assets/logo-lobby.png"
-                alt="Lobby"
-                fill
-                className="object-contain object-center"
-                sizes="144px"
-              />
-            </button>
-          </div>
-        </header>
-      ) : null}
-
-      <main
-        className={
-          showBrandHeader
-            ? "mx-auto max-w-lg px-4 pt-[calc(3.5rem+env(safe-area-inset-top))] pb-6"
-            : "mx-auto max-w-lg px-4 pt-[env(safe-area-inset-top)] pb-6"
-        }
-      >
-        {tab === "home" ? (
-          <DashboardHomeScreen
-            user={user}
-            announcementRows={announcementRows}
-            announcementHasUnread={homeAnnouncementUnread}
-            onAnnouncementMarkSeen={markAnnouncementsRead}
-          />
-        ) : null}
-        {tab === "history" ? (
-          <div className="space-y-4">
-            <DashboardConnectionsSection user={user} />
-          </div>
-        ) : null}
-        {tab === "chat" ? <DashboardChatSection user={user} /> : null}
-        {tab === "event" ? (
-          <div className="space-y-4">
+    <div className="min-h-dvh bg-[var(--lobby-screen-bg)]">
+      <LobbyRoom
+        activeTab={tab}
+        onTabChange={setTab}
+        walls={{
+          history: <DashboardConnectionsSection user={user} />,
+          event: (
             <DashboardEventsSection
               user={user}
               publishedEvents={publishedEvents}
               cohortFlipActive={profile?.cohortFlipActive === true}
             />
-          </div>
-        ) : null}
-        {tab === "mypage" ? (
-          <DashboardMypageTab
-            user={user}
-            onSignOut={signOutUser}
-            onNavigateTab={setTab}
-          />
-        ) : null}
-      </main>
+          ),
+          home: (
+            <DashboardHomeScreen
+              user={user}
+              announcementRows={announcementRows}
+              announcementHasUnread={homeAnnouncementUnread}
+              onAnnouncementMarkSeen={markAnnouncementsRead}
+            />
+          ),
+          chat: <DashboardChatSection user={user} />,
+          mypage: (
+            <DashboardMypageTab
+              user={user}
+              onSignOut={signOutUser}
+              onNavigateTab={setTab}
+            />
+          ),
+        }}
+      />
 
       {showEventsDebug ? (
         <DashboardEventsDebugPanel

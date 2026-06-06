@@ -29,7 +29,7 @@ type Props = {
 export function DashboardBottomNav({ active, onChange, homeHasUnread = false }: Props) {
   return (
     <nav
-      className="fixed bottom-0 left-0 right-0 z-50 border-t border-zinc-200/80 bg-[var(--lobby-cream)] pb-[env(safe-area-inset-bottom)] shadow-[0_-4px_24px_rgba(0,0,0,0.06)]"
+      className="lobby-bottom-nav fixed bottom-0 left-0 right-0 z-50 border-t pb-[env(safe-area-inset-bottom)]"
       aria-label="メインメニュー"
     >
       <ul className="mx-auto flex max-w-lg items-end justify-between gap-0 px-1 pt-1.5">
@@ -50,7 +50,7 @@ export function DashboardBottomNav({ active, onChange, homeHasUnread = false }: 
                 aria-label={
                   showDot ? `${navTitle ?? label}（新しいお知らせあり）` : (navTitle ?? label)
                 }
-                className={`relative flex w-full flex-col items-center gap-0.5 rounded-lg py-1.5 text-[9px] font-medium leading-tight transition-colors hover:bg-[var(--lobby-red)]/5 sm:text-[10px] ${
+                className={`relative flex w-full flex-col items-center gap-0.5 rounded-lg py-1.5 text-[9px] font-medium leading-tight transition-colors hover:bg-white/5 sm:text-[10px] ${
                   isHome ? "-mt-1 pb-0.5" : ""
                 }`}
                 aria-current={isOn ? "page" : undefined}
@@ -59,12 +59,14 @@ export function DashboardBottomNav({ active, onChange, homeHasUnread = false }: 
                   <Image src={src} alt="" width={44} height={44} className={iconClass} />
                   {showDot ? (
                     <span
-                      className="absolute -right-0.5 -top-0.5 h-2.5 w-2.5 rounded-full bg-red-500 ring-2 ring-[var(--lobby-cream)]"
+                      className="absolute -right-0.5 -top-0.5 h-2.5 w-2.5 rounded-full bg-red-500 ring-2 ring-[rgba(42,10,16,0.95)]"
                       aria-hidden
                     />
                   ) : null}
                 </span>
-                <span className={isOn ? "text-[var(--lobby-red)]" : "text-zinc-500"}>{label}</span>
+                <span className={isOn ? "lobby-nav-label lobby-nav-label--active" : "lobby-nav-label"}>
+                  {label}
+                </span>
               </button>
             </li>
           );

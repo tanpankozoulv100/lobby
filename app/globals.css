@@ -8,11 +8,18 @@
   --foreground: #18181b;
   --lobby-red: #b3001b;
   --lobby-red-hover: #8f0015;
-  /* 画面の地はグラデーション（html）に任せ、各画面ラッパーは透過 */
   --lobby-screen-bg: transparent;
   --lobby-cream: #fdf8f0;
-  /** クリームカード上のボタンなど、一段明るい面 */
   --lobby-surface-raised: #fffaf3;
+  /* ロビー空間（パラレルワールド） */
+  --lobby-bordeaux-deep: #1a0508;
+  --lobby-bordeaux-dark: #2a0a10;
+  --lobby-bordeaux: #4a1520;
+  --lobby-bordeaux-panel: #5c1a28;
+  --lobby-bordeaux-light: #7a2840;
+  --lobby-gold: #c9a55c;
+  --lobby-gold-dim: #8a7040;
+  --lobby-room-radius: 44vmin;
 }
 
 @theme inline {
@@ -37,12 +44,12 @@
 
 html {
   color-scheme: light;
-  /* 光沢感のある赤→オレンジのグラデーション（ビューポート固定で全画面に表示） */
-  background-color: var(--lobby-red);
+  /* ロビー空間の地（暗いボルドー・シャンデリアの暖色） */
+  background-color: var(--lobby-bordeaux-deep);
   background-image:
-    linear-gradient(135deg, rgba(255, 255, 255, 0.22) 0%, rgba(255, 255, 255, 0) 38%),
-    radial-gradient(135% 95% at 50% -12%, rgba(255, 255, 255, 0.34) 0%, rgba(255, 255, 255, 0) 52%),
-    linear-gradient(160deg, #b3001b 0%, #e0381c 52%, #f7931e 100%);
+    radial-gradient(ellipse 90% 55% at 50% -8%, rgba(201, 165, 92, 0.14) 0%, transparent 58%),
+    radial-gradient(ellipse 120% 80% at 50% 100%, rgba(0, 0, 0, 0.55) 0%, transparent 55%),
+    linear-gradient(180deg, var(--lobby-bordeaux-dark) 0%, var(--lobby-bordeaux-deep) 100%);
   background-repeat: no-repeat;
   background-attachment: fixed;
   background-size: cover;
@@ -274,5 +281,191 @@ body {
   .lobby-fold,
   .lobby-fold-bottom {
     animation-duration: 0.01ms;
+  }
+}
+
+/* ===== ロビー空間（円形の壁・視点回転） ===== */
+
+.lobby-room {
+  position: fixed;
+  inset: 0;
+  bottom: calc(5.25rem + env(safe-area-inset-bottom));
+  overflow: hidden;
+  background: var(--lobby-bordeaux-deep);
+}
+
+/* 奥のぼかし参考画像＋暗幕 */
+.lobby-room-ambient {
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(180deg, rgba(26, 5, 8, 0.72) 0%, rgba(26, 5, 8, 0.88) 45%, rgba(26, 5, 8, 0.95) 100%),
+    url("/assets/lobby-room-ambient.png") center 35% / cover no-repeat;
+  opacity: 0.55;
+  pointer-events: none;
+}
+
+.lobby-room-ceiling {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 28%;
+  background:
+    repeating-linear-gradient(
+      90deg,
+      rgba(255, 255, 255, 0.03) 0,
+      rgba(255, 255, 255, 0.03) 1px,
+      transparent 1px,
+      transparent 28px
+    ),
+    linear-gradient(180deg, rgba(240, 230, 210, 0.08) 0%, transparent 100%);
+  pointer-events: none;
+}
+
+.lobby-room-chandelier {
+  position: absolute;
+  top: 2%;
+  left: 50%;
+  width: min(72vw, 280px);
+  height: 18%;
+  transform: translateX(-50%);
+  background: radial-gradient(ellipse at 50% 0%, rgba(255, 220, 150, 0.35) 0%, rgba(201, 165, 92, 0.12) 35%, transparent 70%);
+  pointer-events: none;
+}
+
+.lobby-room-vignette {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(ellipse 85% 75% at 50% 42%, transparent 30%, rgba(0, 0, 0, 0.65) 100%);
+  pointer-events: none;
+}
+
+.lobby-room-floor {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 18%;
+  background:
+    linear-gradient(0deg, rgba(0, 0, 0, 0.5) 0%, transparent 100%),
+    repeating-linear-gradient(
+      105deg,
+      rgba(120, 80, 60, 0.06) 0,
+      rgba(120, 80, 60, 0.06) 2px,
+      transparent 2px,
+      transparent 14px
+    );
+  pointer-events: none;
+}
+
+.lobby-room-scene {
+  position: absolute;
+  inset: 0;
+  perspective: 1100px;
+  perspective-origin: 50% 44%;
+}
+
+.lobby-room-carousel {
+  position: absolute;
+  inset: 0;
+  transform-style: preserve-3d;
+  transition: transform 0.9s cubic-bezier(0.45, 0.05, 0.2, 1);
+}
+
+.lobby-room-wall {
+  position: absolute;
+  top: calc(env(safe-area-inset-top) + 0.75rem);
+  left: 50%;
+  width: min(90vw, 400px);
+  height: calc(100% - env(safe-area-inset-top) - 1.5rem);
+  margin-left: calc(min(90vw, 400px) / -2);
+  transform-style: preserve-3d;
+  backface-visibility: hidden;
+  pointer-events: none;
+}
+
+.lobby-room-wall--active {
+  pointer-events: auto;
+}
+
+/* 洋風ボルドーの木製パネル壁 */
+.lobby-room-wall-frame {
+  display: flex;
+  height: 100%;
+  flex-direction: column;
+  border-radius: 0.5rem;
+  border: 2px solid rgba(201, 165, 92, 0.35);
+  background:
+    repeating-linear-gradient(
+      90deg,
+      rgba(0, 0, 0, 0.08) 0,
+      rgba(0, 0, 0, 0.08) 1px,
+      transparent 1px,
+      transparent 24px
+    ),
+    linear-gradient(165deg, var(--lobby-bordeaux-panel) 0%, var(--lobby-bordeaux) 48%, var(--lobby-bordeaux-dark) 100%);
+  box-shadow:
+    inset 0 0 40px rgba(0, 0, 0, 0.45),
+    0 8px 32px rgba(0, 0, 0, 0.5);
+  padding: 0.65rem 0.65rem 0.75rem;
+}
+
+.lobby-room-wall-label {
+  flex-shrink: 0;
+  margin-bottom: 0.5rem;
+  text-align: center;
+  font-family: var(--font-noto-serif-jp), serif;
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.18em;
+  color: var(--lobby-gold);
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.6);
+}
+
+/* 壁に埋め込まれたニッチ（展示窓）— コンテンツはここに */
+.lobby-room-niche {
+  display: flex;
+  min-height: 0;
+  flex: 1;
+  flex-direction: column;
+  overflow: hidden;
+  border-radius: 0.35rem;
+  border: 1px solid rgba(201, 165, 92, 0.22);
+  background: var(--lobby-cream);
+  box-shadow:
+    inset 0 2px 12px rgba(0, 0, 0, 0.12),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.4);
+}
+
+.lobby-room-niche-scroll {
+  display: flex;
+  min-height: 0;
+  flex: 1;
+  flex-direction: column;
+  overflow-x: hidden;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  padding: 0.75rem 1rem 1rem;
+}
+
+/* ボトムナビ：ロビーの床に置いたメニュー */
+.lobby-bottom-nav {
+  border-top-color: rgba(201, 165, 92, 0.25) !important;
+  background: linear-gradient(180deg, rgba(42, 10, 16, 0.97) 0%, rgba(26, 5, 8, 0.99) 100%) !important;
+  box-shadow: 0 -6px 28px rgba(0, 0, 0, 0.45) !important;
+}
+
+.lobby-bottom-nav .lobby-nav-label--active {
+  color: var(--lobby-gold);
+}
+
+.lobby-bottom-nav .lobby-nav-label {
+  color: rgba(201, 165, 92, 0.55);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .lobby-room-carousel {
+    transition-duration: 0.01ms;
   }
 }
