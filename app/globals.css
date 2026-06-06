@@ -768,8 +768,8 @@ body {
 
 .lobby-paper-calendar {
   position: relative;
-  margin-top: 1.1rem;
-  padding: 1.5rem 0.9rem 1.1rem;
+  margin-top: 0.5rem;
+  padding: 1.1rem 0.9rem 1.1rem;
   border-radius: 2px;
   background:
     linear-gradient(180deg, rgba(0, 0, 0, 0.04) 0%, transparent 6%),
@@ -785,57 +785,6 @@ body {
     0 1px 0 rgba(255, 255, 255, 0.7) inset,
     0 18px 30px rgba(0, 0, 0, 0.45),
     0 2px 6px rgba(0, 0, 0, 0.3);
-  /* 壁に留められて少しだけ傾いている紙 */
-  transform: rotate(-0.4deg);
-}
-
-/* 上端のブルドッグクリップ */
-.lobby-paper-clip {
-  position: absolute;
-  top: -11px;
-  left: 50%;
-  width: 54px;
-  height: 18px;
-  transform: translateX(-50%);
-  border-radius: 3px;
-  background: linear-gradient(180deg, #e7e9ec 0%, #b9bdc4 45%, #8b9099 100%);
-  box-shadow:
-    0 2px 4px rgba(0, 0, 0, 0.4),
-    inset 0 1px 0 rgba(255, 255, 255, 0.8);
-}
-
-.lobby-paper-clip::before {
-  content: "";
-  position: absolute;
-  top: 4px;
-  left: 50%;
-  width: 26px;
-  height: 7px;
-  transform: translateX(-50%);
-  border-radius: 2px;
-  background: linear-gradient(180deg, #f2f3f5, #9aa0a8);
-  box-shadow: inset 0 -1px 1px rgba(0, 0, 0, 0.3);
-}
-
-.lobby-paper-masthead {
-  display: flex;
-  align-items: center;
-  gap: 0.55rem;
-}
-
-.lobby-paper-masthead-rule {
-  flex: 1;
-  height: 3px;
-  background: #1c1c1c;
-}
-
-.lobby-paper-masthead-title {
-  flex-shrink: 0;
-  font-family: var(--font-noto-serif-jp), serif;
-  font-size: 1.15rem;
-  font-weight: 800;
-  letter-spacing: 0.04em;
-  color: #1c1c1c;
 }
 
 /* ===== マイページ: 壁に取り付けられた壁鏡 ===== */
