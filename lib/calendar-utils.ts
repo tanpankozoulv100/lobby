@@ -59,3 +59,11 @@ export function isDateKeyInRange(dateKey: string, fromDateKey: string, toDateKey
   if (!/^\d{8}$/.test(dateKey) || !/^\d{8}$/.test(fromDateKey) || !/^\d{8}$/.test(toDateKey)) return false;
   return compareDateKey(dateKey, fromDateKey) >= 0 && compareDateKey(dateKey, toDateKey) <= 0;
 }
+
+export function parseDateKeyToLocalDate(dateKey: string): Date | null {
+  if (!/^\d{8}$/.test(dateKey)) return null;
+  const y = Number(dateKey.slice(0, 4));
+  const m = Number(dateKey.slice(4, 6));
+  const d = Number(dateKey.slice(6, 8));
+  return new Date(y, m - 1, d);
+}

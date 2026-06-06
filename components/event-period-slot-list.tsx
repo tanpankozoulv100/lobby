@@ -8,11 +8,12 @@ type Props = {
   rows: SlotChoiceRow[];
   dateKey: string;
   period: EventSlotPeriod;
-  cohort: LobbyCohort;
+  cohort: LobbyCohort | null;
 };
 
 /** 行き先の一覧表示のみ（参加登録・記録なし） */
 export function EventPeriodSlotList({ rows, dateKey, period, cohort }: Props) {
+  if (cohort !== "A" && cohort !== "B") return null;
   const list = rows
     .filter((r) => r.dateKey === dateKey && r.period === period && r.cohort === cohort)
     .sort((a, b) => a.lineIndex - b.lineIndex);

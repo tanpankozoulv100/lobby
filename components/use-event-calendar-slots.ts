@@ -5,9 +5,8 @@ import {
   subscribeEventSlotChoices,
   type SlotChoiceRow,
 } from "@/lib/firestore-event-slot-choices";
-import { getEffectiveLobbyCohortForSeason } from "@/lib/lobby-cohort";
 import {
-  resolveCohortAtDateKey,
+  resolveEffectiveCohortAtDateKey,
   subscribeUserCohortWeeks,
   type CohortWeekRow,
 } from "@/lib/firestore-cohort-weeks";
@@ -15,7 +14,7 @@ import {
   subscribeEventDisplayWindow,
   type EventDisplayWindowRow,
 } from "@/lib/firestore-event-display-window";
-import { isDateKeyInRange } from "@/lib/calendar-utils";
+import { isEventSlotVisibleToUser } from "@/lib/event-slot-visibility";
 import { emptyDayPeriodMarkers, type DayPeriodMarkers } from "@/lib/event-calendar-markers";
 
 export type { DayPeriodMarkers };
@@ -24,21 +23,16 @@ export type { DayPeriodMarkers };
 export function useEventCalendarSlots(
   uid: string,
   eventIds: string[] | null | undefined,
-  cohortFlipActive?: boolean,
-  cohortSeasonKey?: string
+  cohortFlipActive?: boolean
 ) {
-  const cohort = useMemo(
-    () => getEffectiveLobbyCohortForSeason(uid, cohortFlipActive, cohortSeasonKey),
-    [uid, cohortFlipActive, cohortSeasonKey]
-  );
   const [rowsByEvent, setRowsByEvent] = useState<Record<string, SlotChoiceRow[]>>({});
   const [cohortWeeks, setCohortWeeks] = useState<CohortWeekRow[]>([]);
   const [displayWindow, setDisplayWindow] = useState<EventDisplayWindowRow | null>(null);
   const eventIdsKey = useMemo(() => (eventIds?.length ? eventIds.join("|") : ""), [eventIds]);
 
   const cohortForDateKey = useCallback(
-    (dateKey: string) => resolveCohortAtDateKey(cohortWeeks, dateKey, cohort),
-    [cohortWeeks, cohort]
+    (dateKey: string) => resolveEffectiveCohortAtDateKey(cohortWeeks, dateKey, cohortFlipActive),
+    [cohortWeeks, cohortFlipActive]
   );
 
   useEffect(() => {
@@ -86,10 +80,8 @@ export function useEventCalendarSlots(
     if (!eventIds) return m;
     for (const id of eventIds) {
       for (const r of rowsByEvent[id] ?? []) {
-        if (displayWindow && !isDateKeyInRange(r.dateKey, displayWindow.visibleFromDateKey, displayWindow.visibleToDateKey)) {
-          continue;
-        }
-        if (r.cohort !== cohortForDateKey(r.dateKey)) continue;
+        const userCohort = cohortForDateKey(r.dateKey);
+        if (!isEventSlotVisibleToUser(r, displayWindow, userCohort)) continue;
         const cur = m.get(r.dateKey) ?? emptyDayPeriodMarkers();
         cur[r.period] = true;
         m.set(r.dateKey, cur);
@@ -98,5 +90,5 @@ export function useEventCalendarSlots(
     return m;
   }, [rowsByEvent, cohortForDateKey, displayWindow, eventIds]);
 
-  return { rowsByEvent, markersByDate, cohort, cohortForDateKey, displayWindow };
+  return { rowsByEvent, markersByDate, cohortForDateKey, displayWindow };
 }

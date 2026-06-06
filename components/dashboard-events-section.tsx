@@ -1,13 +1,20 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import type { User } from "firebase/auth";
 import { isFirebaseConfigComplete } from "@/lib/firebase";
 import type { PublishedEventRow } from "@/lib/firestore-events";
+import type { EventDisplayWindowRow } from "@/lib/firestore-event-display-window";
 import { EventCalendarDetailSheet } from "@/components/event-calendar-detail-sheet";
 import { EventsMonthCalendar } from "@/components/events-month-calendar";
 import { useEventCalendarSlots } from "@/components/use-event-calendar-slots";
-import { addMonths, dateKeyFromLocalDate, startOfMonth } from "@/lib/calendar-utils";
+import {
+  addMonths,
+  dateKeyFromLocalDate,
+  parseDateKeyToLocalDate,
+  startOfMonth,
+} from "@/lib/calendar-utils";
+import { formatEventDateKey } from "@/lib/event-slot-labels";
 import { formatCountdownBanner } from "@/lib/season-config";
 import { getSeasonRemainingDaysForDisplay } from "@/lib/season-display";
 import { useUserSeason } from "@/lib/use-user-season";
@@ -42,6 +49,22 @@ function SeasonCountdownBanner({ season }: { season: SeasonDisplay }) {
   );
 }
 
+function DisplayWeekBanner({ displayWindow }: { displayWindow: EventDisplayWindowRow | null }) {
+  if (!displayWindow) {
+    return (
+      <p className="rounded-lg bg-amber-50 px-3 py-2 text-center text-xs text-amber-900">
+        今週のイベントは準備中です。毎週木曜に次週（日曜〜土曜）分が公開されます。
+      </p>
+    );
+  }
+  return (
+    <p className="text-center text-xs text-zinc-500">
+      表示中: {formatEventDateKey(displayWindow.visibleFromDateKey)} 〜{" "}
+      {formatEventDateKey(displayWindow.visibleToDateKey)}（毎週木曜に次週分へ更新）
+    </p>
+  );
+}
+
 type LoadedProps = {
   user: User;
   publishedEvents: PublishedEventRow[] | null;
@@ -57,9 +80,15 @@ function DashboardEventsLoaded({ user, publishedEvents: events, cohortFlipActive
   const { markersByDate, rowsByEvent, cohortForDateKey, displayWindow } = useEventCalendarSlots(
     user.uid,
     events === null ? null : eventIds,
-    cohortFlipActive,
-    season.cohortSeasonKey
+    cohortFlipActive
   );
+
+  useEffect(() => {
+    if (!displayWindow) return;
+    const d = parseDateKeyToLocalDate(displayWindow.visibleFromDateKey);
+    if (!d) return;
+    setVisibleMonth(startOfMonth(d));
+  }, [displayWindow?.weekKey]);
 
   const handleSelectDate = (d: Date) => {
     const normalized = new Date(d.getFullYear(), d.getMonth(), d.getDate());
@@ -82,6 +111,7 @@ function DashboardEventsLoaded({ user, publishedEvents: events, cohortFlipActive
           <span className="lobby-paper-masthead-rule" aria-hidden />
         </div>
         <SeasonCountdownBanner season={season} />
+        <DisplayWeekBanner displayWindow={displayWindow} />
         <p className="text-center text-xs text-zinc-500">日付を選ぶと、その日のイベント一覧が表示されます。</p>
       </div>
 

@@ -1,12 +1,19 @@
 /**
  * Lobby EventInput one-sheet operation script.
  *
+ * 運用モデル:
+ * - シーズン開始前（または随時）に EventInput へシーズン分の枠を登録し Send Pending Rows で Firestore へ保存
+ * - ユーザーアプリへの「公開」は毎週木曜の週次処理（eventDisplayWindow + cohortWeeks）で次週（日〜土）分のみ
+ * - スプシ送信＝データ登録。ユーザーが見えるタイミングは木曜の自動公開
+ *
  * 1) Create a spreadsheet.
  * 2) Extensions -> Apps Script, paste this file.
  * 3) Edit PROJECT_CONFIG for your domain/tokens.
  * 4) Reload spreadsheet, run menu: Lobby Ops -> Setup EventInput Sheet
  * 5) Fill rows and run menu: Lobby Ops -> Send Pending Rows
  */
+
+const NOTES_SHEET_NAME = "LobbyOpsNotes";
 
 const PROJECT_CONFIG = {
   BASE_URL: "https://YOUR_DOMAIN",
@@ -19,10 +26,24 @@ const MASTER_SHEET_NAME = "EventMasterList";
 function onOpen() {
   SpreadsheetApp.getUi()
     .createMenu("Lobby Ops")
-    .addItem("Setup EventInput Sheet", "setupEventInputSheet")
+    .addItem("Setup EventInput Sheet（⚠初回のみ・データ全消去）", "setupEventInputSheetWithConfirm")
     .addItem("Send Pending Rows", "sendPendingRows")
-    .addItem("Insert Sample Data", "insertSampleData")
     .addToUi();
+}
+
+/** メニューから Setup を押したとき — 誤操作防止の確認ダイアログ */
+function setupEventInputSheetWithConfirm() {
+  const ui = SpreadsheetApp.getUi();
+  const result = ui.alert(
+    "Setup EventInput Sheet",
+    "⚠ 注意\n\n" +
+      "EventInput シートの入力内容をすべて削除し、列・入力ルールを作り直します。\n" +
+      "本番データがある状態では絶対に実行しないでください。\n\n" +
+      "初回セットアップ、または意図的にシートを作り直す場合のみ「はい」を選んでください。",
+    ui.ButtonSet.YES_NO
+  );
+  if (result !== ui.Button.YES) return;
+  setupEventInputSheet();
 }
 
 function setupEventInputSheet() {
@@ -121,24 +142,47 @@ function setupEventInputSheet() {
   sh.getRange("E2:F").setHorizontalAlignment("center");
   sh.getRange("H2:J").setHorizontalAlignment("center");
 
+  setupLobbyOpsNotesSheet_(ss);
+
   masterSh.setColumnWidth(1, 280);
   masterSh.setColumnWidth(3, 120);
   masterSh.hideColumns(2, 2);
   showAlert_("EventInput setup complete.");
 }
 
-function insertSampleData() {
-  const sh = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(SHEET_NAME);
-  if (!sh) {
-    showAlert_("Run setup first.");
-    return;
-  }
-  sh.getRange(2, 1, 4, 10).setValues([
-    ["名古屋駅2番出口集合", new Date(2026, 4, 5), "08:30", "morning", "A", 0, "集合後に会場へ移動", "", "", ""],
-    ["名古屋駅2番出口集合", new Date(2026, 4, 10), "12:00", "afternoon", "A", 0, "持ち物: 名札", "", "", ""],
-    ["名古屋駅2番出口集合", new Date(2026, 4, 4), "16:30", "afternoon", "B", 0, "遅刻連絡はSlack", "", "", ""],
-    ["名古屋駅2番出口集合", new Date(2026, 4, 15), "19:00", "evening", "AB", 0, "全体交流回", "", "", ""],
-  ]);
+function setupLobbyOpsNotesSheet_(ss) {
+  const sh = getOrCreateSheet_(ss, NOTES_SHEET_NAME);
+  sh.clear();
+  sh.setColumnWidth(1, 720);
+  const lines = [
+    ["Lobby イベント枠 — 運用メモ"],
+    [""],
+    ["■ Lobby Ops メニュー"],
+    ["・Send Pending Rows … 入力済み行を Firestore に送信（日常運用で使う）"],
+    ["・Setup EventInput Sheet … ⚠ 初回のみ。EventInput の内容を全消去して列を作り直す。本番データがあるときは押さない"],
+    ["  （押すと確認ダイアログが出ます。「はい」で実行）"],
+    [""],
+    ["■ スプレッドシート（EventInput）"],
+    ["・シーズン開始前に、シーズン分の eventDate / cohort / lineIndex を入力しておく（後から行追加も可）"],
+    ["・Lobby Ops → Send Pending Rows で Firestore（events/.../slotChoices）に保存"],
+    ["・送信直後もユーザーには見えない。Firestore にデータがあるだけ"],
+    [""],
+    ["■ ユーザーへの公開（毎週木曜 12:00 JST 頃・Vercel Cron）"],
+    ["・次週の日曜〜土曜の1週間分だけ eventDisplayWindow/current が切り替わる"],
+    ["・同タイミングで A/B コホート（users/{uid}/cohortWeeks/{weekKey}）を割当"],
+    ["・先週 A だった人が今週 B になっても、先週の cohortWeeks レコードは書き換えない"],
+    [""],
+    ["■ 障害時"],
+    ["・管理サイト /dashboard/events 最下部 → 週次処理の緊急手動実行"],
+  ];
+  sh.getRange(1, 1, lines.length, 1).setValues(lines);
+  sh.getRange(1, 1).setFontWeight("bold").setFontSize(12);
+  sh.getRange(3, 1, 1, 1).setFontWeight("bold");
+  sh.getRange(5, 1, 2, 1).setFontColor("#b45309");
+  sh.getRange(8, 1, 1, 1).setFontWeight("bold");
+  sh.getRange(13, 1, 1, 1).setFontWeight("bold");
+  sh.getRange(18, 1, 1, 1).setFontWeight("bold");
+  sh.setFrozenRows(1);
 }
 
 function onEdit(e) {

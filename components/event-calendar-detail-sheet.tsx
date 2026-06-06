@@ -5,7 +5,8 @@ import type { PublishedEventRow } from "@/lib/firestore-events";
 import type { SlotChoiceRow } from "@/lib/firestore-event-slot-choices";
 import type { EventDisplayWindowRow } from "@/lib/firestore-event-display-window";
 import type { EventSlotPeriod, LobbyCohort } from "@/lib/lobby-firestore-types";
-import { dateKeyFromLocalDate, isDateKeyInRange } from "@/lib/calendar-utils";
+import { dateKeyFromLocalDate } from "@/lib/calendar-utils";
+import { isEventSlotVisibleToUser } from "@/lib/event-slot-visibility";
 import { EventPeriodSlotList } from "@/components/event-period-slot-list";
 import { EVENT_PERIOD_ORDER, EVENT_PERIOD_UI } from "@/lib/event-period-styles";
 
@@ -14,32 +15,31 @@ type Props = {
   onClose: () => void;
   events: PublishedEventRow[];
   rowsByEvent: Record<string, SlotChoiceRow[]>;
-  cohort: LobbyCohort;
+  cohort: LobbyCohort | null;
   displayWindow: EventDisplayWindowRow | null;
 };
 
 function hasSlotsFor(
   rowsByEvent: Record<string, SlotChoiceRow[]>,
-  cohort: LobbyCohort,
+  cohort: LobbyCohort | null,
   eventId: string,
   dateKey: string,
   period: EventSlotPeriod,
   displayWindow: EventDisplayWindowRow | null
 ): boolean {
+  if (cohort !== "A" && cohort !== "B") return false;
   return (rowsByEvent[eventId] ?? []).some(
     (r) =>
       r.dateKey === dateKey &&
       r.period === period &&
-      r.cohort === cohort &&
-      (!displayWindow ||
-        isDateKeyInRange(r.dateKey, displayWindow.visibleFromDateKey, displayWindow.visibleToDateKey))
+      isEventSlotVisibleToUser(r, displayWindow, cohort)
   );
 }
 
 function anyEventHasSlots(
   events: PublishedEventRow[],
   rowsByEvent: Record<string, SlotChoiceRow[]>,
-  cohort: LobbyCohort,
+  cohort: LobbyCohort | null,
   dateKey: string,
   period: EventSlotPeriod,
   displayWindow: EventDisplayWindowRow | null

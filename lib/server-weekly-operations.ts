@@ -191,6 +191,12 @@ async function fetchActiveConflicts(): Promise<ConflictPair[]> {
 }
 
 export async function runWeeklyCohortAndPublishAutomation(input?: { targetSundayDateKey?: string }) {
+  /**
+   * 毎週木曜 Cron 想定: 次週（日曜始まり）の表示週を公開し、同週の A/B を cohortWeeks に書き込む。
+   * - eventDisplayWindow/current … ユーザーが見える日付範囲（1週間のみ）
+   * - cohortWeeks/{weekKey} … その週の A/B（過去 weekKey は触らない）
+   * スプシ登録済みの slotChoices はシーズン全体に存在するが、表示は eventDisplayWindow で絞る。
+   */
   const base = input?.targetSundayDateKey
     ? fromJstParts(
         Number(input.targetSundayDateKey.slice(0, 4)),

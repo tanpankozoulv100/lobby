@@ -49,14 +49,26 @@ export function subscribeUserCohortWeeks(
   );
 }
 
+/** 週次 A/B 割当（cohortWeeks）のみ。未割当週は null（ハッシュ fallback なし）。 */
 export function resolveCohortAtDateKey(
   rows: CohortWeekRow[],
-  dateKey: string,
-  fallback: LobbyCohort
-): LobbyCohort {
+  dateKey: string
+): LobbyCohort | null {
   for (let i = rows.length - 1; i >= 0; i--) {
     const row = rows[i]!;
     if (isDateKeyInRange(dateKey, row.weekStartDateKey, row.weekEndDateKey)) return row.cohort;
   }
-  return fallback;
+  return null;
+}
+
+/** 通報コホート反転を週次割当に適用 */
+export function resolveEffectiveCohortAtDateKey(
+  rows: CohortWeekRow[],
+  dateKey: string,
+  cohortFlipActive?: boolean
+): LobbyCohort | null {
+  const assigned = resolveCohortAtDateKey(rows, dateKey);
+  if (assigned === null) return null;
+  if (!cohortFlipActive) return assigned;
+  return assigned === "A" ? "B" : "A";
 }

@@ -2,9 +2,8 @@
 
 import { useEffect, useMemo, useState } from "react";
 import type { User } from "firebase/auth";
-import { getLobbyCohortForSeason } from "@/lib/lobby-cohort";
 import type { EventDisplayWindowRow } from "@/lib/firestore-event-display-window";
-import { isDateKeyInRange } from "@/lib/calendar-utils";
+import { isEventSlotVisibleToUser } from "@/lib/event-slot-visibility";
 import { formatEventDateKey, PERIODS_ORDER } from "@/lib/event-slot-labels";
 import type { EventSlotPeriod, LobbyCohort } from "@/lib/lobby-firestore-types";
 import {
@@ -29,16 +28,11 @@ type Props = {
   /** 親が slotChoices を既に購読しているとき二重購読を避ける */
   prefetchedRows?: SlotChoiceRow[];
   showCohortHint?: boolean;
-  cohortOverride?: LobbyCohort;
-  cohortSeasonKey?: string;
+  cohortOverride?: LobbyCohort | null;
   displayWindow?: EventDisplayWindowRow | null;
   /** 下部シート用の余白・文言 */
   sheetVariant?: boolean;
 };
-
-function choicesForCohort(rows: SlotChoiceRow[], cohort: LobbyCohort): SlotChoiceRow[] {
-  return rows.filter((r) => r.cohort === cohort);
-}
 
 export function EventSlotSection({
   user,
@@ -49,15 +43,9 @@ export function EventSlotSection({
   prefetchedRows,
   showCohortHint = true,
   cohortOverride,
-  cohortSeasonKey,
   displayWindow,
   sheetVariant = false,
 }: Props) {
-  const hashedCohort = useMemo(
-    () => getLobbyCohortForSeason(user.uid, cohortSeasonKey),
-    [user.uid, cohortSeasonKey]
-  );
-  const cohort = cohortOverride ?? hashedCohort;
   const usePrefetch = prefetchedRows !== undefined;
   const [localRows, setLocalRows] = useState<SlotChoiceRow[] | null>(null);
   const [slotErr, setSlotErr] = useState<string | null>(null);
@@ -87,12 +75,10 @@ export function EventSlotSection({
   }, [eventId, usePrefetch]);
 
   const filtered = useMemo(() => {
-    const byCohort = choicesForCohort(rows ?? [], cohort);
-    if (!displayWindow) return byCohort;
-    return byCohort.filter((r) =>
-      isDateKeyInRange(r.dateKey, displayWindow.visibleFromDateKey, displayWindow.visibleToDateKey)
-    );
-  }, [rows, cohort, displayWindow]);
+    const effectiveCohort = cohortOverride ?? null;
+    if (effectiveCohort !== "A" && effectiveCohort !== "B") return [];
+    return (rows ?? []).filter((r) => isEventSlotVisibleToUser(r, displayWindow, effectiveCohort));
+  }, [rows, cohortOverride, displayWindow]);
 
   const byDateAndPeriod = useMemo(() => {
     const map = new Map<string, Map<EventSlotPeriod, SlotChoiceRow[]>>();
@@ -182,9 +168,9 @@ export function EventSlotSection({
           {actionError}
         </p>
       ) : null}
-      {showCohortHint ? (
+      {showCohortHint && cohortOverride ? (
         <p className="text-xs font-medium text-zinc-700">
-          あなたのグループ: <span className="text-[var(--lobby-red)]">{cohort}</span>（週ごとに自動更新）
+          あなたのグループ: <span className="text-[var(--lobby-red)]">{cohortOverride}</span>（この週の割当・毎週木曜に更新）
         </p>
       ) : null}
       <div className={showCohortHint ? "mt-3 space-y-5" : "space-y-5"}>
