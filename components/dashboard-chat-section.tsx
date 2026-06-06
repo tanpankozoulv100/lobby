@@ -64,11 +64,11 @@ function TalkListRow({
       : "過去の手紙（閲覧のみ）";
 
   return (
-    <li>
+    <li className="lobby-desk-letter">
       <button
         type="button"
         onClick={onSelect}
-        className="flex w-full items-center gap-3 border-b border-zinc-200/60 px-4 py-3.5 text-left transition active:bg-[var(--lobby-red)]/5"
+        className="lobby-desk-letter-btn flex w-full items-center gap-3 px-4 py-3.5 text-left"
       >
         <ProfileAvatarCircle
           displayName={displayName}
@@ -227,21 +227,32 @@ function DashboardChatLoaded({ user }: { user: User }) {
   }
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col">
+    <div className="lobby-desk flex min-h-0 flex-1 flex-col">
       <h1 className="sr-only">レター</h1>
 
+      <div className="lobby-desk-props" aria-hidden>
+        <span className="lobby-desk-pad" />
+        <span className="lobby-desk-envelope">
+          <span className="lobby-desk-envelope-flap" />
+          <span className="lobby-desk-wax" />
+        </span>
+        <span className="lobby-desk-pen" />
+      </div>
+
+      <p className="lobby-desk-caption">机の上の手紙</p>
+
       {peers === null ? (
-        <p className="px-4 py-8 text-center text-sm text-zinc-500">読み込み中…</p>
+        <p className="px-4 py-8 text-center text-sm text-[var(--lobby-cream)]/80">読み込み中…</p>
       ) : !sortedPeers?.length ? (
-        <div className="flex flex-1 flex-col items-center justify-center px-6 text-center">
-          <p className="text-sm text-zinc-600">
+        <div className="relative z-[1] flex flex-1 flex-col items-center justify-center px-6 text-center">
+          <p className="text-sm text-[var(--lobby-cream)]/85">
             会場でQR交換してマッチすると、
             <br />
             ここに手紙のやり取りが表示されます。
           </p>
         </div>
       ) : (
-        <ul className="min-h-0 flex-1 overflow-y-auto">
+        <ul className="lobby-desk-letters min-h-0 flex-1 overflow-y-auto">
           {sortedPeers.map((peer) => (
             <TalkListRow
               key={peer.uid}
