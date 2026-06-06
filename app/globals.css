@@ -8,7 +8,8 @@
   --foreground: #18181b;
   --lobby-red: #b3001b;
   --lobby-red-hover: #8f0015;
-  --lobby-screen-bg: #f4f4f5;
+  /* 画面の地はグラデーション（html）に任せ、各画面ラッパーは透過 */
+  --lobby-screen-bg: transparent;
   --lobby-cream: #fdf8f0;
   /** クリームカード上のボタンなど、一段明るい面 */
   --lobby-surface-raised: #fffaf3;
@@ -36,10 +37,19 @@
 
 html {
   color-scheme: light;
+  /* 光沢感のある赤→オレンジのグラデーション（ビューポート固定で全画面に表示） */
+  background-color: var(--lobby-red);
+  background-image:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.22) 0%, rgba(255, 255, 255, 0) 38%),
+    radial-gradient(135% 95% at 50% -12%, rgba(255, 255, 255, 0.34) 0%, rgba(255, 255, 255, 0) 52%),
+    linear-gradient(160deg, #b3001b 0%, #e0381c 52%, #f7931e 100%);
+  background-repeat: no-repeat;
+  background-attachment: fixed;
+  background-size: cover;
 }
 
 body {
-  background: var(--lobby-screen-bg);
+  background: transparent;
   color: #18181b;
   font-family: var(--font-noto-sans-jp), ui-sans-serif, system-ui, sans-serif;
 }

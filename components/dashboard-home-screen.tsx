@@ -207,9 +207,9 @@ export function DashboardHomeScreen({
       ) : null}
 
       <div className="pt-2 text-center">
-        <h1 className="text-base font-bold text-[var(--lobby-red)]">{season.headerTitle}</h1>
+        <h1 className="text-base font-bold text-white drop-shadow-sm">{season.headerTitle}</h1>
         {seasonRegistered ? (
-          <div className="mt-2 rounded-none bg-[var(--lobby-red)] py-2.5 text-center text-sm font-medium text-white">
+          <div className="mt-2 rounded-full border border-white/40 bg-white/15 py-2.5 text-center text-sm font-medium text-white backdrop-blur-sm">
             {formatCountdownBanner(daysLeft)}
           </div>
         ) : null}

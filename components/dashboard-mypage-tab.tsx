@@ -141,7 +141,7 @@ export function DashboardMypageTab({
 
   return (
     <div className="-mx-4 -mt-2">
-      <h1 className="py-3 text-center font-serif text-lg font-semibold text-[var(--lobby-red)]">マイページ</h1>
+      <h1 className="py-3 text-center font-serif text-lg font-semibold text-white drop-shadow-sm">マイページ</h1>
 
       <div className="relative px-4 pb-2">
         <div
@@ -180,13 +180,13 @@ export function DashboardMypageTab({
               </svg>
             </button>
           </div>
-          <p className="mt-3 text-lg font-bold text-zinc-900">{displayName}</p>
-          <p className="mt-0.5 font-mono text-sm text-zinc-500">No.{noLabel}</p>
+          <p className="mt-3 text-lg font-bold text-white drop-shadow-sm">{displayName}</p>
+          <p className="mt-0.5 font-mono text-sm text-white/85 drop-shadow-sm">No.{noLabel}</p>
           {compatAnswered < 12 ? (
             <button
               type="button"
               onClick={() => setProfileEditOpen(true)}
-              className="mt-2 text-xs text-[var(--lobby-red)] underline-offset-2 hover:underline"
+              className="mt-2 text-xs text-white underline underline-offset-2"
             >
               相性質問 {compatAnswered}/12 — 続きを答える
             </button>
