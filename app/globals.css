@@ -19,7 +19,10 @@
   --lobby-bordeaux-light: #7a2840;
   --lobby-gold: #c9a55c;
   --lobby-gold-dim: #8a7040;
-  --lobby-room-radius: 44vmin;
+  /* 円形の広間の半径（大きいほど壁同士が離れ、空間が広く感じる） */
+  --lobby-room-radius: 58vmin;
+  /* 視点切替時に「一歩下がる」奥行き量 */
+  --lobby-room-stepback: 62vmin;
 }
 
 @theme inline {
@@ -305,54 +308,101 @@ body {
   pointer-events: none;
 }
 
+/* 天井のステンドグラス・ドーム（中心から光が差す） */
 .lobby-room-ceiling {
   position: absolute;
   top: 0;
   left: 0;
   right: 0;
-  height: 28%;
+  height: 34%;
   background:
-    repeating-linear-gradient(
-      90deg,
-      rgba(255, 255, 255, 0.03) 0,
-      rgba(255, 255, 255, 0.03) 1px,
-      transparent 1px,
-      transparent 28px
+    radial-gradient(
+      ellipse 46% 78% at 50% -12%,
+      rgba(255, 248, 226, 0.95) 0%,
+      rgba(255, 224, 168, 0.55) 20%,
+      rgba(196, 132, 70, 0.22) 42%,
+      transparent 70%
     ),
-    linear-gradient(180deg, rgba(240, 230, 210, 0.08) 0%, transparent 100%);
+    repeating-radial-gradient(
+      circle at 50% -10%,
+      transparent 0,
+      transparent 16px,
+      rgba(90, 50, 20, 0.12) 16px,
+      rgba(90, 50, 20, 0.12) 17px
+    ),
+    repeating-conic-gradient(
+      from 0deg at 50% -8%,
+      rgba(90, 50, 20, 0.1) 0deg,
+      rgba(90, 50, 20, 0.1) 0.6deg,
+      transparent 0.6deg,
+      transparent 9deg
+    ),
+    linear-gradient(180deg, rgba(60, 30, 16, 0.45) 0%, transparent 100%);
+  pointer-events: none;
+}
+
+/* 天井ドームから床へ降り注ぐ光のコーン */
+.lobby-room-lightcone {
+  position: absolute;
+  top: 0;
+  left: 50%;
+  width: 135%;
+  height: 90%;
+  transform: translateX(-50%);
+  background: linear-gradient(
+    180deg,
+    rgba(255, 226, 170, 0.42) 0%,
+    rgba(255, 210, 140, 0.16) 28%,
+    rgba(255, 198, 120, 0.05) 56%,
+    transparent 84%
+  );
+  clip-path: polygon(40% 0, 60% 0, 100% 100%, 0 100%);
+  filter: blur(16px);
+  mix-blend-mode: screen;
   pointer-events: none;
 }
 
 .lobby-room-chandelier {
   position: absolute;
-  top: 2%;
+  top: -2%;
   left: 50%;
-  width: min(72vw, 280px);
-  height: 18%;
+  width: min(60vw, 240px);
+  height: 22%;
   transform: translateX(-50%);
-  background: radial-gradient(ellipse at 50% 0%, rgba(255, 220, 150, 0.35) 0%, rgba(201, 165, 92, 0.12) 35%, transparent 70%);
+  background: radial-gradient(
+    ellipse at 50% 0%,
+    rgba(255, 244, 214, 0.7) 0%,
+    rgba(255, 214, 150, 0.3) 32%,
+    transparent 72%
+  );
+  mix-blend-mode: screen;
   pointer-events: none;
 }
 
+/* 四隅・上下を強く落として陰影を深くする */
 .lobby-room-vignette {
   position: absolute;
   inset: 0;
-  background: radial-gradient(ellipse 85% 75% at 50% 42%, transparent 30%, rgba(0, 0, 0, 0.65) 100%);
+  background:
+    radial-gradient(ellipse 70% 60% at 50% 30%, transparent 24%, rgba(0, 0, 0, 0.72) 92%),
+    linear-gradient(180deg, rgba(0, 0, 0, 0.5) 0%, transparent 22%, transparent 70%, rgba(0, 0, 0, 0.55) 100%);
   pointer-events: none;
 }
 
+/* 床: 光が当たる中央の光だまりと木目 */
 .lobby-room-floor {
   position: absolute;
   bottom: 0;
   left: 0;
   right: 0;
-  height: 18%;
+  height: 22%;
   background:
-    linear-gradient(0deg, rgba(0, 0, 0, 0.5) 0%, transparent 100%),
+    radial-gradient(ellipse 36% 120% at 50% 100%, rgba(255, 210, 150, 0.18) 0%, transparent 60%),
+    linear-gradient(0deg, rgba(0, 0, 0, 0.62) 0%, rgba(0, 0, 0, 0.18) 55%, transparent 100%),
     repeating-linear-gradient(
       105deg,
-      rgba(120, 80, 60, 0.06) 0,
-      rgba(120, 80, 60, 0.06) 2px,
+      rgba(120, 80, 60, 0.07) 0,
+      rgba(120, 80, 60, 0.07) 2px,
       transparent 2px,
       transparent 14px
     );
@@ -363,8 +413,34 @@ body {
   position: absolute;
   inset: 0;
   /* 部屋の中心に立っている一人称ビュー。視野角を広めにして壁が左右へ回り込む */
-  perspective: 820px;
+  perspective: 880px;
   perspective-origin: 50% 48%;
+}
+
+/* ドリー層: 視点切替のたび「一歩下がって前へ」奥行きを動かす */
+.lobby-room-dolly {
+  position: absolute;
+  inset: 0;
+  transform-style: preserve-3d;
+  transform: translateZ(0);
+}
+
+.lobby-room-dolly.is-dollying {
+  animation: lobby-room-dolly 1.1s cubic-bezier(0.42, 0, 0.2, 1) both;
+}
+
+@keyframes lobby-room-dolly {
+  0% {
+    transform: translateZ(0);
+  }
+  45% {
+    /* いったん部屋の中央へ後退（壁から一歩下がる） */
+    transform: translateZ(calc(var(--lobby-room-stepback) * -1));
+  }
+  100% {
+    /* 目的の壁へ一歩近づいて落ち着く */
+    transform: translateZ(0);
+  }
 }
 
 .lobby-room-carousel {
@@ -372,7 +448,7 @@ body {
   inset: 0;
   transform-style: preserve-3d;
   /* 視点が首を回すように、ゆっくり回頭する */
-  transition: transform 1s cubic-bezier(0.45, 0.05, 0.2, 1);
+  transition: transform 1.1s cubic-bezier(0.42, 0, 0.2, 1);
 }
 
 .lobby-room-wall {
@@ -385,18 +461,27 @@ body {
   transform-style: preserve-3d;
   backface-visibility: hidden;
   pointer-events: none;
-  /* 部屋の他の壁は暗く沈め、正面のパネルを引き立てる */
-  opacity: 0.42;
-  filter: brightness(0.5) saturate(0.85);
+  /* 静止時は正面の壁だけを見せる（左右の壁は透けて見えない） */
+  opacity: 0;
+  filter: brightness(0.4) saturate(0.85);
   transition:
-    opacity 1s cubic-bezier(0.45, 0.05, 0.2, 1),
-    filter 1s cubic-bezier(0.45, 0.05, 0.2, 1);
+    opacity 0.55s ease,
+    filter 1.1s cubic-bezier(0.42, 0, 0.2, 1);
+}
+
+/* 回頭している最中だけ、通り過ぎる左右の壁を薄く見せる */
+.lobby-room--turning .lobby-room-wall {
+  opacity: 0.6;
 }
 
 .lobby-room-wall--active {
   pointer-events: auto;
   opacity: 1;
   filter: none;
+}
+
+.lobby-room--turning .lobby-room-wall--active {
+  opacity: 1;
 }
 
 /* 洋風ボルドーの木製パネル壁 */
@@ -478,5 +563,8 @@ body {
   .lobby-room-carousel,
   .lobby-room-wall {
     transition-duration: 0.01ms;
+  }
+  .lobby-room-dolly.is-dollying {
+    animation-duration: 0.01ms;
   }
 }
