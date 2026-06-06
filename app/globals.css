@@ -362,15 +362,17 @@ body {
 .lobby-room-scene {
   position: absolute;
   inset: 0;
-  perspective: 1100px;
-  perspective-origin: 50% 44%;
+  /* 部屋の中心に立っている一人称ビュー。視野角を広めにして壁が左右へ回り込む */
+  perspective: 820px;
+  perspective-origin: 50% 48%;
 }
 
 .lobby-room-carousel {
   position: absolute;
   inset: 0;
   transform-style: preserve-3d;
-  transition: transform 0.9s cubic-bezier(0.45, 0.05, 0.2, 1);
+  /* 視点が首を回すように、ゆっくり回頭する */
+  transition: transform 1s cubic-bezier(0.45, 0.05, 0.2, 1);
 }
 
 .lobby-room-wall {
@@ -383,10 +385,18 @@ body {
   transform-style: preserve-3d;
   backface-visibility: hidden;
   pointer-events: none;
+  /* 部屋の他の壁は暗く沈め、正面のパネルを引き立てる */
+  opacity: 0.42;
+  filter: brightness(0.5) saturate(0.85);
+  transition:
+    opacity 1s cubic-bezier(0.45, 0.05, 0.2, 1),
+    filter 1s cubic-bezier(0.45, 0.05, 0.2, 1);
 }
 
 .lobby-room-wall--active {
   pointer-events: auto;
+  opacity: 1;
+  filter: none;
 }
 
 /* 洋風ボルドーの木製パネル壁 */
@@ -465,7 +475,8 @@ body {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .lobby-room-carousel {
+  .lobby-room-carousel,
+  .lobby-room-wall {
     transition-duration: 0.01ms;
   }
 }

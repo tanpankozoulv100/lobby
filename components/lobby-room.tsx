@@ -29,11 +29,14 @@ type Props = {
 
 /**
  * パラレルワールド「ロビー」の円形空間。
- * 5枚の壁が円周上に並び、メニュー切替で視点がぐるっと回る。
+ * ユーザーは円形の部屋の中心に立ち、5枚の壁に囲まれている。
+ * メニュー切替で「自分の視点」がぐるっと回り、正面の壁を向く（一人称・室内ビュー）。
  */
 export function LobbyRoom({ activeTab, onTabChange, walls }: Props) {
   const activeIndex = wallIndexForTab(activeTab);
-  const rotation = -activeIndex * WALL_ANGLE;
+  // 部屋（壁の輪）を回して、向いている壁を正面に持ってくる。
+  // 中心に立つユーザーから見ると「自分の視点が回って首を向ける」ように見える。
+  const viewRotation = -activeIndex * WALL_ANGLE;
   const touchStartX = useRef<number | null>(null);
 
   const goAdjacent = useCallback(
@@ -73,7 +76,9 @@ export function LobbyRoom({ activeTab, onTabChange, walls }: Props) {
       >
         <div
           className="lobby-room-carousel"
-          style={{ transform: `rotateY(${rotation}deg)` }}
+          style={{
+            transform: `translateZ(var(--lobby-room-radius)) rotateY(${viewRotation}deg)`,
+          }}
         >
           {LOBBY_WALL_ORDER.map((tabId, i) => {
             const isActive = tabId === activeTab;
@@ -82,7 +87,7 @@ export function LobbyRoom({ activeTab, onTabChange, walls }: Props) {
                 key={tabId}
                 className={`lobby-room-wall${isActive ? " lobby-room-wall--active" : ""}`}
                 style={{
-                  transform: `rotateY(${i * WALL_ANGLE}deg) translateZ(var(--lobby-room-radius))`,
+                  transform: `rotateY(${i * WALL_ANGLE}deg) translateZ(calc(var(--lobby-room-radius) * -1))`,
                 }}
                 aria-hidden={!isActive}
               >
