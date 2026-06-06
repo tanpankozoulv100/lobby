@@ -196,14 +196,15 @@ export function DashboardHomeScreen({
   const name = profile.displayName?.trim() || "ゲスト";
 
   return (
-    <div className="space-y-0 pb-2">
+    <div className="relative space-y-0 pb-2">
       {isStaff && staffGateReady ? (
-        <p
+        <span
           role="status"
-          className="mb-2 rounded-lg border border-violet-200 bg-violet-50 px-3 py-2 text-center text-sm font-medium text-violet-900"
+          title="管理者でログイン中"
+          className="absolute right-0 top-0 z-10 rounded-full border border-violet-200 bg-violet-50 px-2.5 py-1 text-[11px] font-medium text-violet-900 shadow-sm"
         >
-          管理者でログイン中
-        </p>
+          管理者
+        </span>
       ) : null}
 
       <div className="pt-2 text-center">
