@@ -31,9 +31,9 @@
   --color-lobby-red: var(--lobby-red);
   --color-lobby-cream: var(--lobby-cream);
   --color-lobby-screen: var(--lobby-screen-bg);
-  --font-sans: var(--font-noto-sans-jp), ui-sans-serif, system-ui, sans-serif;
-  /* 一旦フォントをゴシックに統一: serif も sans(Noto Sans JP) を参照（戻す時はこの行を元に戻す） */
-  --font-serif: var(--font-noto-sans-jp), ui-sans-serif, system-ui, sans-serif;
+  /* フォントを明朝(Noto Serif JP)に統一。sans 系も明朝を参照する。 */
+  --font-sans: var(--font-noto-serif-jp), "Hiragino Mincho ProN", "Yu Mincho", "YuMincho", serif;
+  --font-serif: var(--font-noto-serif-jp), "Hiragino Mincho ProN", "Yu Mincho", "YuMincho", serif;
   --font-mono: var(--font-geist-mono);
 }
 
@@ -61,7 +61,7 @@ html {
 body {
   background: transparent;
   color: #18181b;
-  font-family: var(--font-noto-sans-jp), ui-sans-serif, system-ui, sans-serif;
+  font-family: var(--font-noto-serif-jp), "Hiragino Mincho ProN", "Yu Mincho", "YuMincho", serif;
 }
 
 /* ===== レター（便箋）UI ===== */
