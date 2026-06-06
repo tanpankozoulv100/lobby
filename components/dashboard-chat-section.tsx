@@ -394,21 +394,12 @@ function DashboardChatLoaded({ user }: { user: User }) {
     );
   }
 
-  // ハブ（3択）
+  // ハブ（3択）— 背景レイヤーを撤廃し、選択肢ブロックだけを浮かせる
   return (
-    <div className="lobby-desk flex min-h-0 flex-1 flex-col">
+    <div className="flex min-h-0 flex-1 flex-col">
       <h1 className="sr-only">レター</h1>
 
-      <div className="lobby-desk-props" aria-hidden>
-        <span className="lobby-desk-pad" />
-        <span className="lobby-desk-envelope">
-          <span className="lobby-desk-envelope-flap" />
-          <span className="lobby-desk-wax" />
-        </span>
-        <span className="lobby-desk-pen" />
-      </div>
-
-      <div className="relative z-[1] px-3 pt-4">
+      <div className="px-1 pt-3">
         <div className="lobby-letter-hub">
           <HubOption
             title="招待状を送る"
@@ -446,8 +437,6 @@ function DashboardChatLoaded({ user }: { user: User }) {
           />
         </div>
       </div>
-
-      <p className="lobby-desk-caption">机の上の手紙</p>
     </div>
   );
 }

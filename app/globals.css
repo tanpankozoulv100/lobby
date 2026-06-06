@@ -881,6 +881,20 @@ body {
   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.45);
 }
 
+/* ===== レター(ハブ): 枠(エンジ)・ニッチ(アイボリー)の背景レイヤーを撤廃し、
+   選択肢ブロックだけが部屋の背景から浮かんで見えるUIにする ===== */
+.lobby-room-wall--desk .lobby-room-wall-frame {
+  border-color: transparent;
+  background: none;
+  box-shadow: none;
+  padding: 0.65rem 0.35rem 0.75rem;
+}
+.lobby-room-wall--desk .lobby-room-niche {
+  border-color: transparent;
+  background: none;
+  box-shadow: none;
+}
+
 /* ===== レター: 机の上の手紙（便箋・封筒・万年筆） ===== */
 
 .lobby-desk {
