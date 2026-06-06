@@ -53,25 +53,25 @@ export function DashboardHomeAnnouncements({ rows, hasUnread, onMarkSeen }: Prop
       <button
         type="button"
         onClick={openList}
-        className="mt-3 flex w-full items-center gap-3 rounded-xl border border-zinc-200/80 bg-[var(--lobby-cream)] px-4 py-3 text-left shadow-sm transition active:bg-zinc-100"
+        className="mt-3 flex w-full items-center gap-3 rounded-xl border border-white/15 bg-gradient-to-b from-[#a82c3e] to-[#79101f] px-4 py-3 text-left shadow-[0_8px_20px_rgba(60,10,20,0.4)] transition active:scale-[0.99]"
         aria-haspopup="dialog"
       >
-        <span className="relative flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-zinc-100 text-zinc-700">
+        <span className="relative flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-white/15 text-white">
           <BellIcon className="h-5 w-5" />
           {hasUnread ? (
             <span
-              className="absolute right-1 top-1 h-2.5 w-2.5 rounded-full bg-red-500 ring-2 ring-white"
+              className="absolute right-1 top-1 h-2.5 w-2.5 rounded-full bg-amber-300 ring-2 ring-[#8c1b2c]"
               aria-hidden
             />
           ) : null}
         </span>
         <span className="min-w-0 flex-1">
-          <span className="text-sm font-semibold text-zinc-900">お知らせ</span>
+          <span className="text-sm font-semibold text-white">お知らせ</span>
           {hasUnread ? (
-            <span className="ml-2 text-xs font-medium text-red-600">新着あり</span>
+            <span className="ml-2 text-xs font-medium text-amber-200">新着あり</span>
           ) : null}
         </span>
-        <svg className="h-4 w-4 shrink-0 text-zinc-400" viewBox="0 0 24 24" fill="none" aria-hidden>
+        <svg className="h-4 w-4 shrink-0 text-white/70" viewBox="0 0 24 24" fill="none" aria-hidden>
           <path d="M9 6l6 6-6 6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
         </svg>
       </button>

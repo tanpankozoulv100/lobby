@@ -208,9 +208,11 @@ export function DashboardHomeScreen({
       ) : null}
 
       <div className="pt-2 text-center">
-        <h1 className="text-base font-bold text-[var(--lobby-red)]">{season.headerTitle}</h1>
+        <h1 className="text-base font-bold text-[var(--lobby-cream)] drop-shadow-[0_1px_2px_rgba(0,0,0,0.6)]">
+          {season.headerTitle}
+        </h1>
         {seasonRegistered ? (
-          <div className="mt-2 rounded-full border border-[var(--lobby-red)]/20 bg-[var(--lobby-surface-raised)] py-2.5 text-center text-sm font-medium text-[var(--lobby-red)]">
+          <div className="mt-2 rounded-full border border-white/25 bg-gradient-to-b from-[#a82c3e] to-[#79101f] py-2.5 text-center text-sm font-medium text-white shadow-md">
             {formatCountdownBanner(daysLeft)}
           </div>
         ) : null}
@@ -229,21 +231,21 @@ export function DashboardHomeScreen({
         onMarkSeen={onAnnouncementMarkSeen}
       />
 
-      <div className="mt-4 rounded-3xl border border-zinc-200/80 bg-[var(--lobby-cream)] px-5 pb-6 pt-5 shadow-md">
+      <div className="mt-4 rounded-3xl border border-white/15 bg-gradient-to-b from-[#a82c3e] to-[#79101f] px-5 pb-6 pt-5 shadow-[0_12px_30px_rgba(60,10,20,0.45)]">
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
-          src="/brand/red/logotype_2_red.png"
+          src="/brand/white/logotype_white.png"
           alt="Lobby"
           className="h-7 w-auto"
         />
-        <p className="mt-2 text-sm font-semibold text-[var(--lobby-red)]">{season.cardTitle}</p>
+        <p className="mt-2 text-sm font-semibold text-white">{season.cardTitle}</p>
         {season.dateRangeLabel ? (
-          <p className="mt-0.5 text-xs text-[var(--lobby-red)]">{season.dateRangeLabel}</p>
+          <p className="mt-0.5 text-xs text-white/80">{season.dateRangeLabel}</p>
         ) : null}
 
         <div className="mt-6 text-center">
           <p
-            className="text-6xl font-bold tabular-nums leading-none tracking-tight text-[var(--lobby-red)] md:text-7xl"
+            className="text-6xl font-bold tabular-nums leading-none tracking-tight text-white md:text-7xl"
             style={{ fontFamily: "var(--font-noto-serif-jp), serif" }}
           >
             No.{noLabel}
@@ -255,18 +257,18 @@ export function DashboardHomeScreen({
             type="button"
             disabled={!code}
             onClick={() => setQrOpen(true)}
-            className="flex flex-col items-center rounded-2xl border border-[var(--lobby-red)]/25 bg-[var(--lobby-surface-raised)] py-5 shadow-sm transition active:scale-[0.98] disabled:opacity-40"
+            className="flex flex-col items-center rounded-2xl border border-white/30 bg-white/12 py-5 shadow-sm transition active:scale-[0.98] disabled:opacity-40"
           >
-            <QrIcon className="h-12 w-12 text-[var(--lobby-red)]" />
-            <span className="mt-2 text-sm font-semibold text-[var(--lobby-red)]">表示する</span>
+            <QrIcon className="h-12 w-12 text-white" />
+            <span className="mt-2 text-sm font-semibold text-white">表示する</span>
           </button>
           <button
             type="button"
             onClick={() => setMatchFlow("camera")}
-            className="flex flex-col items-center rounded-2xl border border-[var(--lobby-red)]/25 bg-[var(--lobby-surface-raised)] py-5 shadow-sm transition active:scale-[0.98]"
+            className="flex flex-col items-center rounded-2xl border border-white/30 bg-white/12 py-5 shadow-sm transition active:scale-[0.98]"
           >
-            <CameraIcon className="h-12 w-12 text-[var(--lobby-red)]" />
-            <span className="mt-2 text-sm font-semibold text-[var(--lobby-red)]">スキャン</span>
+            <CameraIcon className="h-12 w-12 text-white" />
+            <span className="mt-2 text-sm font-semibold text-white">スキャン</span>
           </button>
         </div>
       </div>

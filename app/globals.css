@@ -1057,23 +1057,21 @@ body {
   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.35);
 }
 
-/* ===== ホーム: 壁に埋め込まれた壁面パネル（壁紙＋モールディング） ===== */
-
-.lobby-room-wall--hearth .lobby-room-niche {
-  border-color: rgba(201, 165, 92, 0.4);
-  background:
-    radial-gradient(ellipse 80% 50% at 50% 0%, rgba(255, 226, 170, 0.14) 0%, transparent 62%),
-    linear-gradient(180deg, #f4e8d6 0%, #ecdcc4 60%, #e2cfb2 100%);
-  box-shadow:
-    inset 0 0 0 1px rgba(255, 255, 255, 0.45),
-    inset 0 0 0 6px rgba(201, 165, 92, 0.16),
-    inset 0 2px 16px rgba(90, 60, 30, 0.22);
+/* ===== ホーム: 枠(エンジ)・ニッチ(アイボリー)の背景レイヤーを撤廃し、
+   赤いブロックだけが部屋の背景から浮かんで見えるUIにする ===== */
+.lobby-room-wall--hearth .lobby-room-wall-frame {
+  border-color: transparent;
+  background: none;
+  box-shadow: none;
+  padding: 0.65rem 0.35rem 0.75rem;
 }
-
-/* 壁紙にはめ込まれた額のような内側の縁取り */
+.lobby-room-wall--hearth .lobby-room-niche {
+  border-color: transparent;
+  background: none;
+  box-shadow: none;
+}
 .lobby-room-wall--hearth .lobby-room-niche-scroll {
-  border-radius: 0.2rem;
-  box-shadow: inset 0 0 0 1px rgba(124, 94, 44, 0.28);
+  box-shadow: none;
 }
 
 @media (prefers-reduced-motion: reduce) {
