@@ -43,7 +43,7 @@ export const LOBBY_SETTINGS_LINKS: LobbySettingsLinkItem[] = [
     label: "通知設定",
     href: envUrl("NEXT_PUBLIC_LOBBY_NOTIFICATION_SETTINGS_URL"),
     fallbackMessage:
-      "お知らせはホームのベルから確認できます。チャットの通知は、各トークの設定から相手ごとにオン・オフできます。端末の通知許可は、スマホの設定アプリから変更してください。",
+      "お知らせはホームのベルから確認できます。レターの通知は、各レターの設定から相手ごとにオン・オフできます。端末の通知許可は、スマホの設定アプリから変更してください。",
   },
   {
     id: "company",

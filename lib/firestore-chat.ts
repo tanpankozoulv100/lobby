@@ -102,7 +102,7 @@ export function subscribeChatMessages(
     (err) => {
       const c = "code" in err ? String((err as { code: string }).code) : "";
       if (c === "failed-precondition") {
-        onError?.("チャット用のインデックスが未作成です。firestore.indexes.json をデプロイしてください。");
+        onError?.("レター用のインデックスが未作成です。firestore.indexes.json をデプロイしてください。");
       } else if (c === "permission-denied") {
         onError?.("メッセージの読み取りが拒否されました。");
       } else {
@@ -166,7 +166,7 @@ export async function sendChatMessage(
   if (peerUid === myUid) return { ok: false, message: "自分には送信できません。" };
 
   const threadId = await ensureChatThread(myUid, peerUid);
-  if (!threadId) return { ok: false, message: "チャットの準備に失敗しました。" };
+  if (!threadId) return { ok: false, message: "レターの準備に失敗しました。" };
 
   try {
     await addDoc(collection(db, CHAT_THREADS, threadId, MESSAGES), {
@@ -183,7 +183,7 @@ export async function sendChatMessage(
   } catch (err: unknown) {
     const c = err && typeof err === "object" && "code" in err ? String((err as { code: string }).code) : "";
     if (c === "permission-denied") {
-      return { ok: false, message: "送信が拒否されました。マッチ相手か、チャット期限を確認してください。" };
+      return { ok: false, message: "送信が拒否されました。マッチ相手か、レター期限を確認してください。" };
     }
     return { ok: false, message: "送信に失敗しました。" };
   }

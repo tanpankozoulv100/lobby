@@ -239,7 +239,7 @@ export function subscribeActiveDateInviteTickets(
       });
       onData(rows);
     },
-    () => onError?.("お誘い券の取得に失敗しました。")
+    () => onError?.("招待状の取得に失敗しました。")
   );
 }
 
@@ -270,7 +270,7 @@ export async function sendDateInvite(params: {
     const dt = asDate(d.data().expiresAt);
     return !!dt && dt.getTime() > now;
   });
-  if (!ticketDoc) return { ok: false, message: "利用可能なお誘い券がありません。" };
+  if (!ticketDoc) return { ok: false, message: "利用可能な招待状がありません。" };
 
   const inviteRef = doc(collection(db, "users", params.uid, DATE_INVITES));
   const ticketRef = doc(db, "users", params.uid, DATE_INVITE_TICKETS, ticketDoc.id);

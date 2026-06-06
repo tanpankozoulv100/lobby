@@ -184,7 +184,7 @@ export function ChatConversation({
           ×
         </button>
         <p className="min-w-0 flex-1 text-center text-xs font-medium leading-snug sm:text-sm">
-          {isStaff ? "運営チャット（期限なし）" : canSend ? formatDeadlineBanner(peer.expiresAt) : "期限切れ・履歴のみ"}
+          {isStaff ? "運営レター（期限なし）" : canSend ? formatDeadlineBanner(peer.expiresAt) : "期限切れ・履歴のみ"}
         </p>
         <button
           type="button"

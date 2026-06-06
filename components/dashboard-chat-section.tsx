@@ -30,7 +30,7 @@ function formatExpiryShort(d: Date): string {
 function ChatConfigMissing() {
   return (
     <div className="-mx-4 bg-[var(--lobby-cream)]">
-      <h1 className="py-3 text-center font-serif text-lg font-semibold text-[var(--lobby-red)]">チャット</h1>
+      <h1 className="py-3 text-center font-serif text-lg font-semibold text-[var(--lobby-red)]">レター</h1>
       <p className="px-4 pb-6 text-sm text-zinc-600">接続できませんでした。しばらく経ってからお試しください。</p>
     </div>
   );
@@ -54,10 +54,10 @@ function TalkListRow({
   onSelect: () => void;
 }) {
   const subtitle = isStaff
-    ? "運営チャット"
+    ? "運営レター"
     : peer.isActive
       ? `送信期限 ${formatExpiryShort(peer.expiresAt)}`
-      : "過去のチャット（閲覧のみ）";
+      : "過去のレター（閲覧のみ）";
 
   return (
     <li>
@@ -220,7 +220,7 @@ function DashboardChatLoaded({ user }: { user: User }) {
   return (
     <div className="-mx-4 flex min-h-[calc(100dvh-5.5rem-env(safe-area-inset-bottom)-env(safe-area-inset-top))] flex-col bg-[var(--lobby-cream)]">
       <h1 className="shrink-0 border-b border-zinc-200/60 py-3 text-center font-serif text-lg font-semibold text-[var(--lobby-red)]">
-        チャット
+        レター
       </h1>
 
       {peers === null ? (

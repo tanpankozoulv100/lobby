@@ -57,7 +57,7 @@ export function LobbyCodeInputModal({
       }
       if (result.ok) {
         const text = result.rematched
-          ? "再マッチしました。チャットの送信期限が更新されます。"
+          ? "再マッチしました。レターの送信期限が更新されます。"
           : "マッチングしました。";
         setSuccess(text);
         onMatched?.({ rematched: result.rematched === true });

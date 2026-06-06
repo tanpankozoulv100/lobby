@@ -27,7 +27,7 @@ async function fetchDisplayName(uid: string): Promise<string> {
 function DateInviteConfigMissing() {
   return (
     <section className="rounded-xl border border-zinc-200/80 bg-[var(--lobby-cream)] p-4 shadow-sm">
-      <h3 className="text-sm font-semibold text-zinc-900">デートお誘い券</h3>
+      <h3 className="text-sm font-semibold text-zinc-900">招待状</h3>
       <p className="mt-2 text-sm text-zinc-600">接続できませんでした。</p>
     </section>
   );
@@ -113,7 +113,7 @@ function DashboardDateInviteLoaded({ user }: { user: User }) {
     });
     setInvitePending(false);
     if (result.ok) {
-      setInviteNotice("デートお誘い券を送信しました。");
+      setInviteNotice("招待状を送信しました。");
       setInviteLocation("");
       setInviteMessage("");
       setInviteProposedAt("");
@@ -131,7 +131,7 @@ function DashboardDateInviteLoaded({ user }: { user: User }) {
         className="flex w-full items-center justify-between text-left"
       >
         <div>
-          <h3 className="text-sm font-semibold text-[var(--lobby-red)]">デートお誘い券</h3>
+          <h3 className="text-sm font-semibold text-[var(--lobby-red)]">招待状</h3>
           <p className="mt-0.5 text-xs text-zinc-600">10マッチごとに1枚・有効期限72時間</p>
         </div>
         <span className="text-xs text-zinc-500">
@@ -181,7 +181,7 @@ function DashboardDateInviteLoaded({ user }: { user: User }) {
             onClick={() => void handleSendDateInvite()}
             className="rounded-xl bg-[var(--lobby-red)] px-4 py-2.5 text-sm font-medium text-white disabled:opacity-40"
           >
-            {invitePending ? "送信中…" : "お誘い券を送る"}
+            {invitePending ? "送信中…" : "招待状を送る"}
           </button>
           {inviteNotice ? <p className="text-sm text-zinc-700">{inviteNotice}</p> : null}
         </div>

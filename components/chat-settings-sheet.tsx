@@ -162,7 +162,7 @@ export function ChatSettingsSheet({
       {view === "notify" ? (
         <div className="space-y-4 pt-1">
           <p className="text-sm text-zinc-700">
-            {peerDisplayName} さんとのチャットについて、通知を個別に設定できます。
+            {peerDisplayName} さんとのレターについて、通知を個別に設定できます。
           </p>
           <label className="flex items-center justify-between gap-3 rounded-xl border border-zinc-200 bg-white px-4 py-3">
             <span className="text-sm font-medium text-zinc-900">DM 通知</span>

@@ -265,7 +265,7 @@ export function DashboardMypageTab({
             {season.cardTitle} に関するお問い合わせは、運営窓口までご連絡ください。
           </p>
           <p className="mt-3 text-xs text-zinc-500">
-            マッチングやチャットの不具合は、履歴タブから通報をご利用いただけます。
+            マッチングやレターの不具合は、履歴タブから通報をご利用いただけます。
           </p>
         </div>
       </LobbyBottomSheet>

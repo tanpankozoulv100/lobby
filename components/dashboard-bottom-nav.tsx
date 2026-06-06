@@ -15,7 +15,7 @@ const ITEMS: {
   { id: "history", label: "履歴", icon: "matching", title: "マッチング履歴" },
   { id: "event", label: "イベント", icon: "event" },
   { id: "home", label: "ホーム", icon: "home", isHome: true },
-  { id: "chat", label: "チャット", icon: "chat" },
+  { id: "chat", label: "レター", icon: "chat" },
   { id: "mypage", label: "マイページ", icon: "mypage" },
 ];
 

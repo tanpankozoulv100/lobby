@@ -75,7 +75,7 @@ export function LobbyCameraScanModal({
         onMatched?.({ rematched: result.rematched === true });
         setSuccess(
           result.rematched
-            ? "再マッチしました。チャットの送信期限が更新されます。"
+            ? "再マッチしました。レターの送信期限が更新されます。"
             : "マッチングしました。"
         );
         window.setTimeout(() => {
