@@ -73,9 +73,14 @@ function DashboardEventsLoaded({ user, publishedEvents: events, cohortFlipActive
   };
 
   return (
-    <section className="rounded-xl border border-zinc-200 bg-zinc-50/80 p-4 sm:p-5">
+    <section className="lobby-paper-calendar">
+      <span className="lobby-paper-clip" aria-hidden />
       <div className="flex flex-col gap-2">
-        <h2 className="text-center font-serif text-lg font-semibold text-[var(--lobby-red)]">イベントカレンダー</h2>
+        <div className="lobby-paper-masthead">
+          <span className="lobby-paper-masthead-rule" aria-hidden />
+          <h2 className="lobby-paper-masthead-title">イベントカレンダー</h2>
+          <span className="lobby-paper-masthead-rule" aria-hidden />
+        </div>
         <SeasonCountdownBanner season={season} />
         <p className="text-center text-xs text-zinc-500">日付を選ぶと、その日のイベント一覧が表示されます。</p>
       </div>

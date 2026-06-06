@@ -559,6 +559,375 @@ body {
   color: rgba(201, 165, 92, 0.55);
 }
 
+/* ===== 履歴: 壁に掛かるロビーのキー（キーラック） ===== */
+
+.lobby-keyrack {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  column-gap: 0;
+  row-gap: 0.85rem;
+  margin-top: 1rem;
+  padding: 0.5rem 0.4rem 1rem;
+  border-radius: 0.4rem;
+  background:
+    repeating-linear-gradient(
+      92deg,
+      rgba(0, 0, 0, 0.05) 0,
+      rgba(0, 0, 0, 0.05) 1px,
+      transparent 1px,
+      transparent 22px
+    ),
+    linear-gradient(162deg, #6b4326 0%, #4e2f1a 55%, #361f10 100%);
+  box-shadow:
+    inset 0 2px 12px rgba(0, 0, 0, 0.45),
+    inset 0 0 0 2px rgba(201, 165, 92, 0.25);
+}
+
+.lobby-keyrack--empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 160px;
+  gap: 0.4rem;
+}
+
+.lobby-keyrack-empty-text {
+  font-family: var(--font-noto-serif-jp), serif;
+  font-size: 0.95rem;
+  color: #f0e2c8;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.6);
+}
+
+.lobby-keyrack-empty-sub {
+  font-size: 0.75rem;
+  color: rgba(240, 226, 200, 0.7);
+}
+
+.lobby-key {
+  --key-color: #f2c230;
+  --key-ink: #4a3500;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 0 0.15rem 0.2rem;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.lobby-key--yellow {
+  --key-color: #f2c230;
+  --key-ink: #4a3500;
+}
+
+.lobby-key--orange {
+  --key-color: #ef7d23;
+  --key-ink: #fff;
+}
+
+.lobby-key--red {
+  --key-color: var(--lobby-red);
+  --key-ink: #fff;
+}
+
+/* 各キーの上に渡る真鍮レール（隣のキーと繋がって1本に見える） */
+.lobby-key::before {
+  content: "";
+  position: absolute;
+  top: 4px;
+  left: 0;
+  right: 0;
+  height: 4px;
+  background: linear-gradient(180deg, #e9cf94 0%, #b48f48 60%, #7c5e2c 100%);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.55);
+}
+
+.lobby-key-hook {
+  position: relative;
+  z-index: 1;
+  width: 11px;
+  height: 11px;
+  margin-top: 1px;
+  border: 2px solid #d8b56e;
+  border-radius: 50%;
+  background: transparent;
+  box-shadow: 0 1px 1px rgba(0, 0, 0, 0.4);
+}
+
+.lobby-key-tassel {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-top: -1px;
+}
+
+.lobby-key-tassel-cap {
+  width: 11px;
+  height: 7px;
+  border-radius: 0 0 4px 4px;
+  background: linear-gradient(180deg, color-mix(in srgb, var(--key-color) 80%, white), var(--key-color));
+}
+
+.lobby-key-tassel-skirt {
+  width: 17px;
+  height: 20px;
+  border-radius: 0 0 7px 7px;
+  background: repeating-linear-gradient(
+    90deg,
+    var(--key-color) 0,
+    var(--key-color) 1.5px,
+    color-mix(in srgb, var(--key-color) 55%, black) 1.5px,
+    color-mix(in srgb, var(--key-color) 55%, black) 3px
+  );
+  -webkit-mask: linear-gradient(180deg, #000 68%, transparent 100%);
+  mask: linear-gradient(180deg, #000 68%, transparent 100%);
+}
+
+.lobby-key-fob {
+  position: relative;
+  margin-top: 3px;
+  width: 62px;
+  height: 62px;
+}
+
+.lobby-key-avatar {
+  width: 62px;
+  height: 62px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 3px solid #caa55c;
+  background: #e8dcc8;
+  box-shadow:
+    0 3px 7px rgba(0, 0, 0, 0.55),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.3);
+}
+
+.lobby-key-avatar--initial {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.15rem;
+  font-weight: 600;
+  color: #5a4632;
+}
+
+.lobby-key-tag {
+  position: absolute;
+  right: -4px;
+  bottom: -2px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 5px;
+  border-radius: 10px;
+  font-size: 11px;
+  font-weight: 800;
+  color: var(--key-ink);
+  background: var(--key-color);
+  border: 1px solid rgba(255, 255, 255, 0.45);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+}
+
+.lobby-key-bio {
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  min-height: 1.5rem;
+  margin-top: 3px;
+}
+
+.lobby-key-name {
+  display: flex;
+  max-width: 100%;
+  align-items: baseline;
+  justify-content: center;
+  gap: 2px;
+  margin-top: 2px;
+}
+
+.lobby-key-name-text {
+  overflow: hidden;
+  font-size: 11px;
+  color: #f1e3c9;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  text-shadow: 0 1px 1px rgba(0, 0, 0, 0.65);
+}
+
+/* ===== イベント: 壁に掛けた紙カレンダー ===== */
+
+.lobby-paper-calendar {
+  position: relative;
+  margin-top: 1.1rem;
+  padding: 1.5rem 0.9rem 1.1rem;
+  border-radius: 2px;
+  background:
+    linear-gradient(180deg, rgba(0, 0, 0, 0.04) 0%, transparent 6%),
+    repeating-linear-gradient(
+      0deg,
+      rgba(120, 110, 95, 0.04) 0,
+      rgba(120, 110, 95, 0.04) 1px,
+      transparent 1px,
+      transparent 26px
+    ),
+    #fcfaf4;
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.7) inset,
+    0 18px 30px rgba(0, 0, 0, 0.45),
+    0 2px 6px rgba(0, 0, 0, 0.3);
+  /* 壁に留められて少しだけ傾いている紙 */
+  transform: rotate(-0.4deg);
+}
+
+/* 上端のブルドッグクリップ */
+.lobby-paper-clip {
+  position: absolute;
+  top: -11px;
+  left: 50%;
+  width: 54px;
+  height: 18px;
+  transform: translateX(-50%);
+  border-radius: 3px;
+  background: linear-gradient(180deg, #e7e9ec 0%, #b9bdc4 45%, #8b9099 100%);
+  box-shadow:
+    0 2px 4px rgba(0, 0, 0, 0.4),
+    inset 0 1px 0 rgba(255, 255, 255, 0.8);
+}
+
+.lobby-paper-clip::before {
+  content: "";
+  position: absolute;
+  top: 4px;
+  left: 50%;
+  width: 26px;
+  height: 7px;
+  transform: translateX(-50%);
+  border-radius: 2px;
+  background: linear-gradient(180deg, #f2f3f5, #9aa0a8);
+  box-shadow: inset 0 -1px 1px rgba(0, 0, 0, 0.3);
+}
+
+.lobby-paper-masthead {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+}
+
+.lobby-paper-masthead-rule {
+  flex: 1;
+  height: 3px;
+  background: #1c1c1c;
+}
+
+.lobby-paper-masthead-title {
+  flex-shrink: 0;
+  font-family: var(--font-noto-serif-jp), serif;
+  font-size: 1.15rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  color: #1c1c1c;
+}
+
+/* ===== マイページ: 壁に取り付けられた壁鏡 ===== */
+
+.lobby-mirror-wrap {
+  position: relative;
+  display: flex;
+  justify-content: center;
+  padding: 1.5rem 1rem 0.5rem;
+  background-position: center;
+  background-size: cover;
+}
+
+/* 鏡の周りの壁を少し暗く落ち着かせる */
+.lobby-mirror-wrap::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, rgba(40, 22, 14, 0.35) 0%, rgba(40, 22, 14, 0.1) 100%);
+  pointer-events: none;
+}
+
+.lobby-mirror {
+  position: relative;
+  width: 150px;
+  height: 196px;
+}
+
+/* 金縁の楕円フレーム */
+.lobby-mirror-glass {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  border-radius: 50%;
+  border: 5px solid transparent;
+  background:
+    linear-gradient(#2a1410, #2a1410) padding-box,
+    linear-gradient(145deg, #e7c987 0%, #b18f48 40%, #7c5e2c 70%, #d8b56e 100%) border-box;
+  box-shadow:
+    0 10px 26px rgba(0, 0, 0, 0.55),
+    inset 0 0 22px rgba(0, 0, 0, 0.5);
+}
+
+.lobby-mirror-photo {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  /* 鏡に映った像のような落ち着いた色味 */
+  filter: brightness(0.92) sepia(0.12) contrast(0.98);
+}
+
+.lobby-mirror-photo--initial {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 3rem;
+  font-weight: 600;
+  color: #d8c4a4;
+  background: radial-gradient(ellipse at 50% 35%, #5a3a2c 0%, #2a1410 75%);
+}
+
+/* ガラスの光沢（斜めの映り込み） */
+.lobby-mirror-sheen {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    125deg,
+    rgba(255, 255, 255, 0.28) 0%,
+    rgba(255, 255, 255, 0.06) 22%,
+    transparent 42%,
+    transparent 70%,
+    rgba(0, 0, 0, 0.28) 100%
+  );
+  pointer-events: none;
+}
+
+.lobby-mirror-edit {
+  position: absolute;
+  right: 4px;
+  bottom: 10px;
+  z-index: 2;
+  display: flex;
+  height: 36px;
+  width: 36px;
+  align-items: center;
+  justify-content: center;
+  border-radius: 9999px;
+  border: 2px solid var(--lobby-cream);
+  background: var(--lobby-red);
+  color: #fff;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.45);
+}
+
 @media (prefers-reduced-motion: reduce) {
   .lobby-room-carousel,
   .lobby-room-wall {

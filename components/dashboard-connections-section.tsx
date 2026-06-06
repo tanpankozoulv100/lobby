@@ -16,10 +16,7 @@ import { MatchCompatibilityInline } from "@/components/match-compatibility-inlin
 import { ensureUserProfile, fetchUserProfile, subscribeUserProfile } from "@/lib/firestore-users";
 import type { CompatibilityAnswers } from "@/lib/compatibility-questions";
 import { useUserSeason } from "@/lib/use-user-season";
-import {
-  getMatchEncounterBadgeTone,
-  MATCH_ENCOUNTER_BADGE_CLASS,
-} from "@/lib/match-encounter";
+import { getMatchEncounterBadgeTone } from "@/lib/match-encounter";
 import { useProfileMediaUrl } from "@/lib/use-profile-media-url";
 import { ProfileHitokotoBubble } from "@/components/profile-hitokoto-bubble";
 
@@ -32,7 +29,9 @@ function HistoryConfigMissing() {
   );
 }
 
-function MatchGridAvatar({
+/** マッチした相手を「壁に掛かるロビーのキー」として表示する。
+ *  房（タッセル）の色はマッチ回数で 黄1 / 橙2 / 赤3+。 */
+function LobbyKey({
   peerUid,
   encounterCount,
   displayName,
@@ -51,34 +50,35 @@ function MatchGridAvatar({
 }) {
   const avatarUrl = useProfileMediaUrl(avatarPath);
   const tone = getMatchEncounterBadgeTone(encounterCount);
-  const badgeClass = MATCH_ENCOUNTER_BADGE_CLASS[tone];
 
   return (
     <button
       type="button"
       onClick={onSelect}
-      className="flex flex-col items-center gap-1 rounded-xl p-1 text-center transition active:bg-zinc-100"
+      className={`lobby-key lobby-key--${tone}`}
+      aria-label={`${displayName} とのマッチ ${encounterCount}回`}
     >
-      <span className="flex min-h-[1.75rem] items-end px-0.5">
-        <ProfileHitokotoBubble text={bio} tail="bottom" />
+      <span className="lobby-key-hook" aria-hidden />
+      <span className="lobby-key-tassel" aria-hidden>
+        <span className="lobby-key-tassel-cap" />
+        <span className="lobby-key-tassel-skirt" />
       </span>
-      <span className="relative">
+      <span className="lobby-key-fob">
         {avatarUrl ? (
           // eslint-disable-next-line @next/next/no-img-element
-          <img src={avatarUrl} alt="" className="h-[72px] w-[72px] rounded-full object-cover" />
+          <img src={avatarUrl} alt="" className="lobby-key-avatar" />
         ) : (
-          <span className="flex h-[72px] w-[72px] items-center justify-center rounded-full bg-zinc-200 text-lg font-semibold text-zinc-600">
+          <span className="lobby-key-avatar lobby-key-avatar--initial">
             {displayName.slice(0, 1)}
           </span>
         )}
-        <span
-          className={`absolute -bottom-0.5 -right-0.5 flex h-6 min-w-[1.5rem] items-center justify-center rounded-full px-1 text-[11px] font-bold shadow ${badgeClass}`}
-        >
-          {encounterCount}
-        </span>
+        <span className="lobby-key-tag">{encounterCount}</span>
       </span>
-      <span className="flex max-w-full items-baseline justify-center gap-1 px-0.5">
-        <span className="truncate text-[11px] font-medium text-zinc-800">{displayName}</span>
+      <span className="lobby-key-bio">
+        <ProfileHitokotoBubble text={bio} tail="bottom" />
+      </span>
+      <span className="lobby-key-name">
+        <span className="lobby-key-name-text">{displayName}</span>
         <MatchCompatibilityInline peerUid={peerUid} myAnswers={myAnswers} className="text-[10px]" />
       </span>
     </button>
@@ -180,15 +180,18 @@ function DashboardConnectionsLoaded({ user }: { user: User }) {
           {links === null ? (
             <p className="mt-6 text-center text-sm text-zinc-500">読み込み中…</p>
           ) : links.length === 0 ? (
-            <p className="mt-6 rounded-xl border border-zinc-200 bg-white px-4 py-8 text-center text-sm text-zinc-600">
-              現在、マッチングしていません
-            </p>
+            <div className="lobby-keyrack lobby-keyrack--empty">
+              <p className="lobby-keyrack-empty-text">まだ鍵はかかっていません</p>
+              <p className="lobby-keyrack-empty-sub">
+                マッチングした人の鍵がこの壁に増えていきます
+              </p>
+            </div>
           ) : (
-            <div className="mt-4 grid grid-cols-3 gap-2 sm:gap-3">
+            <div className="lobby-keyrack">
               {links.map((row) => {
                 const meta = peerMeta[row.peerUid];
                 return (
-                  <MatchGridAvatar
+                  <LobbyKey
                     key={row.peerUid}
                     peerUid={row.peerUid}
                     encounterCount={row.encounterCount}

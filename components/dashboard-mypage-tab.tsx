@@ -143,30 +143,27 @@ export function DashboardMypageTab({
     <div>
       <h1 className="sr-only">マイページ</h1>
 
-      <div className="relative px-4 pb-2">
-        <div
-          className="h-28 overflow-hidden rounded-t-2xl bg-gradient-to-br from-[var(--lobby-red)]/30 via-zinc-300/40 to-[var(--lobby-cream)] bg-cover bg-center"
-          style={coverUrl ? { backgroundImage: `url(${coverUrl})` } : undefined}
-          aria-hidden
-        />
-        <div className="-mt-12 flex flex-col items-center">
-          <div className="relative">
-            {avatarUrl ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img
-                src={avatarUrl}
-                alt=""
-                className="h-24 w-24 rounded-full border-4 border-[var(--lobby-cream)] object-cover shadow-md"
-              />
-            ) : (
-              <div className="flex h-24 w-24 items-center justify-center rounded-full border-4 border-[var(--lobby-cream)] bg-[var(--lobby-surface-raised)] text-2xl font-semibold text-[var(--lobby-red)] shadow-md">
-                {displayName.slice(0, 1)}
-              </div>
-            )}
+      <div
+        className="lobby-mirror-wrap"
+        style={coverUrl ? { backgroundImage: `url(${coverUrl})` } : undefined}
+      >
+        <div className="flex flex-col items-center">
+          <div className="lobby-mirror">
+            <div className="lobby-mirror-glass">
+              {avatarUrl ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={avatarUrl} alt="" className="lobby-mirror-photo" />
+              ) : (
+                <div className="lobby-mirror-photo lobby-mirror-photo--initial">
+                  {displayName.slice(0, 1)}
+                </div>
+              )}
+              <span className="lobby-mirror-sheen" aria-hidden />
+            </div>
             <button
               type="button"
               onClick={() => setProfileEditOpen(true)}
-              className="absolute -bottom-1 -right-1 flex h-9 w-9 items-center justify-center rounded-full border-2 border-[var(--lobby-cream)] bg-[var(--lobby-red)] text-white shadow"
+              className="lobby-mirror-edit"
               aria-label="プロフィールを編集"
             >
               <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" aria-hidden>
