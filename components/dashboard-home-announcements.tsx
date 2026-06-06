@@ -75,9 +75,6 @@ export function DashboardHomeAnnouncements({ rows, hasUnread, onMarkSeen }: Prop
           {hasUnread ? (
             <span className="ml-2 text-xs font-medium text-red-600">新着あり</span>
           ) : null}
-          {rows && rows.length > 0 && !open ? (
-            <p className="mt-0.5 truncate text-xs text-zinc-500">{rows[0]!.title}</p>
-          ) : null}
         </span>
         <span className="text-xs text-zinc-400">{open ? "閉じる" : "開く"}</span>
       </button>

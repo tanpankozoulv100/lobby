@@ -6,6 +6,9 @@ import {
   getSeasonRemainingDays,
 } from "@/lib/season-config";
 
+/** シーズン未解決（=未登録）時のフォールバック表示に付与する ID */
+export const SEASON_FALLBACK_ID = "__fallback__";
+
 /** UI 向けに正規化したシーズン表示 */
 export type SeasonDisplay = {
   id: string;
@@ -42,7 +45,7 @@ export function seasonFieldsToDisplay(id: string, fields: SeasonFields): SeasonD
 export function fallbackSeasonDisplay(): SeasonDisplay {
   const endAt = getSeasonEndDate();
   return {
-    id: "__fallback__",
+    id: SEASON_FALLBACK_ID,
     headerTitle: LOBBY_SEASON_UI.headerTitle,
     cardTitle: LOBBY_SEASON_UI.cardTitle,
     dateRangeLabel: LOBBY_SEASON_UI.dateRangeLabel,

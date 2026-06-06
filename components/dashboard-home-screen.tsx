@@ -11,7 +11,7 @@ import { ensureUserProfile, subscribeUserProfile } from "@/lib/firestore-users";
 import type { UserProfileFields } from "@/lib/lobby-firestore-types";
 import type { PublishedAnnouncementRow } from "@/lib/firestore-announcements";
 import { formatCountdownBanner } from "@/lib/season-config";
-import { getSeasonRemainingDaysForDisplay } from "@/lib/season-display";
+import { getSeasonRemainingDaysForDisplay, SEASON_FALLBACK_ID } from "@/lib/season-display";
 import { useUserSeason } from "@/lib/use-user-season";
 import { LobbyQrModal } from "@/components/lobby-qr-modal";
 import { LobbyCameraScanModal } from "@/components/lobby-camera-scan-modal";
@@ -23,31 +23,36 @@ import { useLobbyStaff } from "@/lib/use-lobby-staff";
 import { DashboardHomeAnnouncements } from "@/components/dashboard-home-announcements";
 
 function QrIcon({ className }: { className?: string }) {
+  // 3つの位置検出パターン（角の四角）＋データモジュールで「QRコードらしさ」を出す
   return (
     <svg className={className} viewBox="0 0 48 48" fill="none" aria-hidden>
-      <path
-        stroke="currentColor"
-        strokeWidth="2.5"
-        d="M6 6h12v12H6V6zm0 24h12v12H6V30zm24-24h12v12H30V6z"
-      />
-      <rect x="30" y="30" width="4" height="4" fill="currentColor" rx="1" />
-      <rect x="38" y="30" width="4" height="4" fill="currentColor" rx="1" />
-      <rect x="30" y="38" width="4" height="4" fill="currentColor" rx="1" />
-      <rect x="38" y="38" width="4" height="4" fill="currentColor" rx="1" />
+      <rect x="7" y="7" width="13" height="13" rx="2" stroke="currentColor" strokeWidth="2.5" />
+      <rect x="11" y="11" width="5" height="5" rx="1" fill="currentColor" />
+      <rect x="28" y="7" width="13" height="13" rx="2" stroke="currentColor" strokeWidth="2.5" />
+      <rect x="32" y="11" width="5" height="5" rx="1" fill="currentColor" />
+      <rect x="7" y="28" width="13" height="13" rx="2" stroke="currentColor" strokeWidth="2.5" />
+      <rect x="11" y="32" width="5" height="5" rx="1" fill="currentColor" />
+      <rect x="28" y="28" width="5" height="5" fill="currentColor" />
+      <rect x="36" y="28" width="5" height="5" fill="currentColor" />
+      <rect x="32" y="33" width="4" height="4" fill="currentColor" />
+      <rect x="28" y="37" width="5" height="4" fill="currentColor" />
+      <rect x="37" y="36" width="4" height="5" fill="currentColor" />
     </svg>
   );
 }
 
-function ScanIcon({ className }: { className?: string }) {
+function CameraIcon({ className }: { className?: string }) {
   return (
     <svg className={className} viewBox="0 0 48 48" fill="none" aria-hidden>
+      <rect x="6" y="14" width="36" height="26" rx="4" stroke="currentColor" strokeWidth="2.5" />
       <path
+        d="M17 14l3-5h8l3 5"
         stroke="currentColor"
         strokeWidth="2.5"
+        strokeLinejoin="round"
         strokeLinecap="round"
-        d="M8 8h10v6M8 8v10M40 8H30v6M40 8v10M8 40v-10h6M8 40h10M40 40H30v-10M40 40v-10h-6"
       />
-      <rect x="18" y="18" width="12" height="12" rx="2" stroke="currentColor" strokeWidth="2.5" />
+      <circle cx="24" cy="27" r="7" stroke="currentColor" strokeWidth="2.5" />
     </svg>
   );
 }
@@ -78,6 +83,7 @@ export function DashboardHomeScreen({
   const [qrOpen, setQrOpen] = useState(false);
   const [matchFlow, setMatchFlow] = useState<MatchFlow>(null);
   const { season } = useUserSeason(user.uid);
+  const seasonRegistered = season.id !== SEASON_FALLBACK_ID;
   const daysLeft = getSeasonRemainingDaysForDisplay(season);
 
   useEffect(() => {
@@ -202,9 +208,11 @@ export function DashboardHomeScreen({
 
       <div className="pt-2 text-center">
         <h1 className="text-base font-bold text-[var(--lobby-red)]">{season.headerTitle}</h1>
-        <div className="mt-2 rounded-none bg-[var(--lobby-red)] py-2.5 text-center text-sm font-medium text-white">
-          {formatCountdownBanner(daysLeft)}
-        </div>
+        {seasonRegistered ? (
+          <div className="mt-2 rounded-none bg-[var(--lobby-red)] py-2.5 text-center text-sm font-medium text-white">
+            {formatCountdownBanner(daysLeft)}
+          </div>
+        ) : null}
       </div>
 
       {participantClaimError ? (
@@ -221,12 +229,22 @@ export function DashboardHomeScreen({
       />
 
       <div className="mt-4 rounded-3xl border border-zinc-200/80 bg-[var(--lobby-cream)] px-5 pb-6 pt-5 shadow-md">
-        <p className="font-serif text-2xl font-semibold text-[var(--lobby-red)]">Lobby</p>
-        <p className="mt-1 text-sm font-semibold text-[var(--lobby-red)]">{season.cardTitle}</p>
-        <p className="mt-0.5 text-xs text-[var(--lobby-red)]">{season.dateRangeLabel}</p>
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src="/brand/red/logotype_2_red.png"
+          alt="Lobby"
+          className="h-7 w-auto"
+        />
+        <p className="mt-2 text-sm font-semibold text-[var(--lobby-red)]">{season.cardTitle}</p>
+        {season.dateRangeLabel ? (
+          <p className="mt-0.5 text-xs text-[var(--lobby-red)]">{season.dateRangeLabel}</p>
+        ) : null}
 
         <div className="mt-6 text-center">
-          <p className="font-serif text-6xl font-bold tabular-nums leading-none tracking-tight text-[var(--lobby-red)] md:text-7xl">
+          <p
+            className="text-6xl font-bold tabular-nums leading-none tracking-tight text-[var(--lobby-red)] md:text-7xl"
+            style={{ fontFamily: "var(--font-noto-serif-jp), serif" }}
+          >
             No.{noLabel}
           </p>
         </div>
@@ -246,7 +264,7 @@ export function DashboardHomeScreen({
             onClick={() => setMatchFlow("camera")}
             className="flex flex-col items-center rounded-2xl border border-[var(--lobby-red)]/25 bg-[var(--lobby-surface-raised)] py-5 shadow-sm transition active:scale-[0.98]"
           >
-            <ScanIcon className="h-12 w-12 text-[var(--lobby-red)]" />
+            <CameraIcon className="h-12 w-12 text-[var(--lobby-red)]" />
             <span className="mt-2 text-sm font-semibold text-[var(--lobby-red)]">スキャン</span>
           </button>
         </div>
