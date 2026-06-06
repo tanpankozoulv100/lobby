@@ -56,11 +56,6 @@ function LobbyKey({
       className={`lobby-key lobby-key--${tone}`}
       aria-label={`${displayName} とのマッチ ${encounterCount}回`}
     >
-      <span className="lobby-key-hook" aria-hidden />
-      <span className="lobby-key-tassel" aria-hidden>
-        <span className="lobby-key-tassel-cap" />
-        <span className="lobby-key-tassel-skirt" />
-      </span>
       <span className="lobby-key-fob">
         {avatarUrl ? (
           // eslint-disable-next-line @next/next/no-img-element
@@ -146,7 +141,7 @@ function DashboardConnectionsLoaded({ user }: { user: User }) {
 
   return (
     <div className="-mx-4 -mt-3 -mb-4 flex min-h-full flex-col">
-      <p className="px-4 pb-1 pt-3 text-center text-sm font-medium text-zinc-800">
+      <p className="px-4 pb-1 pt-3 text-center text-sm font-medium text-[var(--lobby-cream)] drop-shadow-[0_1px_2px_rgba(0,0,0,0.6)]">
         {season.cardTitle}
       </p>
 
