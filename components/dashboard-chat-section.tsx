@@ -6,6 +6,7 @@ import { isFirebaseConfigComplete } from "@/lib/firebase";
 import { subscribeChatPeers, type ChatPeerEntry } from "@/lib/firestore-chat-date";
 import { useLobbyStaff } from "@/lib/use-lobby-staff";
 import { ChatConversation } from "@/components/chat-conversation";
+import { DashboardDateInviteSection } from "@/components/dashboard-date-invite-section";
 import { MatchedPeerDetailSheet } from "@/components/matched-peer-detail-sheet";
 import { MatchCompatibilityInline } from "@/components/match-compatibility-inline";
 import {
@@ -237,6 +238,10 @@ function DashboardChatLoaded({ user }: { user: User }) {
           <span className="lobby-desk-wax" />
         </span>
         <span className="lobby-desk-pen" />
+      </div>
+
+      <div className="relative z-[1] px-3 pt-3">
+        <DashboardDateInviteSection user={user} />
       </div>
 
       <p className="lobby-desk-caption">机の上の手紙</p>

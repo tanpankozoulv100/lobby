@@ -9,8 +9,6 @@ import {
   subscribeOutboundLinks,
   type MergedMatchRow,
 } from "@/lib/firestore-connections";
-import { DashboardDateInviteSection } from "@/components/dashboard-date-invite-section";
-import { MatchHistoryHelpModal } from "@/components/match-history-help-modal";
 import { MatchedPeerDetailSheet } from "@/components/matched-peer-detail-sheet";
 import { MatchCompatibilityInline } from "@/components/match-compatibility-inline";
 import { ensureUserProfile, fetchUserProfile, subscribeUserProfile } from "@/lib/firestore-users";
@@ -93,7 +91,6 @@ function DashboardConnectionsLoaded({ user }: { user: User }) {
   const [peerMeta, setPeerMeta] = useState<
     Record<string, { displayName: string; avatarPath?: string; bio?: string }>
   >({});
-  const [helpOpen, setHelpOpen] = useState(false);
   const [selectedPeer, setSelectedPeer] = useState<MergedMatchRow | null>(null);
 
   useEffect(() => {
@@ -148,67 +145,43 @@ function DashboardConnectionsLoaded({ user }: { user: User }) {
   }, [links]);
 
   return (
-    <div className="-mx-4 space-y-4">
-      <DashboardDateInviteSection user={user} />
+    <div className="-mx-4 -mt-3 -mb-4 flex min-h-full flex-col">
+      <p className="px-4 pb-1 pt-3 text-center text-sm font-medium text-zinc-800">
+        {season.cardTitle}
+      </p>
 
-      <div className="overflow-hidden rounded-2xl border border-zinc-200/80 bg-[var(--lobby-cream)] shadow-sm">
-        <div className="bg-[var(--lobby-red)] px-4 py-2.5 text-center text-sm font-medium text-white">
-          あなたが参加中のシーズン
+      {linksError ? (
+        <p className="px-4 pb-1 text-center text-sm text-amber-800">{linksError}</p>
+      ) : null}
+
+      {links === null ? (
+        <p className="flex flex-1 items-center justify-center px-4 text-center text-sm text-zinc-500">
+          読み込み中…
+        </p>
+      ) : links.length === 0 ? (
+        <div className="lobby-keyrack lobby-keyrack--empty">
+          <p className="lobby-keyrack-empty-text">まだ鍵はかかっていません</p>
+          <p className="lobby-keyrack-empty-sub">マッチングした人の鍵がこの壁に増えていきます</p>
         </div>
-
-        <div className="px-4 py-4">
-          <h2 className="text-center font-serif text-lg font-semibold text-[var(--lobby-red)]">
-            マッチング履歴
-          </h2>
-          <p className="mt-2 text-center text-sm font-medium text-zinc-800">{season.cardTitle}</p>
-          <p className="mt-1 text-center text-xs text-zinc-500">{season.participatingCountLabel}</p>
-
-          <div className="mt-5 flex items-center justify-center gap-1">
-            <h3 className="text-sm font-semibold text-zinc-900">これまでにマッチングした一覧</h3>
-            <button
-              type="button"
-              onClick={() => setHelpOpen(true)}
-              className="flex h-5 w-5 items-center justify-center rounded-full border border-zinc-300 text-[11px] font-bold text-zinc-500"
-              aria-label="マッチング一覧の説明"
-            >
-              ?
-            </button>
-          </div>
-
-          {linksError ? <p className="mt-3 text-center text-sm text-amber-800">{linksError}</p> : null}
-
-          {links === null ? (
-            <p className="mt-6 text-center text-sm text-zinc-500">読み込み中…</p>
-          ) : links.length === 0 ? (
-            <div className="lobby-keyrack lobby-keyrack--empty">
-              <p className="lobby-keyrack-empty-text">まだ鍵はかかっていません</p>
-              <p className="lobby-keyrack-empty-sub">
-                マッチングした人の鍵がこの壁に増えていきます
-              </p>
-            </div>
-          ) : (
-            <div className="lobby-keyrack">
-              {links.map((row) => {
-                const meta = peerMeta[row.peerUid];
-                return (
-                  <LobbyKey
-                    key={row.peerUid}
-                    peerUid={row.peerUid}
-                    encounterCount={row.encounterCount}
-                    displayName={meta?.displayName ?? "…"}
-                    avatarPath={meta?.avatarPath}
-                    bio={meta?.bio}
-                    myAnswers={myAnswers}
-                    onSelect={() => setSelectedPeer(row)}
-                  />
-                );
-              })}
-            </div>
-          )}
+      ) : (
+        <div className="lobby-keyrack">
+          {links.map((row) => {
+            const meta = peerMeta[row.peerUid];
+            return (
+              <LobbyKey
+                key={row.peerUid}
+                peerUid={row.peerUid}
+                encounterCount={row.encounterCount}
+                displayName={meta?.displayName ?? "…"}
+                avatarPath={meta?.avatarPath}
+                bio={meta?.bio}
+                myAnswers={myAnswers}
+                onSelect={() => setSelectedPeer(row)}
+              />
+            );
+          })}
         </div>
-      </div>
-
-      <MatchHistoryHelpModal open={helpOpen} onClose={() => setHelpOpen(false)} />
+      )}
 
       {selectedPeer ? (
         <MatchedPeerDetailSheet

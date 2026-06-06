@@ -566,9 +566,11 @@ body {
 .lobby-keyrack {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
+  align-content: start;
+  flex: 1;
   column-gap: 0;
   row-gap: 0.85rem;
-  margin-top: 1rem;
+  margin: 1rem 1rem 0;
   padding: 0.5rem 0.4rem 1rem;
   border-radius: 0.4rem;
   background:
