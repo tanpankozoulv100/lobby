@@ -27,6 +27,10 @@ function formatExpiryShort(d: Date): string {
   return d.toLocaleString("ja-JP", { month: "numeric", day: "numeric", hour: "2-digit", minute: "2-digit" });
 }
 
+function formatMetDate(d: Date): string {
+  return d.toLocaleDateString("ja-JP", { year: "numeric", month: "numeric", day: "numeric" });
+}
+
 function ChatConfigMissing() {
   return (
     <div className="-mx-4 bg-[var(--lobby-cream)]">
@@ -80,6 +84,11 @@ function TalkListRow({
           </span>
           {!isStaff && bio?.trim() ? (
             <ProfileHitokotoBubble text={bio} tail="left" className="mt-1.5 ml-1" />
+          ) : null}
+          {!isStaff ? (
+            <span className="mt-0.5 block truncate text-xs text-zinc-500">
+              出会った日 {formatMetDate(peer.matchedAt)}
+            </span>
           ) : null}
           <span className={`mt-0.5 block truncate text-xs ${peer.isActive ? "text-zinc-500" : "text-zinc-400"}`}>
             {subtitle}
