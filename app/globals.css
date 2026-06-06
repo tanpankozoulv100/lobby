@@ -127,3 +127,113 @@ body {
     animation-duration: 0.01ms;
   }
 }
+
+/* 受信した手紙（封筒）。タップで開封 → 中から便箋が出てくる */
+.lobby-env {
+  position: relative;
+  width: 100%;
+  height: 10.5rem;
+  perspective: 1100px;
+  cursor: pointer;
+}
+
+/* 封筒の奥側（内張り） */
+.lobby-env-back {
+  position: absolute;
+  inset: 0;
+  border-radius: 0.6rem;
+  background: linear-gradient(135deg, #5c0b18, #7a1020 55%, #5c0b18);
+}
+
+/* 中の便箋（封筒の裏に隠れていて、開封時に上へスライドして出てくる） */
+.lobby-env-paper {
+  position: absolute;
+  left: 7%;
+  right: 7%;
+  top: 6%;
+  height: 130%;
+  z-index: 1;
+  border-radius: 0.25rem;
+  background-color: #fffdf7;
+  background-image: repeating-linear-gradient(
+    to bottom,
+    transparent 0,
+    transparent calc(1.5rem - 1px),
+    rgba(178, 0, 27, 0.13) calc(1.5rem - 1px),
+    rgba(178, 0, 27, 0.13) 1.5rem
+  );
+  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.18);
+}
+
+/* 封筒の前面（便箋を隠すポケット） */
+.lobby-env-pocket {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  border-radius: 0.6rem;
+  background: linear-gradient(160deg, #7a1020, #9b2233 55%, #7a1020);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.06);
+}
+
+/* 封筒のフタ（上部の三角。開封時に上へ開く） */
+.lobby-env-flap {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 66%;
+  z-index: 4;
+  background: linear-gradient(160deg, #8a1828, #a8293c 55%, #8a1828);
+  clip-path: polygon(0 0, 100% 0, 50% 100%);
+  transform-origin: top center;
+  backface-visibility: hidden;
+}
+
+/* 封蝋（ハートのシール） */
+.lobby-env-seal {
+  position: absolute;
+  top: 34%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
+  border-radius: 9999px;
+  color: #8a1828;
+  background: radial-gradient(circle at 35% 30%, #f6e2c8, #d8a86a);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.25);
+}
+
+.lobby-env[data-stage="opening"] .lobby-env-flap {
+  animation: lobbyEnvFlap 0.6s ease-in forwards;
+}
+.lobby-env[data-stage="opening"] .lobby-env-paper {
+  animation: lobbyEnvPaper 1s cubic-bezier(0.4, 0, 0.2, 1) 0.5s forwards;
+}
+
+@keyframes lobbyEnvFlap {
+  from {
+    transform: rotateX(0deg);
+  }
+  to {
+    transform: rotateX(-160deg);
+  }
+}
+
+@keyframes lobbyEnvPaper {
+  from {
+    transform: translateY(0);
+  }
+  to {
+    transform: translateY(-72%);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .lobby-env[data-stage="opening"] .lobby-env-flap,
+  .lobby-env[data-stage="opening"] .lobby-env-paper {
+    animation-duration: 0.01ms;
+  }
+}

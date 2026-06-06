@@ -15,6 +15,7 @@ import {
   type ChatMessageRow,
 } from "@/lib/firestore-chat";
 import { ChatSettingsSheet } from "@/components/chat-settings-sheet";
+import { LetterEnvelope } from "@/components/letter-envelope";
 import { MatchCompatibilityInline } from "@/components/match-compatibility-inline";
 import type { CompatibilityAnswers } from "@/lib/compatibility-questions";
 
@@ -219,26 +220,15 @@ export function ChatConversation({
                 <p className="text-xs font-semibold text-zinc-500">
                   {peerDisplayName}さんからの手紙
                 </p>
-                {!peerOpened ? (
-                  <button
-                    type="button"
-                    onClick={() => setPeerOpened(true)}
-                    className="group relative flex h-36 flex-col items-center justify-center gap-2 rounded-lg border border-[var(--lobby-red)]/25 bg-[var(--lobby-surface-raised)] shadow-sm transition active:scale-[0.99]"
-                  >
-                    <svg className="h-12 w-12 text-[var(--lobby-red)]" viewBox="0 0 24 24" fill="none" aria-hidden>
-                      <rect x="3" y="5.5" width="18" height="13" rx="1.5" stroke="currentColor" strokeWidth="1.5" />
-                      <path d="M3.5 6.5l8.5 6 8.5-6" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round" />
-                    </svg>
-                    <span className="text-sm font-medium text-[var(--lobby-red)]">タップして開封する</span>
-                  </button>
-                ) : (
-                  <>
-                    <LetterSheet text={peerLetter.text} animateOpen />
-                    <p className="text-right text-[11px] text-zinc-400">
-                      {formatLetterDate(peerLetter.createdAt)}
-                    </p>
-                  </>
-                )}
+                <LetterEnvelope
+                  text={peerLetter.text}
+                  onOpen={() => setPeerOpened(true)}
+                />
+                {peerOpened ? (
+                  <p className="text-right text-[11px] text-zinc-400">
+                    {formatLetterDate(peerLetter.createdAt)}
+                  </p>
+                ) : null}
               </section>
             ) : null}
 
