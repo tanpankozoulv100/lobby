@@ -1,23 +1,26 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import type { User } from "firebase/auth";
 import type { ChatPeerEntry } from "@/lib/firestore-chat-date";
 import {
   chatThreadId,
   chatTimestampMs,
   markChatThreadRead,
+  pickLetters,
   sendChatMessage,
   subscribeChatMessages,
   subscribeChatThreadRead,
+  LETTER_MAX_LENGTH,
   type ChatMessageRow,
 } from "@/lib/firestore-chat";
 import { ChatSettingsSheet } from "@/components/chat-settings-sheet";
 import { MatchCompatibilityInline } from "@/components/match-compatibility-inline";
-import { ProfileAvatarCircle } from "@/components/profile-avatar-circle";
 import type { CompatibilityAnswers } from "@/lib/compatibility-questions";
 
-function formatMessageTime(ts: unknown): string {
+const LETTER_FONT = "var(--font-noto-serif-jp), serif";
+
+function formatLetterDate(ts: unknown): string {
   if (
     ts &&
     typeof ts === "object" &&
@@ -25,6 +28,7 @@ function formatMessageTime(ts: unknown): string {
     typeof (ts as { toDate: () => Date }).toDate === "function"
   ) {
     return (ts as { toDate: () => Date }).toDate().toLocaleString("ja-JP", {
+      year: "numeric",
       month: "numeric",
       day: "numeric",
       hour: "2-digit",
@@ -36,7 +40,6 @@ function formatMessageTime(ts: unknown): string {
 
 function formatDeadlineBanner(d: Date): string {
   return `期限：${d.toLocaleString("ja-JP", {
-    year: "numeric",
     month: "numeric",
     day: "numeric",
     hour: "2-digit",
@@ -44,46 +47,32 @@ function formatDeadlineBanner(d: Date): string {
   })}まで`;
 }
 
-function messageDateKey(ts: unknown): string | null {
-  if (
-    ts &&
-    typeof ts === "object" &&
-    "toDate" in ts &&
-    typeof (ts as { toDate: () => Date }).toDate === "function"
-  ) {
-    return (ts as { toDate: () => Date }).toDate().toLocaleDateString("ja-JP", {
-      year: "numeric",
-      month: "numeric",
-      day: "numeric",
-      weekday: "short",
-    });
-  }
-  return null;
-}
-
-function groupMessagesWithDates(
-  messages: ChatMessageRow[]
-): ({ type: "date"; label: string } | { type: "msg"; msg: ChatMessageRow })[] {
-  const out: ({ type: "date"; label: string } | { type: "msg"; msg: ChatMessageRow })[] = [];
-  let lastDate: string | null = null;
-  for (const msg of messages) {
-    const dk = messageDateKey(msg.createdAt);
-    if (dk && dk !== lastDate) {
-      out.push({ type: "date", label: dk });
-      lastDate = dk;
-    }
-    out.push({ type: "msg", msg });
-  }
-  return out;
+/** 罫線つき便箋の読み取り表示 */
+function LetterSheet({
+  text,
+  className,
+  animateOpen,
+}: {
+  text: string;
+  className?: string;
+  animateOpen?: boolean;
+}) {
+  return (
+    <div
+      className={`lobby-letter-paper rounded-md border border-[var(--lobby-red)]/15 text-[15px] text-zinc-800 shadow-sm ${
+        animateOpen ? "lobby-letter-opening" : ""
+      } ${className ?? ""}`}
+      style={{ fontFamily: LETTER_FONT }}
+    >
+      <p className="whitespace-pre-wrap break-words leading-[2rem]">{text}</p>
+    </div>
+  );
 }
 
 export function ChatConversation({
   user,
   peer,
   peerDisplayName,
-  peerAvatarPath,
-  myDisplayName,
-  myAvatarPath,
   isStaff,
   canSend,
   myAnswers,
@@ -109,25 +98,23 @@ export function ChatConversation({
   const [sendError, setSendError] = useState<string | null>(null);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [peerLastReadMs, setPeerLastReadMs] = useState<number | null>(null);
-  const bottomRef = useRef<HTMLDivElement>(null);
+  const [peerOpened, setPeerOpened] = useState(false);
+  // "idle" | "folding"（送信アニメ再生中）
+  const [phase, setPhase] = useState<"idle" | "folding">("idle");
 
   const threadId = chatThreadId(user.uid, peer.uid);
-  const timeline = useMemo(
-    () => (messages && messages.length > 0 ? groupMessagesWithDates(messages) : []),
-    [messages]
+
+  const { mine: myLetter, peer: peerLetter } = useMemo(
+    () => pickLetters(messages ?? [], user.uid, peer.uid),
+    [messages, user.uid, peer.uid]
   );
 
-  // 相手が読んだ自分の最新メッセージにだけ「既読」を出す
-  const lastReadMineId = useMemo(() => {
-    if (!messages || peerLastReadMs == null) return null;
-    let id: string | null = null;
-    for (const m of messages) {
-      if (m.senderUid !== user.uid) continue;
-      const ms = chatTimestampMs(m.createdAt);
-      if (ms != null && ms <= peerLastReadMs) id = m.id;
-    }
-    return id;
-  }, [messages, peerLastReadMs, user.uid]);
+  // 相手が自分の手紙を開封したか
+  const peerOpenedMine = useMemo(() => {
+    if (!myLetter || peerLastReadMs == null) return false;
+    const ms = chatTimestampMs(myLetter.createdAt);
+    return ms != null && ms <= peerLastReadMs;
+  }, [myLetter, peerLastReadMs]);
 
   useEffect(() => {
     const unsub = subscribeChatMessages(
@@ -144,11 +131,7 @@ export function ChatConversation({
     return () => unsub?.();
   }, [threadId]);
 
-  useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages]);
-
-  // 相手の既読時刻を購読
+  // 相手の開封時刻を購読
   useEffect(() => {
     const unsub = subscribeChatThreadRead(user.uid, peer.uid, (s) =>
       setPeerLastReadMs(s.peerLastReadMs)
@@ -156,21 +139,33 @@ export function ChatConversation({
     return () => unsub?.();
   }, [user.uid, peer.uid]);
 
-  // この会話を開いている／新着が届いたら自分の既読を記録
+  // 相手の手紙を開封したら既読を記録
   useEffect(() => {
-    if (!messages) return;
-    void markChatThreadRead(user.uid, peer.uid);
-  }, [user.uid, peer.uid, messages]);
+    if (peerOpened && peerLetter) void markChatThreadRead(user.uid, peer.uid);
+  }, [peerOpened, peerLetter, user.uid, peer.uid]);
 
-  const handleSend = useCallback(async () => {
-    if (!canSend) return;
-    setSendError(null);
+  // 送信アニメーション完了後に実際に送信する
+  const runSend = useCallback(async () => {
     setSending(true);
     const res = await sendChatMessage(user.uid, peer.uid, draft);
     setSending(false);
+    setPhase("idle");
     if (res.ok) setDraft("");
     else setSendError(res.message);
-  }, [user.uid, peer.uid, draft, canSend]);
+  }, [user.uid, peer.uid, draft]);
+
+  const handleSendClick = useCallback(() => {
+    if (!canSend || sending || phase !== "idle") return;
+    if (!draft.trim()) {
+      setSendError("手紙の本文を書いてください。");
+      return;
+    }
+    setSendError(null);
+    setPhase("folding"); // 折りたたみアニメ開始 → onAnimationEnd で送信
+  }, [canSend, sending, phase, draft]);
+
+  const remaining = LETTER_MAX_LENGTH - draft.length;
+  const showComposer = canSend && !myLetter;
 
   return (
     <div className="fixed inset-x-0 top-0 z-40 flex flex-col bg-[var(--lobby-cream)] bottom-[calc(4.75rem+env(safe-area-inset-bottom))] pt-[env(safe-area-inset-top)]">
@@ -184,7 +179,13 @@ export function ChatConversation({
           ×
         </button>
         <p className="min-w-0 flex-1 text-center text-xs font-medium leading-snug sm:text-sm">
-          {isStaff ? "運営レター（期限なし）" : canSend ? formatDeadlineBanner(peer.expiresAt) : "期限切れ・履歴のみ"}
+          {isStaff
+            ? "運営レター"
+            : myLetter
+              ? "送信済みの手紙"
+              : canSend
+                ? formatDeadlineBanner(peer.expiresAt)
+                : "送信期限切れ"}
         </p>
         <button
           type="button"
@@ -205,108 +206,124 @@ export function ChatConversation({
         </div>
       ) : null}
 
-      <div className="min-h-0 flex-1 overflow-y-auto px-3 py-4" aria-live="polite">
+      <div className="min-h-0 flex-1 overflow-y-auto px-4 py-5" aria-live="polite">
         {loadError ? (
           <p className="text-sm text-amber-800">{loadError}</p>
         ) : messages === null ? (
           <p className="text-center text-sm text-zinc-500">読み込み中…</p>
-        ) : messages.length === 0 ? (
-          <p className="text-center text-sm text-zinc-500">まだメッセージがありません。最初の一言を送ってみましょう。</p>
         ) : (
-          <div className="space-y-3">
-            {timeline.map((item, i) => {
-              if (item.type === "date") {
-                return (
-                  <div key={`d-${item.label}-${i}`} className="flex items-center gap-3 py-1">
-                    <span className="h-px flex-1 bg-zinc-300/80" />
-                    <span className="shrink-0 text-[11px] text-zinc-500">{item.label}</span>
-                    <span className="h-px flex-1 bg-zinc-300/80" />
-                  </div>
-                );
-              }
-              const m = item.msg;
-              const mine = m.senderUid === user.uid;
-              return (
-                <div key={m.id} className={`flex gap-2 ${mine ? "flex-row-reverse" : "flex-row"}`}>
-                  <ProfileAvatarCircle
-                    displayName={mine ? myDisplayName : peerDisplayName}
-                    avatarPath={mine ? myAvatarPath : peerAvatarPath}
-                    className="mt-1 h-8 w-8 text-xs"
-                  />
-                  <div className={`flex max-w-[78%] flex-col ${mine ? "items-end" : "items-start"}`}>
-                    <div
-                      className={`rounded-2xl px-3 py-2 text-sm ${
-                        mine
-                          ? "rounded-br-sm border border-[var(--lobby-red)]/10 bg-[var(--lobby-surface-raised)] text-zinc-900"
-                          : "rounded-bl-sm border border-zinc-200 bg-white text-zinc-900"
-                      }`}
-                    >
-                      <p className="whitespace-pre-wrap break-words">{m.text}</p>
-                    </div>
-                    <p className={`mt-1 flex items-center gap-1 text-[10px] text-zinc-500 ${mine ? "justify-end" : ""}`}>
-                      {formatMessageTime(m.createdAt)}
-                      {mine && m.id === lastReadMineId ? (
-                        <span className="text-[var(--lobby-red)]">既読</span>
-                      ) : null}
+          <div className="mx-auto flex max-w-md flex-col gap-6">
+            {/* 相手からの手紙 */}
+            {peerLetter ? (
+              <section className="flex flex-col gap-2">
+                <p className="text-xs font-semibold text-zinc-500">
+                  {peerDisplayName}さんからの手紙
+                </p>
+                {!peerOpened ? (
+                  <button
+                    type="button"
+                    onClick={() => setPeerOpened(true)}
+                    className="group relative flex h-36 flex-col items-center justify-center gap-2 rounded-lg border border-[var(--lobby-red)]/25 bg-[var(--lobby-surface-raised)] shadow-sm transition active:scale-[0.99]"
+                  >
+                    <svg className="h-12 w-12 text-[var(--lobby-red)]" viewBox="0 0 24 24" fill="none" aria-hidden>
+                      <rect x="3" y="5.5" width="18" height="13" rx="1.5" stroke="currentColor" strokeWidth="1.5" />
+                      <path d="M3.5 6.5l8.5 6 8.5-6" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round" />
+                    </svg>
+                    <span className="text-sm font-medium text-[var(--lobby-red)]">タップして開封する</span>
+                  </button>
+                ) : (
+                  <>
+                    <LetterSheet text={peerLetter.text} animateOpen />
+                    <p className="text-right text-[11px] text-zinc-400">
+                      {formatLetterDate(peerLetter.createdAt)}
                     </p>
-                  </div>
+                  </>
+                )}
+              </section>
+            ) : null}
+
+            {/* 自分が送った手紙 */}
+            {myLetter ? (
+              <section className="flex flex-col gap-2">
+                <p className="text-xs font-semibold text-zinc-500">あなたが送った手紙</p>
+                <LetterSheet text={myLetter.text} className="opacity-95" />
+                <p className="text-right text-[11px] text-zinc-400">
+                  {formatLetterDate(myLetter.createdAt)}
+                  <span className="ml-2 text-[var(--lobby-red)]">
+                    {peerOpenedMine ? "相手が開封しました" : "未開封"}
+                  </span>
+                </p>
+              </section>
+            ) : null}
+
+            {/* 状態メッセージ */}
+            {myLetter && !peerLetter ? (
+              <p className="rounded-md bg-[var(--lobby-surface-raised)] px-4 py-3 text-center text-xs leading-relaxed text-zinc-600">
+                手紙を送りました。{peerDisplayName}さんからのお返事を待ちましょう。
+              </p>
+            ) : null}
+
+            {!canSend && !myLetter ? (
+              <p className="rounded-md bg-[var(--lobby-surface-raised)] px-4 py-3 text-center text-xs leading-relaxed text-zinc-600">
+                送信期限が過ぎたため、この相手へは手紙を送れません。再マッチで続きから送れます。
+              </p>
+            ) : null}
+
+            {/* 作成（便箋に書く） */}
+            {showComposer ? (
+              <section className="flex flex-col gap-2">
+                <p className="text-xs font-semibold text-zinc-500">
+                  {peerLetter ? "お返事を書く" : "手紙を書く"}（1マッチにつき1通）
+                </p>
+                <div className="relative">
+                  {phase === "folding" ? (
+                    // 送信アニメーション：書いた便箋を折りたたんで投函
+                    <LetterSheet
+                      text={draft}
+                      className="lobby-letter-sending min-h-[16rem]"
+                    />
+                  ) : (
+                    <textarea
+                      value={draft}
+                      maxLength={LETTER_MAX_LENGTH}
+                      onChange={(e) => setDraft(e.target.value)}
+                      placeholder="ここに手紙を書きましょう…"
+                      className="lobby-letter-paper min-h-[16rem] w-full resize-none rounded-md border border-[var(--lobby-red)]/15 text-[15px] text-zinc-800 shadow-sm outline-none focus:border-[var(--lobby-red)]/40 focus:ring-1 focus:ring-[var(--lobby-red)]/20"
+                      style={{ fontFamily: LETTER_FONT }}
+                    />
+                  )}
+                  {phase === "folding" ? (
+                    <div
+                      className="pointer-events-none absolute inset-0"
+                      onAnimationEnd={() => void runSend()}
+                    />
+                  ) : null}
                 </div>
-              );
-            })}
+                <div className="flex items-center justify-between">
+                  <span className={`text-[11px] ${remaining < 0 ? "text-amber-700" : "text-zinc-400"}`}>
+                    残り{remaining}文字
+                  </span>
+                  <button
+                    type="button"
+                    disabled={sending || phase !== "idle" || !draft.trim()}
+                    onClick={handleSendClick}
+                    className="flex items-center gap-2 rounded-full bg-[var(--lobby-red)] px-5 py-2.5 text-sm font-medium text-white shadow-sm transition disabled:opacity-40"
+                  >
+                    {phase === "folding" || sending ? "投函中…" : "折りたたんで送る"}
+                    <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" aria-hidden>
+                      <path d="M5 12l14-7-4 14-3-5-2z" stroke="currentColor" strokeWidth="1.75" strokeLinejoin="round" />
+                    </svg>
+                  </button>
+                </div>
+                {sendError ? <p className="text-xs text-amber-800">{sendError}</p> : null}
+                <p className="text-[11px] leading-relaxed text-zinc-400">
+                  送ると折りたたんで相手に届きます。手紙は1マッチにつき1通だけ送れます。
+                </p>
+              </section>
+            ) : null}
           </div>
         )}
-        <div ref={bottomRef} />
       </div>
-
-      {!canSend ? (
-        <p className="shrink-0 border-t border-zinc-200/80 bg-[var(--lobby-surface-raised)] px-4 py-3 text-center text-xs leading-relaxed text-zinc-600">
-          送信期限が過ぎています。履歴は閲覧できます。再マッチで続きから送れます。
-        </p>
-      ) : (
-        <div className="shrink-0 border-t border-zinc-200/80 bg-[var(--lobby-cream)] px-3 py-2">
-          <div className="flex items-end gap-2">
-            <button
-              type="button"
-              disabled
-              className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-zinc-400"
-              aria-label="画像（準備中）"
-              title="準備中"
-            >
-              <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" aria-hidden>
-                <rect x="4" y="5" width="16" height="14" rx="2" stroke="currentColor" strokeWidth="1.75" />
-                <circle cx="9" cy="10" r="1.5" fill="currentColor" />
-                <path d="M4 16l4-4 4 4 4-5 4 5" stroke="currentColor" strokeWidth="1.75" strokeLinejoin="round" />
-              </svg>
-            </button>
-            <textarea
-              rows={1}
-              maxLength={2000}
-              value={draft}
-              onChange={(e) => setDraft(e.target.value)}
-              placeholder="メッセージを入力"
-              className="max-h-24 min-h-[2.5rem] flex-1 resize-none rounded-full border border-zinc-200 bg-white px-4 py-2.5 text-sm outline-none focus:border-[var(--lobby-red)] focus:ring-1 focus:ring-[var(--lobby-red)]/30"
-              onKeyDown={(e) => {
-                if (e.key === "Enter" && !e.shiftKey) {
-                  e.preventDefault();
-                  if (!sending && draft.trim()) void handleSend();
-                }
-              }}
-            />
-            <button
-              type="button"
-              disabled={sending || !draft.trim()}
-              onClick={() => void handleSend()}
-              className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[var(--lobby-red)] text-white disabled:opacity-40"
-              aria-label="送信"
-            >
-              <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" aria-hidden>
-                <path d="M5 12l14-7-4 14-3-5-2z" stroke="currentColor" strokeWidth="1.75" strokeLinejoin="round" />
-              </svg>
-            </button>
-          </div>
-          {sendError ? <p className="mt-1 text-xs text-amber-800">{sendError}</p> : null}
-        </div>
-      )}
 
       <ChatSettingsSheet
         open={settingsOpen}

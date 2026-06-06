@@ -53,3 +53,77 @@ body {
   color: #18181b;
   font-family: var(--font-noto-sans-jp), ui-sans-serif, system-ui, sans-serif;
 }
+
+/* ===== レター（便箋）UI ===== */
+
+/* 罫線入りの便箋。padding-top は罫線間隔の整数倍にして文字を線に乗せる */
+.lobby-letter-paper {
+  --letter-rule: 2rem;
+  line-height: var(--letter-rule);
+  padding: var(--letter-rule) 1.25rem 1.25rem;
+  background-color: #fffdf7;
+  background-image: repeating-linear-gradient(
+    to bottom,
+    transparent 0,
+    transparent calc(var(--letter-rule) - 1px),
+    rgba(178, 0, 27, 0.16) calc(var(--letter-rule) - 1px),
+    rgba(178, 0, 27, 0.16) var(--letter-rule)
+  );
+  background-attachment: local;
+  background-origin: padding-box;
+}
+
+/* 折りたたんで投函するアニメーション（送信時） */
+@keyframes lobbyLetterSend {
+  0% {
+    transform: scaleY(1) translateY(0);
+    opacity: 1;
+  }
+  28% {
+    transform: scaleY(0.62) translateY(0);
+  }
+  46% {
+    transform: scaleY(0.34) translateY(0);
+  }
+  62% {
+    transform: scaleY(0.18) translateY(0) rotate(-1deg);
+    opacity: 1;
+  }
+  100% {
+    transform: scaleY(0.18) translateY(70vh) rotate(2deg);
+    opacity: 0;
+  }
+}
+
+.lobby-letter-sending {
+  transform-origin: top center;
+  animation: lobbyLetterSend 1.15s cubic-bezier(0.6, 0, 0.4, 1) forwards;
+}
+
+/* 開封（折りたたまれた手紙を開く）アニメーション（受信時） */
+@keyframes lobbyLetterOpen {
+  0% {
+    transform: scaleY(0.18);
+    opacity: 0.5;
+  }
+  55% {
+    transform: scaleY(1.02);
+    opacity: 1;
+  }
+  100% {
+    transform: scaleY(1);
+    opacity: 1;
+  }
+}
+
+.lobby-letter-opening {
+  transform-origin: top center;
+  animation: lobbyLetterOpen 0.7s ease-out;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .lobby-letter-sending,
+  .lobby-letter-opening {
+    animation-duration: 0.01ms;
+  }
+}

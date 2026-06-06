@@ -600,12 +600,14 @@ service cloud.firestore {
           isLobbyStaff()
           || isChatThreadDocParticipant(get(/databases/$(database)/documents/chatThreads/$(threadId)).data)
         );
+        // レターは1マッチにつき各自1通。docId=senderUid + create のみ許可で重複送信を防ぐ
         allow create: if request.auth != null
+          && messageId == request.auth.uid
           && request.resource.data.keys().hasOnly(['senderUid', 'text', 'createdAt'])
           && request.resource.data.senderUid == request.auth.uid
           && request.resource.data.text is string
           && request.resource.data.text.size() > 0
-          && request.resource.data.text.size() <= 2000
+          && request.resource.data.text.size() <= 800
           && request.resource.data.createdAt is timestamp
           && isChatThreadDocParticipant(get(/databases/$(database)/documents/chatThreads/$(threadId)).data)
           && (

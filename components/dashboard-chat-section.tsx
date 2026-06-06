@@ -56,8 +56,8 @@ function TalkListRow({
   const subtitle = isStaff
     ? "運営レター"
     : peer.isActive
-      ? `送信期限 ${formatExpiryShort(peer.expiresAt)}`
-      : "過去のレター（閲覧のみ）";
+      ? `手紙が書けます（期限 ${formatExpiryShort(peer.expiresAt)}）`
+      : "過去の手紙（閲覧のみ）";
 
   return (
     <li>
@@ -230,7 +230,7 @@ function DashboardChatLoaded({ user }: { user: User }) {
           <p className="text-sm text-zinc-600">
             会場でQR交換してマッチすると、
             <br />
-            ここにトークが表示されます。
+            ここに手紙のやり取りが表示されます。
           </p>
         </div>
       ) : (

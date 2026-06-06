@@ -1,5 +1,4 @@
 import {
-  addDoc,
   collection,
   doc,
   getDoc,
@@ -24,6 +23,27 @@ export type ChatMessageRow = {
   text: string;
   createdAt?: unknown;
 };
+
+/** レター1通の最大文字数 */
+export const LETTER_MAX_LENGTH = 800;
+
+/**
+ * メッセージ一覧から自分／相手の手紙（各1通）を取り出す。
+ * 旧データで同一送信者の複数行がある場合は最初の1通を採用する。
+ */
+export function pickLetters(
+  rows: ChatMessageRow[],
+  myUid: string,
+  peerUid: string
+): { mine: ChatMessageRow | null; peer: ChatMessageRow | null } {
+  let mine: ChatMessageRow | null = null;
+  let peer: ChatMessageRow | null = null;
+  for (const r of rows) {
+    if (r.senderUid === myUid && !mine) mine = r;
+    else if (r.senderUid === peerUid && !peer) peer = r;
+  }
+  return { mine, peer };
+}
 
 /** Firestore Timestamp 等を ms に変換（取得できなければ null） */
 export function chatTimestampMs(ts: unknown): number | null {
@@ -153,6 +173,10 @@ export function subscribeChatThreadRead(
   );
 }
 
+/**
+ * レターを送信する。1マッチにつき各自1通だけ（docId=送信者UIDで重複送信を防ぐ）。
+ * すでに自分の手紙がある場合は再送不可。
+ */
 export async function sendChatMessage(
   myUid: string,
   peerUid: string,
@@ -161,15 +185,29 @@ export async function sendChatMessage(
   const db = getFirebaseDb();
   if (!db) return { ok: false, message: "Firestore に接続できません。" };
   const text = textRaw.trim();
-  if (!text) return { ok: false, message: "メッセージを入力してください。" };
-  if (text.length > 2000) return { ok: false, message: "メッセージは2000文字以内にしてください。" };
+  if (!text) return { ok: false, message: "手紙の本文を書いてください。" };
+  if (text.length > LETTER_MAX_LENGTH) {
+    return { ok: false, message: `手紙は${LETTER_MAX_LENGTH}文字以内にしてください。` };
+  }
   if (peerUid === myUid) return { ok: false, message: "自分には送信できません。" };
 
   const threadId = await ensureChatThread(myUid, peerUid);
   if (!threadId) return { ok: false, message: "レターの準備に失敗しました。" };
 
+  // すでに自分の手紙があれば送信しない（1通制）
+  const letterRef = doc(db, CHAT_THREADS, threadId, MESSAGES, myUid);
   try {
-    await addDoc(collection(db, CHAT_THREADS, threadId, MESSAGES), {
+    const existing = await getDoc(letterRef);
+    if (existing.exists()) {
+      return { ok: false, message: "この相手へはすでに手紙を送っています。1マッチにつき1通までです。" };
+    }
+  } catch {
+    // 取得失敗時は書き込み側の create ルールで弾かれるので続行
+  }
+
+  try {
+    // docId=myUid + create のみ許可。重複は permission-denied で弾かれる
+    await setDoc(letterRef, {
       senderUid: myUid,
       text,
       createdAt: serverTimestamp(),
@@ -183,7 +221,7 @@ export async function sendChatMessage(
   } catch (err: unknown) {
     const c = err && typeof err === "object" && "code" in err ? String((err as { code: string }).code) : "";
     if (c === "permission-denied") {
-      return { ok: false, message: "送信が拒否されました。マッチ相手か、レター期限を確認してください。" };
+      return { ok: false, message: "送信が拒否されました。すでに送信済みか、マッチ相手・期限を確認してください。" };
     }
     return { ok: false, message: "送信に失敗しました。" };
   }

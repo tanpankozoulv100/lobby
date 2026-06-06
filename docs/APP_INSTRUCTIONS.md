@@ -50,7 +50,7 @@
 |------|------------|----------|------------|
 | ホーム | QR・スキャン・コード入力、お知らせ、シーズン帯。**No. はシリアル引き換え順**（シーズンごと） | 実装済 | `dashboard-home-screen.tsx`、`use-user-season.ts` |
 | 履歴 | 3列グリッド・**シーズン名・参加人数（自動）**・相手詳細・通報 | 実装済 | `dashboard-connections-section.tsx` |
-| チャット | 24h/72h、**再マッチは前回から24h/72h経過後**、過去閲覧、DM通知 per peer、運営は期限なし。アイコンはプロフィール写真。**既読は相手の最終既読時刻ベース**（`chatThreads.lastReadLow/High`） | 実装済 | `dashboard-chat-section.tsx`、`profile-avatar-circle.tsx` |
+| レター（手紙） | **1マッチにつき各自1通だけ**（往復で最大2通）。罫線便箋に本文を書き、折りたたんで投函するアニメで送信→相手の返信待ち。受信は封筒→開封。本文800字。送信期限24h/72h、運営レターは期限なし。既読は「開封済み」表示（`chatThreads.lastReadLow/High`）。`messages/{senderUid}` + create のみで重複防止 | 実装済 | `chat-conversation.tsx`、`lib/firestore-chat.ts`、`dashboard-chat-section.tsx` |
 | イベント | カレンダー・朝昼夕タブ・色丸（参加登録なし・一覧のみ） | 実装済 | `dashboard-events-section.tsx`、`event-period-slot-list.tsx` |
 | マイページ | No.xxx、**鉛筆→プロフィール編集**、**各種設定→規約リンク一覧** | 実装済 | `dashboard-mypage-tab.tsx`、`profile-edit-sheet.tsx`、`settings-links-sheet.tsx` |
 | 安全 | **通報のみ**（ブロックなし）・Functions 停止・コホート反転 | 実装済 | `reportPeer`、`functions/` |
@@ -119,3 +119,4 @@
 | 2026-06-06 | ブランドロゴデータを `public/brand/`（`red/`・`white/`・`lobby_logo.ai`）に格納。基本は RED を使用。ホームの「Lobby」を文字からワードマーク画像（`/brand/red/logotype_2_red.png`）に差し替え。`logotype_*`=文字、`logomark_*`=Lマーク、`logo*`=組み合わせ |
 | 2026-06-06 | 画面の地を光沢感のある赤→オレンジのグラデーションに（`html` に固定背景、`--lobby-screen-bg` は透過化）。地に直接乗る文字（ホームのシーズン見出し・残り日数帯、マイページのタイトル/表示名/No./相性導線）は白系に調整して可読性を確保。カード上の文字は従来どおり |
 | 2026-06-06 | 表示文言を変更: 「チャット」→「レター」、「デートお誘い券／お誘い券」→「招待状」（タブ名・見出し・ボタン・通知/エラーメッセージなど表示文字のみ。コレクション名・変数・ファイル名は据え置き） |
+| 2026-06-06 | レター機能を「手紙」体験に刷新: LINE的な連投をやめ、**罫線つき便箋**に本文を書き、送信時に**折りたたんで投函するアニメーション**を再生。**1マッチにつき各自1通だけ**（往復で最大2通／`messages/{senderUid}` + create のみで重複防止）。受信側は**封筒→開封**で読む。本文上限 **800字**。送信期限（24h/72h）と運営レターは従来どおり。相手の既読は「開封済み」表示。`firestore.rules` 更新（`npm run deploy:rules` 要） |
