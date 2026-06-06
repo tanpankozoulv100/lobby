@@ -207,110 +207,113 @@ export function ChatConversation({
         </div>
       ) : null}
 
-      <div className="min-h-0 flex-1 overflow-y-auto px-4 py-5" aria-live="polite">
+      <div className="flex min-h-0 flex-1 flex-col" aria-live="polite">
         {loadError ? (
-          <p className="text-sm text-amber-800">{loadError}</p>
+          <p className="px-4 py-5 text-sm text-amber-800">{loadError}</p>
         ) : messages === null ? (
-          <p className="text-center text-sm text-zinc-500">読み込み中…</p>
-        ) : (
-          <div className="mx-auto flex max-w-md flex-col gap-6">
-            {/* 相手からの手紙 */}
+          <p className="px-4 py-5 text-center text-sm text-zinc-500">読み込み中…</p>
+        ) : showComposer ? (
+          /* 作成画面：便箋を画面いっぱいに表示して 1 行目から書く */
+          <>
             {peerLetter ? (
-              <section className="flex flex-col gap-2">
-                <p className="text-xs font-semibold text-zinc-500">
+              <div className="shrink-0 px-4 pt-4">
+                <p className="mb-2 text-xs font-semibold text-zinc-500">
                   {peerDisplayName}さんからの手紙
                 </p>
-                <LetterEnvelope
-                  text={peerLetter.text}
-                  onOpen={() => setPeerOpened(true)}
+                <LetterEnvelope text={peerLetter.text} onOpen={() => setPeerOpened(true)} />
+              </div>
+            ) : null}
+            <div className="shrink-0 px-4 pb-1 pt-3">
+              <p className="text-xs font-semibold text-zinc-500">
+                {peerLetter ? "お返事を書く" : "手紙を書く"}（1マッチにつき1通）
+              </p>
+            </div>
+            <div className="relative min-h-0 flex-1 px-4 pb-3">
+              {phase === "folding" ? (
+                <>
+                  <LetterSheet text={draft} className="lobby-letter-sending h-full overflow-hidden" />
+                  <div
+                    className="pointer-events-none absolute inset-0"
+                    onAnimationEnd={() => void runSend()}
+                  />
+                </>
+              ) : (
+                <textarea
+                  value={draft}
+                  maxLength={LETTER_MAX_LENGTH}
+                  onChange={(e) => setDraft(e.target.value)}
+                  placeholder="ここに手紙を書きましょう…"
+                  className="lobby-letter-paper h-full w-full resize-none rounded-md border border-[var(--lobby-red)]/15 text-[15px] text-zinc-800 shadow-sm outline-none focus:border-[var(--lobby-red)]/40 focus:ring-1 focus:ring-[var(--lobby-red)]/20"
+                  style={{ fontFamily: LETTER_FONT }}
                 />
-                {peerOpened ? (
-                  <p className="text-right text-[11px] text-zinc-400">
-                    {formatLetterDate(peerLetter.createdAt)}
+              )}
+            </div>
+            <div className="shrink-0 border-t border-zinc-200/70 bg-[var(--lobby-cream)] px-4 py-3">
+              <div className="flex items-center justify-between gap-3">
+                <span className={`text-[11px] ${remaining < 0 ? "text-amber-700" : "text-zinc-400"}`}>
+                  残り{remaining}文字
+                </span>
+                <button
+                  type="button"
+                  disabled={sending || phase !== "idle" || !draft.trim()}
+                  onClick={handleSendClick}
+                  className="flex items-center gap-2 rounded-full bg-[var(--lobby-red)] px-5 py-2.5 text-sm font-medium text-white shadow-sm transition disabled:opacity-40"
+                >
+                  {phase === "folding" || sending ? "投函中…" : "折りたたんで送る"}
+                  <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" aria-hidden>
+                    <path d="M5 12l14-7-4 14-3-5-2z" stroke="currentColor" strokeWidth="1.75" strokeLinejoin="round" />
+                  </svg>
+                </button>
+              </div>
+              {sendError ? <p className="mt-1 text-xs text-amber-800">{sendError}</p> : null}
+              <p className="mt-1 text-[11px] leading-relaxed text-zinc-400">
+                送ると折りたたんで相手に届きます。手紙は1マッチにつき1通だけ送れます。
+              </p>
+            </div>
+          </>
+        ) : (
+          /* 送信済み・閲覧のみ：手紙をセクションで表示 */
+          <div className="min-h-0 flex-1 overflow-y-auto px-4 py-5">
+            <div className="mx-auto flex max-w-md flex-col gap-6">
+              {peerLetter ? (
+                <section className="flex flex-col gap-2">
+                  <p className="text-xs font-semibold text-zinc-500">
+                    {peerDisplayName}さんからの手紙
                   </p>
-                ) : null}
-              </section>
-            ) : null}
-
-            {/* 自分が送った手紙 */}
-            {myLetter ? (
-              <section className="flex flex-col gap-2">
-                <p className="text-xs font-semibold text-zinc-500">あなたが送った手紙</p>
-                <LetterSheet text={myLetter.text} className="opacity-95" />
-                <p className="text-right text-[11px] text-zinc-400">
-                  {formatLetterDate(myLetter.createdAt)}
-                  <span className="ml-2 text-[var(--lobby-red)]">
-                    {peerOpenedMine ? "相手が開封しました" : "未開封"}
-                  </span>
-                </p>
-              </section>
-            ) : null}
-
-            {/* 状態メッセージ */}
-            {myLetter && !peerLetter ? (
-              <p className="rounded-md bg-[var(--lobby-surface-raised)] px-4 py-3 text-center text-xs leading-relaxed text-zinc-600">
-                手紙を送りました。{peerDisplayName}さんからのお返事を待ちましょう。
-              </p>
-            ) : null}
-
-            {!canSend && !myLetter ? (
-              <p className="rounded-md bg-[var(--lobby-surface-raised)] px-4 py-3 text-center text-xs leading-relaxed text-zinc-600">
-                送信期限が過ぎたため、この相手へは手紙を送れません。再マッチで続きから送れます。
-              </p>
-            ) : null}
-
-            {/* 作成（便箋に書く） */}
-            {showComposer ? (
-              <section className="flex flex-col gap-2">
-                <p className="text-xs font-semibold text-zinc-500">
-                  {peerLetter ? "お返事を書く" : "手紙を書く"}（1マッチにつき1通）
-                </p>
-                <div className="relative">
-                  {phase === "folding" ? (
-                    // 送信アニメーション：書いた便箋を折りたたんで投函
-                    <LetterSheet
-                      text={draft}
-                      className="lobby-letter-sending min-h-[16rem]"
-                    />
-                  ) : (
-                    <textarea
-                      value={draft}
-                      maxLength={LETTER_MAX_LENGTH}
-                      onChange={(e) => setDraft(e.target.value)}
-                      placeholder="ここに手紙を書きましょう…"
-                      className="lobby-letter-paper min-h-[16rem] w-full resize-none rounded-md border border-[var(--lobby-red)]/15 text-[15px] text-zinc-800 shadow-sm outline-none focus:border-[var(--lobby-red)]/40 focus:ring-1 focus:ring-[var(--lobby-red)]/20"
-                      style={{ fontFamily: LETTER_FONT }}
-                    />
-                  )}
-                  {phase === "folding" ? (
-                    <div
-                      className="pointer-events-none absolute inset-0"
-                      onAnimationEnd={() => void runSend()}
-                    />
+                  <LetterEnvelope text={peerLetter.text} onOpen={() => setPeerOpened(true)} />
+                  {peerOpened ? (
+                    <p className="text-right text-[11px] text-zinc-400">
+                      {formatLetterDate(peerLetter.createdAt)}
+                    </p>
                   ) : null}
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className={`text-[11px] ${remaining < 0 ? "text-amber-700" : "text-zinc-400"}`}>
-                    残り{remaining}文字
-                  </span>
-                  <button
-                    type="button"
-                    disabled={sending || phase !== "idle" || !draft.trim()}
-                    onClick={handleSendClick}
-                    className="flex items-center gap-2 rounded-full bg-[var(--lobby-red)] px-5 py-2.5 text-sm font-medium text-white shadow-sm transition disabled:opacity-40"
-                  >
-                    {phase === "folding" || sending ? "投函中…" : "折りたたんで送る"}
-                    <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" aria-hidden>
-                      <path d="M5 12l14-7-4 14-3-5-2z" stroke="currentColor" strokeWidth="1.75" strokeLinejoin="round" />
-                    </svg>
-                  </button>
-                </div>
-                {sendError ? <p className="text-xs text-amber-800">{sendError}</p> : null}
-                <p className="text-[11px] leading-relaxed text-zinc-400">
-                  送ると折りたたんで相手に届きます。手紙は1マッチにつき1通だけ送れます。
+                </section>
+              ) : null}
+
+              {myLetter ? (
+                <section className="flex flex-col gap-2">
+                  <p className="text-xs font-semibold text-zinc-500">あなたが送った手紙</p>
+                  <LetterSheet text={myLetter.text} className="opacity-95" />
+                  <p className="text-right text-[11px] text-zinc-400">
+                    {formatLetterDate(myLetter.createdAt)}
+                    <span className="ml-2 text-[var(--lobby-red)]">
+                      {peerOpenedMine ? "相手が開封しました" : "未開封"}
+                    </span>
+                  </p>
+                </section>
+              ) : null}
+
+              {myLetter && !peerLetter ? (
+                <p className="rounded-md bg-[var(--lobby-surface-raised)] px-4 py-3 text-center text-xs leading-relaxed text-zinc-600">
+                  手紙を送りました。{peerDisplayName}さんからのお返事を待ちましょう。
                 </p>
-              </section>
-            ) : null}
+              ) : null}
+
+              {!canSend && !myLetter ? (
+                <p className="rounded-md bg-[var(--lobby-surface-raised)] px-4 py-3 text-center text-xs leading-relaxed text-zinc-600">
+                  送信期限が過ぎたため、この相手へは手紙を送れません。再マッチで続きから送れます。
+                </p>
+              ) : null}
+            </div>
           </div>
         )}
       </div>

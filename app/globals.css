@@ -56,11 +56,11 @@ body {
 
 /* ===== レター（便箋）UI ===== */
 
-/* 罫線入りの便箋。padding-top は罫線間隔の整数倍にして文字を線に乗せる */
+/* 罫線入りの便箋。罫線の起点を content-box にして 1 行目から文字を線に乗せる */
 .lobby-letter-paper {
   --letter-rule: 2rem;
   line-height: var(--letter-rule);
-  padding: var(--letter-rule) 1.25rem 1.25rem;
+  padding: 0.5rem 1.25rem 1.25rem;
   background-color: #fffdf7;
   background-image: repeating-linear-gradient(
     to bottom,
@@ -70,7 +70,8 @@ body {
     rgba(178, 0, 27, 0.16) var(--letter-rule)
   );
   background-attachment: local;
-  background-origin: padding-box;
+  background-origin: content-box;
+  background-clip: content-box;
 }
 
 /* 折りたたんで投函するアニメーション（送信時） */
