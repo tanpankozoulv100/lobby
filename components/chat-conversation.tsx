@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { User } from "firebase/auth";
 import type { ChatPeerEntry } from "@/lib/firestore-chat-date";
 import {
@@ -93,6 +93,7 @@ export function ChatConversation({
   // "idle" | "folding"（送信アニメ再生中）
   const [phase, setPhase] = useState<"idle" | "folding">("idle");
 
+  const rootRef = useRef<HTMLDivElement>(null);
   const threadId = chatThreadId(user.uid, peer.uid);
 
   const { mine: myLetter, peer: peerLetter } = useMemo(
@@ -135,6 +136,35 @@ export function ChatConversation({
     if (peerOpened && peerLetter) void markChatThreadRead(user.uid, peer.uid);
   }, [peerOpened, peerLetter, user.uid, peer.uid]);
 
+  // ソフトキーボード表示時、オーバーレイを可視領域に収めて入力欄が隠れないようにする（iOS 対策）
+  useEffect(() => {
+    const vv = typeof window !== "undefined" ? window.visualViewport : null;
+    const el = rootRef.current;
+    if (!vv || !el) return;
+    const apply = () => {
+      const keyboardOpen = window.innerHeight - vv.height > 120;
+      if (keyboardOpen) {
+        el.style.top = `${vv.offsetTop}px`;
+        el.style.height = `${vv.height}px`;
+        el.style.bottom = "auto";
+      } else {
+        el.style.top = "";
+        el.style.height = "";
+        el.style.bottom = "";
+      }
+    };
+    apply();
+    vv.addEventListener("resize", apply);
+    vv.addEventListener("scroll", apply);
+    return () => {
+      vv.removeEventListener("resize", apply);
+      vv.removeEventListener("scroll", apply);
+      el.style.top = "";
+      el.style.height = "";
+      el.style.bottom = "";
+    };
+  }, []);
+
   // 送信アニメーション完了後に実際に送信する
   const runSend = useCallback(async () => {
     setSending(true);
@@ -159,7 +189,10 @@ export function ChatConversation({
   const showComposer = canSend && !myLetter;
 
   return (
-    <div className="fixed inset-x-0 top-0 z-40 flex flex-col bg-[var(--lobby-cream)] bottom-[calc(4.75rem+env(safe-area-inset-bottom))] pt-[env(safe-area-inset-top)]">
+    <div
+      ref={rootRef}
+      className="fixed inset-x-0 top-0 z-40 flex flex-col bg-[var(--lobby-cream)] bottom-[calc(4.75rem+env(safe-area-inset-bottom))] pt-[env(safe-area-inset-top)]"
+    >
       <header className="flex shrink-0 items-center gap-2 bg-[var(--lobby-red)] px-3 py-3 text-white">
         <button
           type="button"
@@ -226,7 +259,7 @@ export function ChatConversation({
                     if (e.animationName === "lobbyFoldDrop") void runSend();
                   }}
                 >
-                  <div className="lobby-fold-half lobby-fold-top">
+                  <div className="lobby-fold-top">
                     <div
                       className="lobby-fold-sheet lobby-letter-paper text-[15px] text-zinc-800"
                       style={{ fontFamily: LETTER_FONT }}
@@ -234,13 +267,16 @@ export function ChatConversation({
                       <p className="whitespace-pre-wrap break-words leading-[2rem]">{draft}</p>
                     </div>
                   </div>
-                  <div className="lobby-fold-half lobby-fold-bottom">
-                    <div
-                      className="lobby-fold-sheet lobby-letter-paper text-[15px] text-zinc-800"
-                      style={{ fontFamily: LETTER_FONT }}
-                    >
-                      <p className="whitespace-pre-wrap break-words leading-[2rem]">{draft}</p>
+                  <div className="lobby-fold-bottom">
+                    <div className="lobby-fold-face lobby-fold-face-front">
+                      <div
+                        className="lobby-fold-sheet lobby-letter-paper text-[15px] text-zinc-800"
+                        style={{ fontFamily: LETTER_FONT }}
+                      >
+                        <p className="whitespace-pre-wrap break-words leading-[2rem]">{draft}</p>
+                      </div>
                     </div>
+                    <div className="lobby-fold-face lobby-fold-face-back" />
                   </div>
                 </div>
               ) : (
@@ -278,11 +314,11 @@ export function ChatConversation({
             </div>
           </>
         ) : (
-          /* 送信済み・閲覧のみ：手紙をセクションで表示 */
-          <div className="min-h-0 flex-1 overflow-y-auto px-4 py-5">
-            <div className="mx-auto flex max-w-md flex-col gap-6">
+          /* 送信済み・閲覧のみ：手紙を画面いっぱいに表示 */
+          <div className="min-h-0 flex-1 overflow-y-auto">
+            <div className="flex min-h-full flex-col gap-3 px-4 py-4">
               {peerLetter ? (
-                <section className="flex flex-col gap-2">
+                <section className="flex shrink-0 flex-col gap-2">
                   <p className="text-xs font-semibold text-zinc-500">
                     {peerDisplayName}さんからの手紙
                   </p>
@@ -296,10 +332,10 @@ export function ChatConversation({
               ) : null}
 
               {myLetter ? (
-                <section className="flex flex-col gap-2">
-                  <p className="text-xs font-semibold text-zinc-500">あなたが送った手紙</p>
-                  <LetterSheet text={myLetter.text} className="opacity-95" />
-                  <p className="text-right text-[11px] text-zinc-400">
+                <section className="flex min-h-0 flex-1 flex-col gap-2">
+                  <p className="shrink-0 text-xs font-semibold text-zinc-500">あなたが送った手紙</p>
+                  <LetterSheet text={myLetter.text} className="min-h-0 flex-1" />
+                  <p className="shrink-0 text-right text-[11px] text-zinc-400">
                     {formatLetterDate(myLetter.createdAt)}
                     <span className="ml-2 text-[var(--lobby-red)]">
                       {peerOpenedMine ? "相手が開封しました" : "未開封"}
@@ -309,13 +345,13 @@ export function ChatConversation({
               ) : null}
 
               {myLetter && !peerLetter ? (
-                <p className="rounded-md bg-[var(--lobby-surface-raised)] px-4 py-3 text-center text-xs leading-relaxed text-zinc-600">
+                <p className="shrink-0 rounded-md bg-[var(--lobby-surface-raised)] px-4 py-3 text-center text-xs leading-relaxed text-zinc-600">
                   手紙を送りました。{peerDisplayName}さんからのお返事を待ちましょう。
                 </p>
               ) : null}
 
               {!canSend && !myLetter ? (
-                <p className="rounded-md bg-[var(--lobby-surface-raised)] px-4 py-3 text-center text-xs leading-relaxed text-zinc-600">
+                <p className="shrink-0 rounded-md bg-[var(--lobby-surface-raised)] px-4 py-3 text-center text-xs leading-relaxed text-zinc-600">
                   送信期限が過ぎたため、この相手へは手紙を送れません。再マッチで続きから送れます。
                 </p>
               ) : null}

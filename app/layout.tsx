@@ -40,6 +40,8 @@ export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
   viewportFit: "cover",
+  // ソフトキーボード表示時にレイアウトを縮めて入力欄がキーボードに隠れないように
+  interactiveWidget: "resizes-content",
   themeColor: "#fafafa",
 };
 

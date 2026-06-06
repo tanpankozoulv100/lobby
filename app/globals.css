@@ -186,30 +186,46 @@ body {
   animation: lobbyFoldDrop 0.55s ease-in 0.85s forwards;
 }
 
-.lobby-fold-half {
+/* 固定の上半分 */
+.lobby-fold-top {
   position: absolute;
+  top: 0;
   left: 0;
   right: 0;
   height: 50%;
-  overflow: hidden;
-  border-radius: 0.375rem;
-}
-
-.lobby-fold-top {
-  top: 0;
   z-index: 1;
+  overflow: hidden;
+  border-radius: 0.375rem 0.375rem 0 0;
 }
 
-/* 下半分が中央の折り目を軸に、画面手前側へめくれて上半分に重なる */
+/* 下半分（折り目を軸に画面手前側へめくれる） */
 .lobby-fold-bottom {
+  position: absolute;
   top: 50%;
+  left: 0;
+  right: 0;
+  height: 50%;
   z-index: 2;
   transform-origin: top center;
-  background-color: #f1e6cf;
+  transform-style: preserve-3d;
   animation: lobbyFoldHalf 0.85s cubic-bezier(0.55, 0, 0.35, 1) forwards;
 }
 
-/* 各半分は全体便箋を内包し、表示位置をずらして上半分／下半分を見せる */
+/* 表裏それぞれの面（裏面は文字が透けないよう別レイヤーにする） */
+.lobby-fold-face {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  backface-visibility: hidden;
+  border-radius: 0 0 0.375rem 0.375rem;
+}
+.lobby-fold-face-back {
+  transform: rotateX(180deg);
+  background-color: #efe2c9;
+  box-shadow: inset 0 0 26px rgba(150, 110, 60, 0.12);
+}
+
+/* 各面は全体便箋を内包し、表示位置をずらして上半分／下半分を見せる */
 .lobby-fold-sheet {
   position: absolute;
   left: 0;
@@ -219,9 +235,8 @@ body {
 .lobby-fold-top .lobby-fold-sheet {
   top: 0;
 }
-.lobby-fold-bottom .lobby-fold-sheet {
+.lobby-fold-face-front .lobby-fold-sheet {
   top: -100%;
-  backface-visibility: hidden;
 }
 
 /* 折り目の陰影 */
