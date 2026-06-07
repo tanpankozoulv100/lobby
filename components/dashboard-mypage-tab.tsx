@@ -81,7 +81,6 @@ export function DashboardMypageTab({
   const [helpOpen, setHelpOpen] = useState(false);
 
   const avatarUrl = useProfileMediaUrl(profile?.avatarPath);
-  const coverUrl = useProfileMediaUrl(profile?.coverPath);
   const compatAnswered = countAnsweredQuestions(profile?.compatibilityAnswers);
 
   useEffect(() => {
@@ -143,10 +142,7 @@ export function DashboardMypageTab({
     <div>
       <h1 className="sr-only">マイページ</h1>
 
-      <div
-        className="lobby-mirror-wrap"
-        style={coverUrl ? { backgroundImage: `url(${coverUrl})` } : undefined}
-      >
+      <div className="lobby-mirror-wrap">
         <div className="flex flex-col items-center">
           <div className="lobby-mirror">
             <div className="lobby-mirror-glass">
@@ -177,13 +173,13 @@ export function DashboardMypageTab({
               </svg>
             </button>
           </div>
-          <p className="mt-3 text-lg font-bold text-zinc-900">{displayName}</p>
-          <p className="mt-0.5 font-mono text-sm text-zinc-600">No.{noLabel}</p>
+          <p className="mt-3 text-lg font-bold text-[var(--lobby-cream)] drop-shadow-[0_1px_2px_rgba(0,0,0,0.6)]">{displayName}</p>
+          <p className="mt-0.5 font-mono text-sm text-[var(--lobby-cream)]/80 drop-shadow-[0_1px_2px_rgba(0,0,0,0.6)]">No.{noLabel}</p>
           {compatAnswered < 12 ? (
             <button
               type="button"
               onClick={() => setProfileEditOpen(true)}
-              className="mt-2 text-xs text-[var(--lobby-red)] underline underline-offset-2"
+              className="mt-2 text-xs text-[var(--lobby-cream)] underline underline-offset-2 drop-shadow-[0_1px_2px_rgba(0,0,0,0.6)]"
             >
               相性質問 {compatAnswered}/12 — 続きを答える
             </button>
@@ -242,7 +238,7 @@ export function DashboardMypageTab({
         <button
           type="button"
           onClick={() => onSignOut()}
-          className="w-full rounded-xl border border-zinc-300/80 py-3 text-sm font-medium text-zinc-700"
+          className="w-full rounded-xl border border-white/30 py-3 text-sm font-medium text-[var(--lobby-cream)]"
         >
           ログアウト
         </button>

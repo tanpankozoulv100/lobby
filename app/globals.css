@@ -772,17 +772,6 @@ body {
   display: flex;
   justify-content: center;
   padding: 1.5rem 1rem 0.5rem;
-  background-position: center;
-  background-size: cover;
-}
-
-/* 鏡の周りの壁を少し暗く落ち着かせる */
-.lobby-mirror-wrap::before {
-  content: "";
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(180deg, rgba(40, 22, 14, 0.35) 0%, rgba(40, 22, 14, 0.1) 100%);
-  pointer-events: none;
 }
 
 .lobby-mirror {
@@ -1038,20 +1027,23 @@ body {
 /* ===== ホーム: 枠(エンジ)・ニッチ(アイボリー)の背景レイヤーを撤廃し、
    赤いブロックだけが部屋の背景から浮かんで見えるUIにする ===== */
 .lobby-room-wall--hearth .lobby-room-wall-frame,
-.lobby-room-wall--calendar .lobby-room-wall-frame {
+.lobby-room-wall--calendar .lobby-room-wall-frame,
+.lobby-room-wall--mirror .lobby-room-wall-frame {
   border-color: transparent;
   background: none;
   box-shadow: none;
   padding: 0.65rem 0.35rem 0.75rem;
 }
 .lobby-room-wall--hearth .lobby-room-niche,
-.lobby-room-wall--calendar .lobby-room-niche {
+.lobby-room-wall--calendar .lobby-room-niche,
+.lobby-room-wall--mirror .lobby-room-niche {
   border-color: transparent;
   background: none;
   box-shadow: none;
 }
 .lobby-room-wall--hearth .lobby-room-niche-scroll,
-.lobby-room-wall--calendar .lobby-room-niche-scroll {
+.lobby-room-wall--calendar .lobby-room-niche-scroll,
+.lobby-room-wall--mirror .lobby-room-niche-scroll {
   box-shadow: none;
 }
 
