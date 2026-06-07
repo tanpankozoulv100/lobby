@@ -35,6 +35,15 @@
   --font-sans: var(--font-noto-serif-jp), "Hiragino Mincho ProN", "Yu Mincho", "YuMincho", serif;
   --font-serif: var(--font-noto-serif-jp), "Hiragino Mincho ProN", "Yu Mincho", "YuMincho", serif;
   --font-mono: var(--font-geist-mono);
+  /* カード類の角丸を全廃して直角に（rounded-full=円形/ピルのみ維持） */
+  --radius-xs: 0px;
+  --radius-sm: 0px;
+  --radius-md: 0px;
+  --radius-lg: 0px;
+  --radius-xl: 0px;
+  --radius-2xl: 0px;
+  --radius-3xl: 0px;
+  --radius-4xl: 0px;
 }
 
 /* Lobby はクリーム基調のライト UI 固定（OS ダークモードでも同じ見た目） */
@@ -1297,4 +1306,14 @@ body {
   .lobby-letter-unfold {
     animation-duration: 0.01ms;
   }
+}
+
+/* ===== カード類は角丸なし（直角）に統一。円形/封筒イラストは除外 ===== */
+.lobby-room-wall-frame,
+.lobby-room-niche,
+.lobby-room-niche-scroll,
+.lobby-letter-option,
+.lobby-desk-letter-btn,
+.lobby-paper-calendar {
+  border-radius: 0;
 }
