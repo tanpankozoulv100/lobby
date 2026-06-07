@@ -24,7 +24,6 @@ const WALL_FIXTURE: Record<DashboardTab, string> = {
 };
 
 const WALL_COUNT = LOBBY_WALL_ORDER.length;
-const WALL_ANGLE = 360 / WALL_COUNT;
 
 export function wallIndexForTab(tab: DashboardTab): number {
   return LOBBY_WALL_ORDER.indexOf(tab);
@@ -44,9 +43,6 @@ type Props = {
  */
 export function LobbyRoom({ activeTab, onTabChange, walls }: Props) {
   const activeIndex = wallIndexForTab(activeTab);
-  // 部屋（壁の輪）を回して、向いている壁を正面に持ってくる。
-  // 中心に立つユーザーから見ると「自分の視点が回って首を向ける」ように見える。
-  const viewRotation = -activeIndex * WALL_ANGLE;
   const touchStartX = useRef<number | null>(null);
 
   const goAdjacent = useCallback(
@@ -86,13 +82,8 @@ export function LobbyRoom({ activeTab, onTabChange, walls }: Props) {
         onTouchEnd={onTouchEnd}
       >
         <div className="lobby-room-dolly">
-          <div
-            className="lobby-room-carousel"
-            style={{
-              transform: `translateZ(var(--lobby-room-radius)) rotateY(${viewRotation}deg)`,
-            }}
-          >
-            {LOBBY_WALL_ORDER.map((tabId, i) => {
+          <div className="lobby-room-carousel">
+            {LOBBY_WALL_ORDER.map((tabId) => {
               const isActive = tabId === activeTab;
               return (
                 <section
@@ -100,9 +91,6 @@ export function LobbyRoom({ activeTab, onTabChange, walls }: Props) {
                   className={`lobby-room-wall lobby-room-wall--${WALL_FIXTURE[tabId]}${
                     isActive ? " lobby-room-wall--active" : ""
                   }`}
-                  style={{
-                    transform: `rotateY(${i * WALL_ANGLE}deg) translateZ(calc(var(--lobby-room-radius) * -1))`,
-                  }}
                   aria-hidden={!isActive}
                 >
                   <div className="lobby-room-wall-frame">

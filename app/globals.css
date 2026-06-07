@@ -432,8 +432,6 @@ body {
 .lobby-room-dolly {
   position: absolute;
   inset: 0;
-  transform-style: preserve-3d;
-  transform: translateZ(0);
 }
 
 .lobby-room-dolly.is-dollying {
@@ -457,9 +455,8 @@ body {
 .lobby-room-carousel {
   position: absolute;
   inset: 0;
-  transform-style: preserve-3d;
-  /* メニュー選択時の回転モーションは無効（即座に正面の壁へ切替） */
-  transition: none;
+  /* 回転モーション撤廃に伴い 3D 変換は使わず、正面の壁を平面表示する */
+  transform-style: flat;
 }
 
 .lobby-room-wall {
@@ -469,14 +466,11 @@ body {
   width: min(90vw, 400px);
   height: calc(100% - env(safe-area-inset-top) - 1.5rem);
   margin-left: calc(min(90vw, 400px) / -2);
-  transform-style: preserve-3d;
-  backface-visibility: hidden;
+  /* 非アクティブの壁はタップを透過させ、アクティブの壁だけが操作対象になる */
   pointer-events: none;
-  /* 静止時は正面の壁だけを見せる（左右の壁は透けて見えない） */
+  /* 正面の壁だけを見せる（他の壁は重なっていても非表示・透過） */
   opacity: 0;
   filter: brightness(0.4) saturate(0.85);
-  /* 回転モーション撤廃に伴い、壁の切替も即時に */
-  transition: none;
 }
 
 /* 回頭している最中だけ、通り過ぎる左右の壁を薄く見せる */
