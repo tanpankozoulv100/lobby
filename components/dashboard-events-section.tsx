@@ -14,7 +14,6 @@ import {
   parseDateKeyToLocalDate,
   startOfMonth,
 } from "@/lib/calendar-utils";
-import { formatEventDateKey } from "@/lib/event-slot-labels";
 import { formatCountdownBanner } from "@/lib/season-config";
 import { getSeasonRemainingDaysForDisplay } from "@/lib/season-display";
 import { useUserSeason } from "@/lib/use-user-season";
@@ -57,12 +56,7 @@ function DisplayWeekBanner({ displayWindow }: { displayWindow: EventDisplayWindo
       </p>
     );
   }
-  return (
-    <p className="text-center text-xs text-zinc-500">
-      表示中: {formatEventDateKey(displayWindow.visibleFromDateKey)} 〜{" "}
-      {formatEventDateKey(displayWindow.visibleToDateKey)}（毎週木曜に次週分へ更新）
-    </p>
-  );
+  return null;
 }
 
 type LoadedProps = {
