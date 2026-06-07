@@ -11,7 +11,7 @@ import {
   type ChatMessageRow,
 } from "@/lib/firestore-chat";
 
-const LETTER_FONT = "var(--font-noto-serif-jp), serif";
+const LETTER_FONT = "var(--font-a1), sans-serif";
 
 type LetterKind = "mine" | "peer";
 
