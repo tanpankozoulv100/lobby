@@ -246,7 +246,7 @@ export function DashboardHomeScreen({
         <div className="mt-6 text-center">
           <p
             className="text-6xl font-bold tabular-nums leading-none tracking-tight text-white md:text-7xl"
-            style={{ fontFamily: "var(--font-a1), sans-serif" }}
+            style={{ fontFamily: "var(--font-noto-serif-jp), serif" }}
           >
             No.{noLabel}
           </p>

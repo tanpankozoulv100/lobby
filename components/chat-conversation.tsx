@@ -19,7 +19,7 @@ import { LetterEnvelope } from "@/components/letter-envelope";
 import { MatchCompatibilityInline } from "@/components/match-compatibility-inline";
 import type { CompatibilityAnswers } from "@/lib/compatibility-questions";
 
-const LETTER_FONT = "var(--font-a1), sans-serif";
+const LETTER_FONT = "var(--font-noto-serif-jp), serif";
 
 function formatLetterDate(ts: unknown): string {
   if (

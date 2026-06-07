@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 
-const LETTER_FONT = "var(--font-a1), sans-serif";
+const LETTER_FONT = "var(--font-noto-serif-jp), serif";
 
 /**
  * 受信した手紙の封筒。タップすると封を開け、中から便箋がスライドして出てくる。

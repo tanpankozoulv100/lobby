@@ -31,9 +31,9 @@
   --color-lobby-red: var(--lobby-red);
   --color-lobby-cream: var(--lobby-cream);
   --color-lobby-screen: var(--lobby-screen-bg);
-  /* フォントをモリサワ A1 ゴシックに統一。sans/serif どちらも A1 を参照する。 */
-  --font-sans: var(--font-a1), "Hiragino Kaku Gothic ProN", "Hiragino Sans", "Yu Gothic", "YuGothic", "Meiryo", sans-serif;
-  --font-serif: var(--font-a1), "Hiragino Kaku Gothic ProN", "Hiragino Sans", "Yu Gothic", "YuGothic", "Meiryo", sans-serif;
+  /* フォントを明朝(Noto Serif JP)に統一。sans 系も明朝を参照する。 */
+  --font-sans: var(--font-noto-serif-jp), "Hiragino Mincho ProN", "Yu Mincho", "YuMincho", serif;
+  --font-serif: var(--font-noto-serif-jp), "Hiragino Mincho ProN", "Yu Mincho", "YuMincho", serif;
   --font-mono: var(--font-geist-mono);
   /* カード類の角丸を全廃して直角に（rounded-full=円形/ピルのみ維持） */
   --radius-xs: 0px;
@@ -70,7 +70,7 @@ html {
 body {
   background: transparent;
   color: #18181b;
-  font-family: var(--font-a1), "Hiragino Kaku Gothic ProN", "Hiragino Sans", "Yu Gothic", "YuGothic", "Meiryo", sans-serif;
+  font-family: var(--font-noto-serif-jp), "Hiragino Mincho ProN", "Yu Mincho", "YuMincho", serif;
 }
 
 /* ===== レター（便箋）UI ===== */
@@ -514,7 +514,7 @@ body {
   flex-shrink: 0;
   margin-bottom: 0.5rem;
   text-align: center;
-  font-family: var(--font-a1), "Hiragino Kaku Gothic ProN", "Hiragino Sans", sans-serif;
+  font-family: var(--font-noto-serif-jp), serif;
   font-size: 0.7rem;
   font-weight: 600;
   letter-spacing: 0.18em;
@@ -599,7 +599,7 @@ body {
 }
 
 .lobby-keyrack-empty-text {
-  font-family: var(--font-a1), "Hiragino Kaku Gothic ProN", "Hiragino Sans", sans-serif;
+  font-family: var(--font-noto-serif-jp), serif;
   font-size: 0.95rem;
   color: #f0e2c8;
   text-shadow: 0 1px 2px rgba(0, 0, 0, 0.6);
@@ -1003,7 +1003,7 @@ body {
   z-index: 1;
   padding: 0.85rem 0 0.5rem;
   text-align: center;
-  font-family: var(--font-a1), "Hiragino Kaku Gothic ProN", "Hiragino Sans", sans-serif;
+  font-family: var(--font-noto-serif-jp), serif;
   font-size: 0.82rem;
   letter-spacing: 0.16em;
   color: var(--lobby-gold);
