@@ -758,23 +758,11 @@ body {
 
 .lobby-paper-calendar {
   position: relative;
-  margin-top: 0.5rem;
-  padding: 1.1rem 0.9rem 1.1rem;
-  border-radius: 2px;
-  background:
-    linear-gradient(180deg, rgba(0, 0, 0, 0.04) 0%, transparent 6%),
-    repeating-linear-gradient(
-      0deg,
-      rgba(120, 110, 95, 0.04) 0,
-      rgba(120, 110, 95, 0.04) 1px,
-      transparent 1px,
-      transparent 26px
-    ),
-    #fcfaf4;
-  box-shadow:
-    0 1px 0 rgba(255, 255, 255, 0.7) inset,
-    0 18px 30px rgba(0, 0, 0, 0.45),
-    0 2px 6px rgba(0, 0, 0, 0.3);
+  /* 背景の台紙カードは廃止し、中身（カレンダー等）を背景に浮かせる（ホームと同様） */
+  margin-top: 0;
+  padding: 0;
+  background: none;
+  box-shadow: none;
 }
 
 /* ===== マイページ: 壁に取り付けられた壁鏡 ===== */
@@ -1049,18 +1037,21 @@ body {
 
 /* ===== ホーム: 枠(エンジ)・ニッチ(アイボリー)の背景レイヤーを撤廃し、
    赤いブロックだけが部屋の背景から浮かんで見えるUIにする ===== */
-.lobby-room-wall--hearth .lobby-room-wall-frame {
+.lobby-room-wall--hearth .lobby-room-wall-frame,
+.lobby-room-wall--calendar .lobby-room-wall-frame {
   border-color: transparent;
   background: none;
   box-shadow: none;
   padding: 0.65rem 0.35rem 0.75rem;
 }
-.lobby-room-wall--hearth .lobby-room-niche {
+.lobby-room-wall--hearth .lobby-room-niche,
+.lobby-room-wall--calendar .lobby-room-niche {
   border-color: transparent;
   background: none;
   box-shadow: none;
 }
-.lobby-room-wall--hearth .lobby-room-niche-scroll {
+.lobby-room-wall--hearth .lobby-room-niche-scroll,
+.lobby-room-wall--calendar .lobby-room-niche-scroll {
   box-shadow: none;
 }
 
