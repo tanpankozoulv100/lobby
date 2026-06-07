@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import type { User } from "firebase/auth";
 import { isFirebaseConfigComplete } from "@/lib/firebase";
 import {
@@ -10,13 +10,14 @@ import {
   type MergedMatchRow,
 } from "@/lib/firestore-connections";
 import { MatchedPeerDetailSheet } from "@/components/matched-peer-detail-sheet";
-import { MatchCompatibilityInline } from "@/components/match-compatibility-inline";
 import { ensureUserProfile, fetchUserProfile, subscribeUserProfile } from "@/lib/firestore-users";
 import type { CompatibilityAnswers } from "@/lib/compatibility-questions";
-import { useUserSeason } from "@/lib/use-user-season";
-import { getMatchEncounterBadgeTone } from "@/lib/match-encounter";
 import { useProfileMediaUrl } from "@/lib/use-profile-media-url";
-import { ProfileHitokotoBubble } from "@/components/profile-hitokoto-bubble";
+import { formatParticipantNoDisplay } from "@/lib/format-participant-no";
+import { matchTimestampMs } from "@/lib/match-link-times";
+
+type PeerMeta = { displayName: string; avatarPath?: string; participantNo?: number };
+type SortMode = "no" | "match";
 
 function HistoryConfigMissing() {
   return (
@@ -27,66 +28,54 @@ function HistoryConfigMissing() {
   );
 }
 
-/** マッチした相手を「壁に掛かるロビーのキー」として表示する。
- *  房（タッセル）の色はマッチ回数で 黄1 / 橙2 / 赤3+。 */
-function LobbyKey({
-  peerUid,
-  encounterCount,
-  displayName,
-  avatarPath,
-  bio,
-  myAnswers,
+/** マッチ時刻（最新優先）をミリ秒で返す。 */
+function matchMs(row: MergedMatchRow): number {
+  return Math.max(matchTimestampMs(row.lastMatchedAt) ?? 0, matchTimestampMs(row.createdAt) ?? 0);
+}
+
+/** 1件分の行：左にルームキー（No.入り）、右にマッチ相手のアイコン。 */
+function KeyRow({
+  meta,
   onSelect,
 }: {
-  peerUid: string;
-  encounterCount: number;
-  displayName: string;
-  avatarPath?: string;
-  bio?: string;
-  myAnswers: CompatibilityAnswers | undefined;
+  meta: PeerMeta | undefined;
   onSelect: () => void;
 }) {
-  const avatarUrl = useProfileMediaUrl(avatarPath);
-  const tone = getMatchEncounterBadgeTone(encounterCount);
+  const avatarUrl = useProfileMediaUrl(meta?.avatarPath);
+  const displayName = meta?.displayName ?? "…";
+  const noLabel = formatParticipantNoDisplay(meta?.participantNo ?? null, false);
 
   return (
     <button
       type="button"
       onClick={onSelect}
-      className={`lobby-key lobby-key--${tone}`}
-      aria-label={`${displayName} とのマッチ ${encounterCount}回`}
+      className="lobby-keyrow"
+      aria-label={`${displayName} No.${noLabel}`}
     >
-      <span className="lobby-key-fob">
+      <span className="lobby-keyrow-key">
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src="/assets/lobby-room-key.png" alt="" className="lobby-keyrow-key-img" />
+        <span className="lobby-keyrow-no">No.{noLabel}</span>
+      </span>
+      <span className="lobby-keyrow-avatar">
         {avatarUrl ? (
           // eslint-disable-next-line @next/next/no-img-element
-          <img src={avatarUrl} alt="" className="lobby-key-avatar" />
+          <img src={avatarUrl} alt="" className="lobby-keyrow-avatar-img" />
         ) : (
-          <span className="lobby-key-avatar lobby-key-avatar--initial">
-            {displayName.slice(0, 1)}
-          </span>
+          <span className="lobby-keyrow-avatar-initial">{displayName.slice(0, 1)}</span>
         )}
-        <span className="lobby-key-tag">{encounterCount}</span>
-      </span>
-      <span className="lobby-key-bio">
-        <ProfileHitokotoBubble text={bio} tail="bottom" />
-      </span>
-      <span className="lobby-key-name">
-        <span className="lobby-key-name-text">{displayName}</span>
-        <MatchCompatibilityInline peerUid={peerUid} myAnswers={myAnswers} className="text-[10px]" />
       </span>
     </button>
   );
 }
 
 function DashboardConnectionsLoaded({ user }: { user: User }) {
-  const { season } = useUserSeason(user.uid);
   const [links, setLinks] = useState<MergedMatchRow[] | null>(null);
   const [linksError, setLinksError] = useState<string | null>(null);
   const [myAnswers, setMyAnswers] = useState<CompatibilityAnswers | undefined>();
-  const [peerMeta, setPeerMeta] = useState<
-    Record<string, { displayName: string; avatarPath?: string; bio?: string }>
-  >({});
+  const [peerMeta, setPeerMeta] = useState<Record<string, PeerMeta>>({});
   const [selectedPeer, setSelectedPeer] = useState<MergedMatchRow | null>(null);
+  const [sortMode, setSortMode] = useState<SortMode>("no");
 
   useEffect(() => {
     let unsub: (() => void) | null = null;
@@ -127,8 +116,8 @@ function DashboardConnectionsLoaded({ user }: { user: User }) {
           {
             displayName: peer?.displayName?.trim() || `No.${row.peerUid.slice(0, 6)}`,
             avatarPath: peer?.avatarPath,
-            bio: peer?.bio,
-          },
+            participantNo: peer?.participantNo,
+          } satisfies PeerMeta,
         ] as const;
       })
     ).then((pairs) => {
@@ -139,42 +128,69 @@ function DashboardConnectionsLoaded({ user }: { user: User }) {
     };
   }, [links]);
 
+  const sortedLinks = useMemo(() => {
+    if (!links) return null;
+    const arr = [...links];
+    if (sortMode === "no") {
+      arr.sort((a, b) => {
+        const na = peerMeta[a.peerUid]?.participantNo ?? Number.MAX_SAFE_INTEGER;
+        const nb = peerMeta[b.peerUid]?.participantNo ?? Number.MAX_SAFE_INTEGER;
+        return na - nb;
+      });
+    } else {
+      arr.sort((a, b) => matchMs(b) - matchMs(a));
+    }
+    return arr;
+  }, [links, peerMeta, sortMode]);
+
   return (
-    <div className="-mx-4 -mt-3 -mb-4 flex min-h-full flex-col">
-      <p className="px-4 pb-1 pt-3 text-center text-sm font-medium text-[var(--lobby-cream)] drop-shadow-[0_1px_2px_rgba(0,0,0,0.6)]">
-        {season.cardTitle}
-      </p>
+    <div className="flex min-h-full flex-col px-1">
+      <div className="lobby-sort">
+        <p className="lobby-sort-label">並び替え</p>
+        <div className="lobby-sort-tabs">
+          <button
+            type="button"
+            className={sortMode === "no" ? "is-active" : ""}
+            onClick={() => setSortMode("no")}
+          >
+            No.順
+          </button>
+          <button
+            type="button"
+            className={sortMode === "match" ? "is-active" : ""}
+            onClick={() => setSortMode("match")}
+          >
+            マッチした順
+          </button>
+        </div>
+      </div>
 
       {linksError ? (
-        <p className="px-4 pb-1 text-center text-sm text-amber-800">{linksError}</p>
+        <p className="px-4 pb-1 text-center text-sm text-amber-200">{linksError}</p>
       ) : null}
 
-      {links === null ? (
-        <p className="flex flex-1 items-center justify-center px-4 text-center text-sm text-zinc-500">
+      {sortedLinks === null ? (
+        <p className="flex flex-1 items-center justify-center px-4 text-center text-sm text-[var(--lobby-cream)]/70">
           読み込み中…
         </p>
-      ) : links.length === 0 ? (
-        <div className="lobby-keyrack lobby-keyrack--empty">
-          <p className="lobby-keyrack-empty-text">まだ鍵はかかっていません</p>
-          <p className="lobby-keyrack-empty-sub">マッチングした人の鍵がこの壁に増えていきます</p>
+      ) : sortedLinks.length === 0 ? (
+        <div className="flex flex-1 flex-col items-center justify-center gap-2 px-4 py-10 text-center">
+          <p className="text-sm font-medium text-[var(--lobby-cream)] drop-shadow-[0_1px_2px_rgba(0,0,0,0.6)]">
+            まだ鍵はかかっていません
+          </p>
+          <p className="text-xs text-[var(--lobby-cream)]/70">
+            マッチングした人の鍵がここに増えていきます
+          </p>
         </div>
       ) : (
-        <div className="lobby-keyrack">
-          {links.map((row) => {
-            const meta = peerMeta[row.peerUid];
-            return (
-              <LobbyKey
-                key={row.peerUid}
-                peerUid={row.peerUid}
-                encounterCount={row.encounterCount}
-                displayName={meta?.displayName ?? "…"}
-                avatarPath={meta?.avatarPath}
-                bio={meta?.bio}
-                myAnswers={myAnswers}
-                onSelect={() => setSelectedPeer(row)}
-              />
-            );
-          })}
+        <div className="lobby-history-list">
+          {sortedLinks.map((row) => (
+            <KeyRow
+              key={row.peerUid}
+              meta={peerMeta[row.peerUid]}
+              onSelect={() => setSelectedPeer(row)}
+            />
+          ))}
         </div>
       )}
 
