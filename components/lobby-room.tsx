@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
+import { useCallback, useRef, type ReactNode } from "react";
 import type { DashboardTab } from "@/components/dashboard-bottom-nav";
 
 /** ボトムナビ左→右の順（円形の壁もこの順で並ぶ） */
@@ -26,9 +26,6 @@ const WALL_FIXTURE: Record<DashboardTab, string> = {
 const WALL_COUNT = LOBBY_WALL_ORDER.length;
 const WALL_ANGLE = 360 / WALL_COUNT;
 
-/** 視点が回り切る時間（CSS のトランジション/アニメーションと合わせる） */
-const TURN_MS = 1100;
-
 export function wallIndexForTab(tab: DashboardTab): number {
   return LOBBY_WALL_ORDER.indexOf(tab);
 }
@@ -51,30 +48,6 @@ export function LobbyRoom({ activeTab, onTabChange, walls }: Props) {
   // 中心に立つユーザーから見ると「自分の視点が回って首を向ける」ように見える。
   const viewRotation = -activeIndex * WALL_ANGLE;
   const touchStartX = useRef<number | null>(null);
-
-  // 視点が回頭している最中だけ true（このときだけ左右の壁を見せる）
-  const [isTurning, setIsTurning] = useState(false);
-  const dollyRef = useRef<HTMLDivElement>(null);
-  const isFirst = useRef(true);
-
-  useEffect(() => {
-    // 初回マウントではドリー演出を再生しない
-    if (isFirst.current) {
-      isFirst.current = false;
-      return;
-    }
-    // 「一歩引いて前へ」のドリーアニメーションを毎回頭から再生
-    const el = dollyRef.current;
-    if (el) {
-      el.classList.remove("is-dollying");
-      // 強制リフロー（アニメーションを確実に再スタートさせる）
-      void el.offsetWidth;
-      el.classList.add("is-dollying");
-    }
-    setIsTurning(true);
-    const t = window.setTimeout(() => setIsTurning(false), TURN_MS);
-    return () => window.clearTimeout(t);
-  }, [activeTab]);
 
   const goAdjacent = useCallback(
     (delta: -1 | 1) => {
@@ -100,7 +73,7 @@ export function LobbyRoom({ activeTab, onTabChange, walls }: Props) {
   };
 
   return (
-    <div className={`lobby-room${isTurning ? " lobby-room--turning" : ""}`}>
+    <div className="lobby-room">
       <div className="lobby-room-ambient" aria-hidden />
       <div className="lobby-room-ceiling" aria-hidden />
       <div className="lobby-room-lightcone" aria-hidden />
@@ -112,7 +85,7 @@ export function LobbyRoom({ activeTab, onTabChange, walls }: Props) {
         onTouchStart={onTouchStart}
         onTouchEnd={onTouchEnd}
       >
-        <div className="lobby-room-dolly" ref={dollyRef}>
+        <div className="lobby-room-dolly">
           <div
             className="lobby-room-carousel"
             style={{

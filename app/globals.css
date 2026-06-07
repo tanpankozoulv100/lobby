@@ -428,7 +428,7 @@ body {
 }
 
 .lobby-room-dolly.is-dollying {
-  animation: lobby-room-dolly 1.1s cubic-bezier(0.42, 0, 0.2, 1) both;
+  animation: none;
 }
 
 @keyframes lobby-room-dolly {
@@ -449,8 +449,8 @@ body {
   position: absolute;
   inset: 0;
   transform-style: preserve-3d;
-  /* 視点が首を回すように、ゆっくり回頭する */
-  transition: transform 1.1s cubic-bezier(0.42, 0, 0.2, 1);
+  /* メニュー選択時の回転モーションは無効（即座に正面の壁へ切替） */
+  transition: none;
 }
 
 .lobby-room-wall {
@@ -466,9 +466,8 @@ body {
   /* 静止時は正面の壁だけを見せる（左右の壁は透けて見えない） */
   opacity: 0;
   filter: brightness(0.4) saturate(0.85);
-  transition:
-    opacity 0.55s ease,
-    filter 1.1s cubic-bezier(0.42, 0, 0.2, 1);
+  /* 回転モーション撤廃に伴い、壁の切替も即時に */
+  transition: none;
 }
 
 /* 回頭している最中だけ、通り過ぎる左右の壁を薄く見せる */
